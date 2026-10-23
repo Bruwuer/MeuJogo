@@ -22,6 +22,7 @@ func setup(gen: TerrainGenerator) -> void:
 	_gen = gen
 	_material = StandardMaterial3D.new()
 	_material.vertex_color_use_as_albedo = true
+	_material.vertex_color_is_srgb = true
 	_material.roughness = 1.0
 
 

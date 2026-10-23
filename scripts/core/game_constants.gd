@@ -15,7 +15,7 @@ const LOAD_RADIUS := 2 ## Chunks kept loaded around the player (square radius).
 const CHUNKS_APPLIED_PER_FRAME := 2
 
 # Terrain
-const TERRAIN_HEIGHT := 6.0
+const TERRAIN_HEIGHT := 10.0
 const TERRAIN_NOISE_FREQ := 0.02
 
 # Player
@@ -27,7 +27,7 @@ const GRAVITY := 20.0
 # Camera
 const CAM_YAW_DEG := 45.0
 const CAM_PITCH_DEG := -30.0
-const CAM_ORTHO_SIZE := 24.0
+const CAM_ORTHO_SIZE := 12.0
 const CAM_DISTANCE := 40.0
 const CAM_FOLLOW_SMOOTH := 6.0
 
