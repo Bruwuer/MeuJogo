@@ -10,11 +10,14 @@ if (-not $blender) { Write-Error "Blender not found. Install it with: winget ins
 
 $models = @{ "humanoid.py" = "assets/models/humanoid.glb" }
 foreach ($script in $models.Keys) {
+    # Export to a temp file and replace the committed model only on success.
     $out = Join-Path $root $models[$script]
-    if (Test-Path $out) { Remove-Item $out }
-    & $blender -b --factory-startup --python (Join-Path $PSScriptRoot "blender\$script") -- $out 2>&1 |
+    $tmp = "$out.tmp.glb"
+    if (Test-Path $tmp) { Remove-Item $tmp }
+    & $blender -b --factory-startup --python (Join-Path $PSScriptRoot "blender\$script") -- $tmp 2>&1 |
         Select-String -Pattern "EXPORTED|Error|Traceback|rror:" | ForEach-Object { $_.Line }
-    if (-not (Test-Path $out)) { Write-Error "Model not produced: $out"; exit 1 }
+    if (-not (Test-Path $tmp)) { Write-Error "Model not produced, kept previous: $out"; exit 1 }
+    Move-Item -Force $tmp $out
 }
 & "$PSScriptRoot\godot.ps1" --headless --import 2>&1 | Out-Null
 Write-Output "Models built and imported."

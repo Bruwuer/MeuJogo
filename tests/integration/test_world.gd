@@ -96,3 +96,8 @@ func test_player_frozen_over_unloaded_chunk() -> void:
 	await get_tree().physics_frame
 	await get_tree().physics_frame
 	assert_true(p.frozen, "player must freeze while its chunk has no collision")
+
+
+func test_physics_interpolation_enabled() -> void:
+	# Player and camera move on physics ticks; without interpolation the image judders above 60 Hz.
+	assert_true(ProjectSettings.get_setting("physics/common/physics_interpolation", false), "physics interpolation off")

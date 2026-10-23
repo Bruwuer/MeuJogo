@@ -96,3 +96,14 @@ func test_border_has_no_collision() -> void:
 	if border and inner:
 		assert_eq(border.find_children("*", "StaticBody3D", true, false).size(), 0)
 		assert_eq(inner.find_children("*", "StaticBody3D", true, false).size(), 1)
+
+
+func test_no_duplicate_after_back_and_forth() -> void:
+	# A -> B -> A in one frame: A's chunks are still building when re-requested.
+	var s := _make_streamer()
+	s.update_center(_center_of(Vector2i(2, 2)))
+	s.update_center(_center_of(Vector2i(6, 6)))
+	s.update_center(_center_of(Vector2i(2, 2)))
+	await _settle(s)
+	assert_eq(s.loaded_coords().size(), 25)
+	assert_eq(s.get_child_count(), s.loaded_coords().size())

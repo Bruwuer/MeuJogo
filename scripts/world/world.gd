@@ -42,6 +42,7 @@ func _ready() -> void:
 	_player = PLAYER_SCENE.instantiate()
 	add_child(_player)
 	_player.global_position = _spawn + Vector3.UP * _SPAWN_DROP
+	_player.reset_physics_interpolation()
 
 	_camera = IsoCamera.new()
 	_camera.target = _player

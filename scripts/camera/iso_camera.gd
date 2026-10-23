@@ -27,6 +27,7 @@ func rest_offset() -> Vector3:
 func snap_to_target() -> void:
 	if target:
 		global_position = target.global_position + rest_offset()
+		reset_physics_interpolation() # no smoothing across a teleport
 
 
 func _physics_process(delta: float) -> void:

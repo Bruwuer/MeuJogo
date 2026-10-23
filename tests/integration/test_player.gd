@@ -127,3 +127,30 @@ func test_camera_follows() -> void:
 	assert_true(offset.distance_to(cam.rest_offset()) < 0.5, "offset %s vs rest %s" % [offset, cam.rest_offset()])
 	# The player must be on screen (near the view center).
 	assert_true(not cam.is_position_behind(p.global_position))
+
+
+func test_player_without_animations_still_moves() -> void:
+	# A model with no AnimationPlayer (e.g. broken export) must not crash the player.
+	var floor_body := StaticBody3D.new()
+	var shape := CollisionShape3D.new()
+	var box := BoxShape3D.new()
+	box.size = Vector3(50, 1, 50)
+	shape.shape = box
+	floor_body.add_child(shape)
+	floor_body.position = Vector3(0, -0.5, 0)
+	add_child(floor_body)
+	var p := Player.new()
+	var body_shape := CollisionShape3D.new()
+	body_shape.shape = CapsuleShape3D.new()
+	body_shape.position = Vector3(0, 1, 0)
+	p.add_child(body_shape)
+	var model := Node3D.new()
+	model.name = "Model"
+	p.add_child(model)
+	p.position = Vector3(0, 0.05, 0)
+	add_child(p)
+	p.frozen = false
+	var start := p.global_position
+	await _hold(["move_up"], 30)
+	assert_eq(p.current_anim(), "")
+	assert_true(_flat(p.global_position).distance_to(_flat(start)) > 1.0, "player did not move")
