@@ -55,11 +55,11 @@ docs/superpowers/     specs/ e plans/
 3. **Constantes num arquivo único:** `scripts/core/game_constants.gd` (`GameConstants`).
    Nenhum número de gameplay solto no código.
 4. **Testes automáticos em headless antes de dar algo como pronto.** Rode
-   `powershell tools/run_tests.ps1`, leia a saída e confira `RESULT: N passed, 0 failed` com exit 0.
+   `powershell -ExecutionPolicy Bypass -File tools/run_tests.ps1`, leia a saída e confira `RESULT: N passed, 0 failed` com exit 0.
    TDD: teste falhando primeiro.
 5. **Personagens e objetos são modelados por scripts Python do Blender** em `tools/blender/`:
    low-poly, com rig e animações básicas (`idle`, `walk`, `run`), exportados em `.glb` para
-   `assets/models/`. Para mudar um modelo, edite o script e rode `powershell tools/build_models.ps1`.
+   `assets/models/`. Para mudar um modelo, edite o script e rode `powershell -ExecutionPolicy Bypass -File tools/build_models.ps1`.
    Nunca edite o `.glb`. O terreno é gerado na Godot por código.
 6. Sem assets externos. As integrações de assets do Blender MCP (PolyHaven, Sketchfab etc.) ficam desligadas.
 7. Código e comentários em inglês. Documentação e textos do jogo em português.
@@ -67,10 +67,10 @@ docs/superpowers/     specs/ e plans/
 
 ## Comandos
 
-- Testes: `powershell -File tools/run_tests.ps1 [filtro]`
-- Gerar modelos: `powershell -File tools/build_models.ps1`
-- Capturas de tela: `powershell -File tools/capture.ps1` (saem em `captures/`)
-- Abrir o editor: `powershell -File tools/godot.ps1 -e`
+- Testes: `powershell -ExecutionPolicy Bypass -File tools/run_tests.ps1 [filtro]`
+- Gerar modelos: `powershell -ExecutionPolicy Bypass -File tools/build_models.ps1`
+- Capturas de tela: `powershell -ExecutionPolicy Bypass -File tools/capture.ps1` (saem em `captures/`)
+- Abrir o editor: `powershell -ExecutionPolicy Bypass -File tools/godot.ps1 -e`
 
 ## Roadmap
 
