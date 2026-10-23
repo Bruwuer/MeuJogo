@@ -64,6 +64,14 @@ const SPAWN_MAX_SLOPE_DEG := 20.0
 const SPAWN_MAX_TRIES := 64
 const SPAWN_PROP_CLEARANCE := 2.0 ## Free space between spawn and any solid prop's edge.
 
+# Day / night
+const DAY_LENGTH_SEC := 480.0 ## One full day-night cycle.
+const START_TIME_OF_DAY := 0.30 ## 0 = midnight, 0.5 = noon.
+
+# Save
+const SAVE_PATH := "user://save.bin"
+const AUTOSAVE_SEC := 60.0
+
 # Performance budget
 const MAX_FRAME_MS := 50.0
 
