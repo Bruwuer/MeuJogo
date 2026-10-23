@@ -1,0 +1,11 @@
+{
+  "version": 1,
+  "skills": {
+    "godot-genre-open-world": {
+      "source": "thedivergentai/gd-agentic-skills",
+      "sourceType": "github",
+      "skillPath": "skills/godot-genre-open-world/SKILL.md",
+      "computedHash": "6a17978700f0ad3e9a6b3c2cbffe33e3916b45a3aea19ddea25f4931ea838eb1"
+    }
+  }
+}
