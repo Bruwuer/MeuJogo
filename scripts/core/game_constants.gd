@@ -5,11 +5,12 @@ extends RefCounted
 # World generation
 const WORLD_SEED := 1337
 const SPAWN_SEED := -1 ## -1 = random spawn every run.
+const WORLDGEN_VERSION := 1 ## Bump whenever terrain or prop generation changes (invalidates saved removals).
 
 # Chunks (meters)
 const CHUNK_SIZE := 32.0
 const CHUNK_CELLS := 16 ## Terrain quads per chunk side.
-const MAP_CHUNKS := 8 ## Playable map is MAP_CHUNKS x MAP_CHUNKS.
+const MAP_CHUNKS := 24 ## Playable map is MAP_CHUNKS x MAP_CHUNKS.
 const BORDER_CHUNKS := 1 ## Visual-only ring around the playable map.
 const LOAD_RADIUS := 2 ## Chunks kept loaded around the player (square radius).
 const CHUNKS_APPLIED_PER_FRAME := 2
@@ -17,6 +18,18 @@ const CHUNKS_APPLIED_PER_FRAME := 2
 # Terrain
 const TERRAIN_HEIGHT := 10.0
 const TERRAIN_NOISE_FREQ := 0.02
+
+# Biomes
+enum Biome { PLAINS, FOREST, ROCKY }
+const BIOME_NAMES := { Biome.PLAINS: "Planície", Biome.FOREST: "Floresta", Biome.ROCKY: "Pedregoso" }
+const BIOME_NOISE_FREQ := 0.006
+const BIOME_FOREST_MIN := 0.2 ## Biome value above this is forest.
+const BIOME_ROCKY_MAX := -0.3 ## Biome value below this is rocky.
+const ROCKY_HEIGHT_BOOST := 1.2 ## Extra height multiplier fully inside rocky land.
+
+# Props and resources
+enum Prop { OAK, PINE, ROCK, BUSH }
+enum Res { WOOD, STONE, BERRIES }
 
 # Player
 const WALK_SPEED := 4.0

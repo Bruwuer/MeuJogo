@@ -10,15 +10,15 @@ func test_chunk_origin() -> void:
 
 
 func test_playable_bounds() -> void:
-	assert_true(ChunkMath.is_playable(Vector2i(7, 7)))
-	assert_true(not ChunkMath.is_playable(Vector2i(8, 0)))
+	assert_true(ChunkMath.is_playable(Vector2i(23, 23)))
+	assert_true(not ChunkMath.is_playable(Vector2i(24, 0)))
 	assert_true(not ChunkMath.is_playable(Vector2i(0, -1)))
 
 
 func test_border_in_world() -> void:
-	assert_true(ChunkMath.is_in_world(Vector2i(-1, 8)))
+	assert_true(ChunkMath.is_in_world(Vector2i(-1, 24)))
 	assert_true(not ChunkMath.is_in_world(Vector2i(-2, 0)))
-	assert_true(not ChunkMath.is_in_world(Vector2i(0, 9)))
+	assert_true(not ChunkMath.is_in_world(Vector2i(0, 25)))
 
 
 func test_radius_clipped_to_world() -> void:
@@ -29,4 +29,4 @@ func test_radius_clipped_to_world() -> void:
 
 
 func test_playable_size() -> void:
-	assert_eq(ChunkMath.playable_size(), 256.0)
+	assert_eq(ChunkMath.playable_size(), 768.0)

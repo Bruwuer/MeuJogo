@@ -15,7 +15,7 @@ func test_height_range() -> void:
 	rng.seed = 99
 	for i in 200:
 		var h := gen.height_at(rng.randf_range(-64, 320), rng.randf_range(-64, 320))
-		assert_true(h >= 0.0 and h <= GameConstants.TERRAIN_HEIGHT, "height out of range: %f" % h)
+		assert_true(h >= 0.0 and h <= GameConstants.TERRAIN_HEIGHT * (1.0 + GameConstants.ROCKY_HEIGHT_BOOST), "height out of range: %f" % h)
 
 
 func test_terrain_not_flat() -> void:
