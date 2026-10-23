@@ -70,4 +70,11 @@ const MAX_FRAME_MS := 50.0
 const ANIM_IDLE := "idle"
 const ANIM_WALK := "walk"
 const ANIM_RUN := "run"
+const ANIM_WORK := "work"
 const HUMANOID_SCENE := "res://assets/models/humanoid.glb"
+const PROP_SCENES := {
+	Prop.OAK: "res://assets/models/oak.glb",
+	Prop.PINE: "res://assets/models/pine.glb",
+	Prop.ROCK: "res://assets/models/rock.glb",
+	Prop.BUSH: "res://assets/models/bush.glb",
+}

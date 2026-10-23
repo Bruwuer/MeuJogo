@@ -8,13 +8,21 @@ if (-not $blender) {
 }
 if (-not $blender) { Write-Error "Blender not found. Install it with: winget install BlenderFoundation.Blender"; exit 2 }
 
-$models = @{ "humanoid.py" = "assets/models/humanoid.glb" }
-foreach ($script in $models.Keys) {
+# One job per output file: script, extra args, output.
+$jobs = @(
+    @{ Script = "humanoid.py"; Args = @(); Out = "assets/models/humanoid.glb" },
+    @{ Script = "props.py"; Args = @("oak"); Out = "assets/models/oak.glb" },
+    @{ Script = "props.py"; Args = @("pine"); Out = "assets/models/pine.glb" },
+    @{ Script = "props.py"; Args = @("rock"); Out = "assets/models/rock.glb" },
+    @{ Script = "props.py"; Args = @("bush"); Out = "assets/models/bush.glb" }
+)
+foreach ($job in $jobs) {
     # Export to a temp file and replace the committed model only on success.
-    $out = Join-Path $root $models[$script]
+    $out = Join-Path $root $job.Out
     $tmp = "$out.tmp.glb"
     if (Test-Path $tmp) { Remove-Item $tmp }
-    & $blender -b --factory-startup --python (Join-Path $PSScriptRoot "blender\$script") -- $tmp 2>&1 |
+    $scriptArgs = @($job.Args) + @($tmp)
+    & $blender -b --factory-startup --python (Join-Path $PSScriptRoot "blender\$($job.Script)") -- @scriptArgs 2>&1 |
         Select-String -Pattern "EXPORTED|Error|Traceback|rror:" | ForEach-Object { $_.Line }
     if (-not (Test-Path $tmp)) { Write-Error "Model not produced, kept previous: $out"; exit 1 }
     Move-Item -Force $tmp $out

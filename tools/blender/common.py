@@ -67,16 +67,36 @@ def box(name: str, size: tuple, location: tuple, material: bpy.types.Material,
     return obj
 
 
-def join_and_skin(parts: list, armature: bpy.types.Object, name: str) -> bpy.types.Object:
-    """Joins parts into one mesh with transforms applied and binds it to the armature."""
+def mesh_object(name: str, bm: bmesh.types.BMesh, location: tuple, material: bpy.types.Material,
+                scale: tuple = (1.0, 1.0, 1.0)) -> bpy.types.Object:
+    """Turns a bmesh into a linked object (frees the bmesh)."""
+    mesh = bpy.data.meshes.new(name)
+    bm.to_mesh(mesh)
+    bm.free()
+    obj = bpy.data.objects.new(name, mesh)
+    obj.location = location
+    obj.scale = scale
+    obj.data.materials.append(material)
+    bpy.context.scene.collection.objects.link(obj)
+    return obj
+
+
+def join(parts: list, name: str) -> bpy.types.Object:
+    """Joins parts into one object with transforms applied; keeps one material slot per part."""
     bpy.ops.object.select_all(action="DESELECT")
     for p in parts:
         p.select_set(True)
     bpy.context.view_layer.objects.active = parts[0]
     bpy.ops.object.transform_apply(location=True, rotation=True, scale=True)
     bpy.ops.object.join()
-    body = bpy.context.view_layer.objects.active
-    body.name = name
+    obj = bpy.context.view_layer.objects.active
+    obj.name = name
+    return obj
+
+
+def join_and_skin(parts: list, armature: bpy.types.Object, name: str) -> bpy.types.Object:
+    """Joins parts into one mesh with transforms applied and binds it to the armature."""
+    body = join(parts, name)
     body.parent = armature
     mod = body.modifiers.new("Armature", "ARMATURE")
     mod.object = armature

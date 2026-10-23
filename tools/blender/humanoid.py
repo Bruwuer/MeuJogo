@@ -92,5 +92,13 @@ common.make_action(arm, "idle", {
 common.make_action(arm, "walk", gait(24, leg=28.0, arm_amp=24.0, knee=35.0, elbow=15.0, lean=3.0, bob=0.03), 24)
 common.make_action(arm, "run", gait(16, leg=50.0, arm_amp=45.0, knee=75.0, elbow=70.0, lean=14.0, bob=0.06), 16)
 
+common.make_action(arm, "work", {
+    ("upper_arm.L", "rot_x"): [(0, 0.0), (4, -120.0), (7, 10.0), (11, 0.0)],
+    ("upper_arm.R", "rot_x"): [(0, 0.0), (4, -120.0), (7, 10.0), (11, 0.0)],
+    ("forearm.L", "rot_x"): [(0, -8.0), (4, -40.0), (7, -5.0), (11, -8.0)],
+    ("forearm.R", "rot_x"): [(0, -8.0), (4, -40.0), (7, -5.0), (11, -8.0)],
+    ("spine", "rot_x"): [(0, 0.0), (4, -6.0), (7, 12.0), (11, 0.0)],
+}, 11)
+
 common.export_glb(common.output_path())
 print("EXPORTED", common.output_path())

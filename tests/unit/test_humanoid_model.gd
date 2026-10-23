@@ -69,3 +69,14 @@ func test_animations_move_bones() -> void:
 		var moved := not skel.get_bone_pose_rotation(skel.find_bone("thigh.L")).is_equal_approx(start) \
 				or not skel.get_bone_pose_rotation(skel.find_bone("spine")).is_equal_approx(spine_start)
 		assert_true(moved, "%s does not move bones" % a)
+
+
+func test_humanoid_has_work_animation() -> void:
+	var m := _instance()
+	if m == null:
+		return
+	var ap: AnimationPlayer = m.find_children("*", "AnimationPlayer", true, false)[0]
+	assert_true(ap.has_animation(GameConstants.ANIM_WORK), "missing work animation")
+	if ap.has_animation(GameConstants.ANIM_WORK):
+		var length := ap.get_animation(GameConstants.ANIM_WORK).length
+		assert_true(length >= 0.3 and length <= 0.6, "work length %f" % length)
