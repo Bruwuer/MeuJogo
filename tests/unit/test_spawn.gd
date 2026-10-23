@@ -4,7 +4,24 @@ extends GameTest
 func _pick(seed: int) -> Vector3:
 	var rng := RandomNumberGenerator.new()
 	rng.seed = seed
-	return SpawnPicker.pick(TerrainGenerator.new(GameConstants.WORLD_SEED), rng)
+	var gen := TerrainGenerator.new(GameConstants.WORLD_SEED)
+	return SpawnPicker.pick(gen, PropScatter.new(gen, GameConstants.WORLD_SEED), rng)
+
+
+func test_spawn_clear_of_props() -> void:
+	var gen := TerrainGenerator.new(GameConstants.WORLD_SEED)
+	var scatter := PropScatter.new(gen, GameConstants.WORLD_SEED)
+	var center := ChunkMath.playable_size() * 0.5
+	for s in 100:
+		var p := _pick(s)
+		if is_equal_approx(p.x, center) and is_equal_approx(p.z, center):
+			continue
+		for prop: Dictionary in scatter.props_near(p, GameConstants.SPAWN_PROP_CLEARANCE + 2.0):
+			var r: float = GameConstants.PROP_COLLISION_RADIUS[prop.type] * prop.scale
+			if r <= 0.0:
+				continue
+			var d := Vector2(prop.pos.x - p.x, prop.pos.z - p.z).length()
+			assert_true(d >= GameConstants.SPAWN_PROP_CLEARANCE + r, "seed %d spawn %.2f m from a prop" % [s, d])
 
 
 func test_spawn_inside_margin() -> void:

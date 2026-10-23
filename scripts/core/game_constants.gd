@@ -30,6 +30,19 @@ const ROCKY_HEIGHT_BOOST := 1.2 ## Extra height multiplier fully inside rocky la
 # Props and resources
 enum Prop { OAK, PINE, ROCK, BUSH }
 enum Res { WOOD, STONE, BERRIES }
+const PROP_CELL := 4.0 ## Scatter grid cell (m); at most one prop per cell.
+const PROP_MAX_SLOPE_DEG := 30.0
+const PROP_SINK := 0.05 ## Props are sunk this much (x scale) so they never float.
+const PROP_SCALE_MIN := 0.8
+const PROP_SCALE_MAX := 1.25
+## Probability per cell of each prop type, by biome.
+const PROP_DENSITY := {
+	Biome.PLAINS: { Prop.OAK: 0.05, Prop.PINE: 0.0, Prop.ROCK: 0.03, Prop.BUSH: 0.08 },
+	Biome.FOREST: { Prop.OAK: 0.25, Prop.PINE: 0.30, Prop.ROCK: 0.03, Prop.BUSH: 0.10 },
+	Biome.ROCKY: { Prop.OAK: 0.0, Prop.PINE: 0.06, Prop.ROCK: 0.25, Prop.BUSH: 0.03 },
+}
+## Collision radius at scale 1 (0 = walk-through).
+const PROP_COLLISION_RADIUS := { Prop.OAK: 0.4, Prop.PINE: 0.35, Prop.ROCK: 0.9, Prop.BUSH: 0.0 }
 
 # Player
 const WALK_SPEED := 4.0
@@ -48,6 +61,7 @@ const CAM_FOLLOW_SMOOTH := 6.0
 const SPAWN_EDGE_MARGIN := 24.0
 const SPAWN_MAX_SLOPE_DEG := 20.0
 const SPAWN_MAX_TRIES := 64
+const SPAWN_PROP_CLEARANCE := 2.0 ## Free space between spawn and any solid prop's edge.
 
 # Performance budget
 const MAX_FRAME_MS := 50.0

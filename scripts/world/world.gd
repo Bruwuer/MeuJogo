@@ -37,7 +37,7 @@ func _ready() -> void:
 		rng.seed = spawn_seed
 	else:
 		rng.randomize()
-	_spawn = SpawnPicker.pick(_gen, rng)
+	_spawn = SpawnPicker.pick(_gen, PropScatter.new(_gen, GameConstants.WORLD_SEED), rng)
 
 	_player = PLAYER_SCENE.instantiate()
 	add_child(_player)
