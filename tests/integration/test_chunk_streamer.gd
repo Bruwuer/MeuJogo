@@ -7,7 +7,11 @@ var _max_frame_ms := 0.0
 
 func _make_streamer() -> ChunkStreamer:
 	var s := ChunkStreamer.new()
-	s.setup(TerrainGenerator.new(7))
+	var lib := PropLibrary.new()
+	add_child(lib)
+	lib.start_loading()
+	var gen := TerrainGenerator.new(7)
+	s.setup(gen, PropScatter.new(gen, 7), lib, func(_c: Vector2i) -> PackedInt32Array: return PackedInt32Array())
 	add_child(s)
 	return s
 
@@ -94,8 +98,8 @@ func test_border_has_no_collision() -> void:
 	var inner := s.get_node_or_null("Chunk_0_0")
 	assert_true(border != null and inner != null, "chunks missing")
 	if border and inner:
-		assert_eq(border.find_children("*", "StaticBody3D", true, false).size(), 0)
-		assert_eq(inner.find_children("*", "StaticBody3D", true, false).size(), 1)
+		assert_true(border.get_node_or_null("Terrain") == null, "border has terrain collision")
+		assert_true(inner.get_node_or_null("Terrain") != null, "inner lacks terrain collision")
 
 
 func test_no_duplicate_after_back_and_forth() -> void:

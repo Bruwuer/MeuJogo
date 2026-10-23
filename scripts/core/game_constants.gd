@@ -43,6 +43,7 @@ const PROP_DENSITY := {
 }
 ## Collision radius at scale 1 (0 = walk-through).
 const PROP_COLLISION_RADIUS := { Prop.OAK: 0.4, Prop.PINE: 0.35, Prop.ROCK: 0.9, Prop.BUSH: 0.0 }
+const PROP_COLLISION_HEIGHT := 3.0
 
 # Player
 const WALK_SPEED := 4.0

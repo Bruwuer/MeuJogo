@@ -25,9 +25,14 @@ var _is_ready := false
 
 func _ready() -> void:
 	_gen = TerrainGenerator.new(GameConstants.WORLD_SEED)
+	var scatter := PropScatter.new(_gen, GameConstants.WORLD_SEED)
+	var library := PropLibrary.new()
+	library.name = "PropLibrary"
+	add_child(library)
+	library.start_loading()
 	_streamer = ChunkStreamer.new()
 	_streamer.name = "Chunks"
-	_streamer.setup(_gen)
+	_streamer.setup(_gen, scatter, library, func(_c: Vector2i) -> PackedInt32Array: return PackedInt32Array())
 	add_child(_streamer)
 	_add_environment()
 	_add_edge_walls()
@@ -37,7 +42,7 @@ func _ready() -> void:
 		rng.seed = spawn_seed
 	else:
 		rng.randomize()
-	_spawn = SpawnPicker.pick(_gen, PropScatter.new(_gen, GameConstants.WORLD_SEED), rng)
+	_spawn = SpawnPicker.pick(_gen, scatter, rng)
 
 	_player = PLAYER_SCENE.instantiate()
 	add_child(_player)
