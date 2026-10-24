@@ -58,3 +58,10 @@ As capturas saem de `powershell -ExecutionPolicy Bypass -File tools/capture.ps1`
 
 **Capturas:** `13_first_wolves`, `14_hybrid_family`, `15_sword_swing`, `16_arrow_flight`,
 `17_raid_night`, `gallery_species`, `gallery_hybrids` e `gallery_walk`.
+
+**Revisão final (subagente opus):** foram corrigidos, cada um com teste, o índice de criaturas por chunk
+(estava preso ao chunk de origem e furava o teto de população), o ciclo de mortes na sede durante um
+ataque, os ataques "fantasmas" anunciados sem bando por perto, a fome do bando que ignorava as caçadas e
+as construções destruídas à distância que continuavam visíveis.
+Ficaram para depois três pontos menores: o filhote que cresce mantém a colisão pequena, um cadáver pode
+cair se o chunk descarregar, e com 40 criaturas ativas uma criatura próxima não toma a vaga de uma distante.

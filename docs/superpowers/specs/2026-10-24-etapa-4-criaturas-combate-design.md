@@ -145,3 +145,29 @@ ser uma ameaça ao reino.
 3. **Sem espólio:** criaturas mortas não deixam itens nesta etapa.
 4. **Primeiro encontro:** num mundo novo, um bando de lobos é colocado entre 60 e 120 m do ponto
    inicial (sem atacar de imediato: fome baixa, sem rancor).
+
+## 8. Decisões tomadas durante a execução (Claude)
+
+1. Chifres e galhadas vão presos à cabeça, não ao encaixe do corpo.
+2. O cérebro recebe `mate` ({id, pos}) e `hostile_to_player`; as construções só chegam a ele como alvo
+   de ataque. A hostilidade vem do rancor ≥ 0,5, do alarme de filhotes ≥ 0,5, da fome ≥ 0,9 (carnívoros)
+   ou de ter sido ferido pelo jogador.
+3. Fôlego: herbívoros correm ~5 s e carnívoros ~14 s em disparada, para que o lobo alcance o cervo, que é
+   mais rápido.
+4. Carnívoros atacam o reino à noite; herbívoros territoriais, de dia; herbívoros nunca atacam por fome.
+   Ataques resumidos poupam a sede e a bandeira.
+5. O ataque é "ao vivo" só se o reino está carregado e o bando tem criaturas com nó. Com o reino carregado
+   e o bando congelado longe, não há ataque naquela hora (nada de aviso fantasma). Com o reino descarregado,
+   o ataque é resumido.
+6. Um ataque ao vivo termina quando o bando destrói uma construção, causa `RAID_SATISFY_DAMAGE`, só resta
+   a sede com 1 de vida, ou o bando mata o jogador (o rancor cai para 30 %). O jogador fica 5 s
+   invulnerável ao renascer.
+7. A fome do bando cai 0,5 quando um membro abate uma presa, e cada chunk ainda não visitado perto da toca
+   conta como 1 presa.
+8. Teto de população: registros nos 3×3 chunks em volta dos pais. Pares prontos se procuram num raio de
+   15 m, têm o filhote a 2,5 m e esperam 48 h até o próximo.
+9. O arco fica na mão direita. A arma aponta para a frente na pose de descanso, e o jogador fica parado
+   durante o golpe.
+10. Criaturas usam uma esfera de colisão e não colidem entre si (custo de física). Nascem no máximo 2 por
+    frame, e ninguém usa uma criatura como plataforma.
+11. O HUD junta mensagens repetidas. Os avisos de ataques à distância aparecem quando o jogador entra num reino.

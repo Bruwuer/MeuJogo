@@ -19,15 +19,10 @@ primeiro e atualizá-lo ao concluir cada tarefa** (seção "Estado atual").
 
 ## Estado atual
 
-- Etapas 1, 2 e 3: concluídas e no `main` (176 testes passando).
-- **Etapa 4 (criaturas e combate): EM ANDAMENTO.** Autor pediu: combate SÓ por teclado (Espaço ataca para onde o personagem olha, 1/2/3 ou Q troca arma, sem mira automática, sem mouse); construção também por teclado (mouse opcional). Ataques ao reino só com MOTIVO (fome, território, rancor, filhotes) — ver seção 6 do design.
-  - Branch `etapa-4` criado a partir do `main`.
-  - Design escrito e commitado: `docs/superpowers/specs/2026-10-24-etapa-4-criaturas-combate-design.md`
-    (ainda sem revisão do design).
-  - Design revisado (seção 7), plano em `docs/superpowers/plans/2026-10-24-etapa-4-criaturas-combate.md`.
-  - Tarefas 1-5 prontas (genoma, peças, corpo montado + galeria `tests/visual/gallery.gd`, vida/cérebro/criatura, bandos/motivos/PackSim, CreatureManager, armas e combate por teclado, HUD e World, capturas e docs). Próxima: revisão final por subagente (opus), correções, merge no main.
-  - Execução: ver ledger `.superpowers/sdd/2026-10-24-etapa-4-criaturas-combate/progress.md` (linhas `Task N: complete`).
-- Etapas 5 a 9: não iniciadas (ver roadmap no `CLAUDE.md`).
+- Etapas 1 a 4: concluídas e no `main` (262 testes passando). Resumo em `docs/ENTREGAS.md`.
+- **Próxima: Etapa 5 (pessoas).** Começar pelo design curto em `docs/superpowers/specs/`, criando o branch `etapa-5` a partir do `main`.
+  Pedidos do autor da etapa 4 continuam valendo: combate e construção só por teclado; ataques ao reino só com motivo.
+- Etapas 6 a 9: não iniciadas (ver roadmap no `CLAUDE.md`).
 
 ## Execução automática
 
