@@ -33,12 +33,17 @@ def srgb_to_linear(c: float) -> float:
     return c / 12.92 if c <= 0.04045 else ((c + 0.055) / 1.055) ** 2.4
 
 
-def flat_material(name: str, rgb: tuple) -> bpy.types.Material:
-    """`rgb` is an sRGB color (as picked in a color picker); Blender stores Base Color linear."""
+def flat_material(name: str, rgb: tuple, emission: float = 0.0) -> bpy.types.Material:
+    """`rgb` is an sRGB color (as picked in a color picker); Blender stores Base Color linear.
+    `emission` > 0 makes the surface glow in its own color (fire, lit windows)."""
     mat = bpy.data.materials.get(name) or bpy.data.materials.new(name)
     mat.use_nodes = True
     bsdf = mat.node_tree.nodes.get("Principled BSDF")
-    bsdf.inputs["Base Color"].default_value = (*(srgb_to_linear(c) for c in rgb), 1.0)
+    linear = tuple(srgb_to_linear(c) for c in rgb)
+    bsdf.inputs["Base Color"].default_value = (*linear, 1.0)
+    if emission > 0.0:
+        bsdf.inputs["Emission Color"].default_value = (*linear, 1.0)
+        bsdf.inputs["Emission Strength"].default_value = emission
     bsdf.inputs["Roughness"].default_value = 0.9
     return mat
 

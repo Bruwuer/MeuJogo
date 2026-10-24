@@ -1,4 +1,4 @@
-// Flat-colored prop material that dithers away geometry standing between the camera and the
+// Flat-colored prop/building material that dithers away geometry standing between the camera and the
 // player, so trees and rocks never hide the character. player_world_pos is a project-wide
 // shader global updated every frame by World.
 shader_type spatial;
@@ -8,6 +8,7 @@ global uniform vec3 player_world_pos;
 global uniform vec3 main_camera_pos; // lets shadow passes (rendered from the light) skip the fade
 uniform vec4 albedo : source_color = vec4(1.0);
 uniform float roughness = 0.9;
+uniform vec4 emission : source_color = vec4(0.0, 0.0, 0.0, 1.0); // glow (fire, lit windows)
 uniform float fade_radius = 0.17; // fraction of the screen height
 uniform float keep_ratio = 0.3; // share of pixels kept inside the faded area
 uniform float depth_margin = 0.6; // meters in front of the player before fading starts
@@ -18,6 +19,7 @@ const float BAYER[16] = float[16](0.0, 8.0, 2.0, 10.0, 12.0, 4.0, 14.0, 6.0,
 void fragment() {
 	ALBEDO = albedo.rgb;
 	ROUGHNESS = roughness;
+	EMISSION = emission.rgb;
 	vec4 player_view = VIEW_MATRIX * vec4(player_world_pos, 1.0);
 	bool main_view = distance(CAMERA_POSITION_WORLD, main_camera_pos) < 1.0;
 	if (main_view && -VERTEX.z < -player_view.z - depth_margin) {

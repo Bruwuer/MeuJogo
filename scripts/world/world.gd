@@ -43,8 +43,8 @@ func _ready() -> void:
 
 	_gen = TerrainGenerator.new(_state.seed)
 	var scatter := PropScatter.new(_gen, _state.seed)
-	var library := PropLibrary.new()
-	library.name = "PropLibrary"
+	var library := ModelLibrary.new()
+	library.name = "ModelLibrary"
 	add_child(library)
 	library.start_loading()
 	_streamer = ChunkStreamer.new()

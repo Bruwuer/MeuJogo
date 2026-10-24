@@ -9,11 +9,11 @@ var coord: Vector2i
 var _props: Dictionary[int, Dictionary] = {} # id -> prop
 var _multimeshes: Dictionary[int, MultiMeshInstance3D] = {} # Prop type -> instance
 var _shapes: Dictionary[int, CollisionShape3D] = {} # id -> shape
-var _library: PropLibrary
+var _library: ModelLibrary
 
 
 func build(c: Vector2i, terrain_arrays: Array, props: Array[Dictionary], removed: PackedInt32Array,
-		library: PropLibrary, terrain_material: Material) -> void:
+		library: ModelLibrary, terrain_material: Material) -> void:
 	coord = c
 	_library = library
 	name = "Chunk_%d_%d" % [c.x, c.y]

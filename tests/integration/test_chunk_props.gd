@@ -13,7 +13,7 @@ func _provider(c: Vector2i) -> PackedInt32Array:
 
 
 func _make_streamer() -> ChunkStreamer:
-	var lib := PropLibrary.new()
+	var lib := ModelLibrary.new()
 	add_child(lib)
 	lib.start_loading()
 	var s := ChunkStreamer.new()

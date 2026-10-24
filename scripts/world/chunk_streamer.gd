@@ -2,7 +2,7 @@ class_name ChunkStreamer
 extends Node3D
 ## Keeps the chunks within LOAD_RADIUS of a center loaded. Terrain meshes and prop lists are
 ## built on WorkerThreadPool threads; Chunk nodes are created on the main thread in _process,
-## at most CHUNKS_APPLIED_PER_FRAME per frame and only once the PropLibrary is ready.
+## at most CHUNKS_APPLIED_PER_FRAME per frame and only once the ModelLibrary is ready.
 ## Results for chunks that left the radius while building are discarded.
 
 signal chunk_loaded(c: Vector2i)
@@ -10,7 +10,7 @@ signal chunk_unloaded(c: Vector2i)
 
 var _gen: TerrainGenerator
 var _scatter: PropScatter
-var _library: PropLibrary
+var _library: ModelLibrary
 var _removed_provider: Callable # func(c: Vector2i) -> PackedInt32Array
 var _material: StandardMaterial3D
 var _center := Vector2i(1 << 30, 1 << 30)
@@ -21,7 +21,7 @@ var _results: Array = [] # [coord, arrays, props], written by worker threads
 var _results_mutex := Mutex.new()
 
 
-func setup(gen: TerrainGenerator, scatter: PropScatter, library: PropLibrary, removed_provider: Callable) -> void:
+func setup(gen: TerrainGenerator, scatter: PropScatter, library: ModelLibrary, removed_provider: Callable) -> void:
 	_gen = gen
 	_scatter = scatter
 	_library = library

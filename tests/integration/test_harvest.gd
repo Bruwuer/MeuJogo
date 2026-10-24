@@ -15,7 +15,7 @@ func _prop(id: int, type: int, x: float, z: float) -> Dictionary:
 
 ## One hand-made chunk with an oak (id 1), a bush (id 2) and a rock (id 3).
 func _setup() -> void:
-	var lib := PropLibrary.new()
+	var lib := ModelLibrary.new()
 	add_child(lib)
 	lib.start_loading()
 	while not lib.is_ready():

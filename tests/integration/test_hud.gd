@@ -12,7 +12,7 @@ var _hud: Hud
 
 
 func _setup() -> void:
-	var lib := PropLibrary.new()
+	var lib := ModelLibrary.new()
 	add_child(lib)
 	lib.start_loading()
 	while not lib.is_ready():

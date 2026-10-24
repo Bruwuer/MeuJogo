@@ -7,7 +7,7 @@ var _max_frame_ms := 0.0
 
 func _make_streamer() -> ChunkStreamer:
 	var s := ChunkStreamer.new()
-	var lib := PropLibrary.new()
+	var lib := ModelLibrary.new()
 	add_child(lib)
 	lib.start_loading()
 	var gen := TerrainGenerator.new(7)

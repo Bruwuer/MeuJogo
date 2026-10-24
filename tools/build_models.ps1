@@ -14,7 +14,13 @@ $jobs = @(
     @{ Script = "props.py"; Args = @("oak"); Out = "assets/models/oak.glb" },
     @{ Script = "props.py"; Args = @("pine"); Out = "assets/models/pine.glb" },
     @{ Script = "props.py"; Args = @("rock"); Out = "assets/models/rock.glb" },
-    @{ Script = "props.py"; Args = @("bush"); Out = "assets/models/bush.glb" }
+    @{ Script = "props.py"; Args = @("bush"); Out = "assets/models/bush.glb" },
+    @{ Script = "buildings.py"; Args = @("cabin"); Out = "assets/models/cabin.glb" },
+    @{ Script = "buildings.py"; Args = @("campfire"); Out = "assets/models/campfire.glb" },
+    @{ Script = "buildings.py"; Args = @("storage"); Out = "assets/models/storage.glb" },
+    @{ Script = "buildings.py"; Args = @("fence"); Out = "assets/models/fence.glb" },
+    @{ Script = "buildings.py"; Args = @("well"); Out = "assets/models/well.glb" },
+    @{ Script = "buildings.py"; Args = @("flag"); Out = "assets/models/flag.glb" }
 )
 foreach ($job in $jobs) {
     # Export to a temp file and replace the committed model only on success.

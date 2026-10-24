@@ -36,7 +36,7 @@ func test_prop_sizes() -> void:
 
 
 func test_library_loads_async() -> void:
-	var lib := PropLibrary.new()
+	var lib := ModelLibrary.new()
 	add_child(lib)
 	lib.start_loading()
 	assert_true(not lib.is_ready(), "must not load synchronously")
@@ -50,7 +50,7 @@ func test_library_loads_async() -> void:
 
 
 func test_library_meshes_use_occlusion_shader() -> void:
-	var lib := PropLibrary.new()
+	var lib := ModelLibrary.new()
 	add_child(lib)
 	lib.start_loading()
 	while not lib.is_ready():
@@ -59,7 +59,7 @@ func test_library_meshes_use_occlusion_shader() -> void:
 		var mesh := lib.mesh_for(type)
 		for s in mesh.get_surface_count():
 			var mat := mesh.surface_get_material(s)
-			assert_true(mat is ShaderMaterial and (mat as ShaderMaterial).shader.resource_path == PropLibrary.OCCLUSION_SHADER,
+			assert_true(mat is ShaderMaterial and (mat as ShaderMaterial).shader.resource_path == ModelLibrary.OCCLUSION_SHADER,
 					"type %d surface %d not using the occlusion shader" % [type, s])
 
 
