@@ -36,6 +36,7 @@ var _provoked_left := 0.0
 var _wander_pos := Vector3.ZERO
 var _avoid_sign := 1.0
 var _dead := false
+var _raid_radius := 0.0 ## Footprint radius of the building being raided.
 var _rng := RandomNumberGenerator.new()
 
 
@@ -144,6 +145,7 @@ func _think() -> void:
 	target_pos = d.target_pos
 	target_id = d.target_id
 	_target_node = null
+	_raid_radius = float(me.raid_target.get("radius", 0.0)) if state == S.RAID else 0.0
 	if state in [S.HUNT, S.ATTACK, S.MATE]:
 		_target_node = _find(target_id)
 
@@ -201,7 +203,11 @@ func _move(delta: float) -> void:
 		stamina = minf(1.0, stamina + GameConstants.STAMINA_REGEN * delta)
 	var dir := Vector3.ZERO
 	if dist > GameConstants.CREATURE_ARRIVE and share > 0.0:
-		dir = _avoid(to / dist)
+		# Near the raided building the building itself is the goal, not an obstacle.
+		var at_target := state == S.RAID and dist <= _raid_radius + GameConstants.AVOID_RAY * float(genome.size)
+		dir = to / dist if at_target else _avoid(to / dist)
+		if state == S.RAID and dist <= _raid_radius + CreatureBrain.attack_reach(genome) * 0.6:
+			dir = Vector3.ZERO
 	velocity.x = dir.x * top * share
 	velocity.z = dir.z * top * share
 	_apply_gravity(delta)
@@ -243,7 +249,12 @@ func _apply_gravity(delta: float) -> void:
 
 
 func _try_attack() -> void:
-	if _attack_left > 0.0 or state != S.ATTACK:
+	if _attack_left > 0.0:
+		return
+	if state == S.RAID:
+		_try_raid_bite()
+		return
+	if state != S.ATTACK:
 		return
 	var target := _target_node
 	if not is_instance_valid(target):
@@ -258,6 +269,25 @@ func _try_attack() -> void:
 	var killed := (h as Health).damage(float(genome.damage), self)
 	if killed and target is Creature and genome.diet == GameConstants.Diet.CARNIVORE:
 		record.hunger = 0.0 # it eats the prey
+
+
+func _try_raid_bite() -> void:
+	if manager == null or target_id < 0:
+		return
+	var to := target_pos - global_position
+	to.y = 0.0
+	if to.length() > _raid_radius + CreatureBrain.attack_reach(genome):
+		return
+	_attack_left = GameConstants.CREATURE_ATTACK_COOLDOWN
+	rotation.y = atan2(to.x, to.z)
+	body.play_attack()
+	manager.damage_building(target_id, float(genome.damage), self)
+
+
+## Rescales the body after the record aged (cubs grow up).
+func refresh_growth() -> void:
+	genome.size = float(record.genome.size) * growth_factor()
+	body.scale = Vector3.ONE * float(genome.size)
 
 
 func _on_damaged(_amount: float, source: Object) -> void:

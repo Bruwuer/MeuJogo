@@ -315,6 +315,28 @@ const RAID_MESSAGES := {
 }
 const OFFSCREEN_RAID_MSG := "Enquanto você estava fora, os %s destruíram %s no Reino de %s"
 const OFFSCREEN_RAID_NOTHING_MSG := "Enquanto você estava fora, os %s atacaram o Reino de %s, mas nada caiu"
+## Creature population and breeding.
+const CREATURE_PACK_CHANCE := 0.3 ## Chance that a chunk starts with a pack on its first visit.
+const CREATURE_SPAWN_SPREAD := 4.0 ## Pack members start this far around the den.
+const FIRST_WOLVES_DISTANCE := Vector2(60.0, 120.0) ## New worlds: a wolf pack this far from the spawn.
+const POPULATION_CAP_PER_CHUNK := 4 ## No breeding when the 3x3 chunks around hold this many per chunk.
+const BREED_CHECK_SEC := 3.0
+const BREED_CHANCE := 0.25 ## Per check for a ready pair, times their compatibility.
+const BREED_SEEK_RADIUS := 15.0 ## Ready adults this close walk toward each other.
+const BREED_RADIUS := 2.5 ## ... and have a cub once this close.
+const BREED_MAX_HUNGER := 0.5 ## Only fed creatures breed.
+const BREED_COOLDOWN_HOURS := 48.0
+const CUB_DAYS := 2.0 ## In-game days for a cub to grow up.
+const CREATURE_SYNC_SEC := 0.25 ## How often live creatures write their position back to the records.
+const HOSTILE_GRUDGE := 0.5 ## Pack grudge above this makes members attack the player on sight.
+const HOSTILE_CUBS := 0.5
+const HOSTILE_HUNGER := 0.9 ## Starving carnivores risk attacking people.
+const RAID_SATISFY_DAMAGE := 150.0 ## A live raid ends after the pack dealt this much damage (or razed one building).
+const BUILD_DESTROYED_MSG := {
+	Building.CABIN: "Uma Cabana foi destruída pelos %s", Building.CAMPFIRE: "Uma Fogueira foi destruída pelos %s",
+	Building.STORAGE: "Um Depósito foi destruído pelos %s", Building.FENCE: "Uma Cerca foi destruída pelos %s",
+	Building.WELL: "Um Poço foi destruído pelos %s", Building.FLAG: "A Bandeira foi destruída pelos %s",
+}
 ## Building hit points; the seat cabin never drops below 1.
 const BUILD_HP := {
 	Building.CABIN: 300.0, Building.CAMPFIRE: 60.0, Building.STORAGE: 250.0,
