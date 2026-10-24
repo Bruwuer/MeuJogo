@@ -20,13 +20,9 @@ primeiro e atualizá-lo ao concluir cada tarefa** (seção "Estado atual").
 ## Estado atual
 
 - Etapas 1 a 6: concluídas e no `main` (409 testes passando). Resumo em `docs/ENTREGAS.md`.
-- **Próxima: Etapa 7 (governo)** — decisões com efeito, sucessão, governante NPC (corrupção, lealdade, culto ou
-  inimizade). Criar o branch `etapa-7` a partir do `main` e começar pelo design curto em `docs/superpowers/specs/`.
-  A etapa 6 deixou prontos: famílias com chefe (`head_id`), posição de cada pessoa e família (`stance`:
-  aliado/inimigo), relações entre pessoas e entre casas (`PeopleManager.family_relation`) e `kingdom_id` nas famílias.
-  Pedidos do autor continuam valendo: combate e construção só por teclado; ataques ao reino só com motivo.
-  Pendências menores da etapa 6 estão em `docs/ENTREGAS.md`.
-- Etapas 7 a 9: não iniciadas (ver roadmap no `CLAUDE.md`).
+- **Etapa 7 (Casas e ambições): EM ANDAMENTO** no branch `etapa-7`. O autor ampliou a sociedade (roadmap agora tem 10 etapas:
+  7 Casas e ambições, 8 Governo, 9 Mundo vivo, 10 Acabamento). Design: `docs/superpowers/specs/2026-10-24-etapa-7-casas-ambicoes-design.md`.
+- Etapas 8 a 10: não iniciadas (ver roadmap no `CLAUDE.md`).
 
 ## Execução automática
 
