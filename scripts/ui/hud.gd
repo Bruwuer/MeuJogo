@@ -48,6 +48,8 @@ var _card_crest: TextureRect
 var _families: PanelContainer
 var _families_box: VBoxContainer
 var _families_left := 0.0
+var _chronicle: PanelContainer
+var _chronicle_label: Label
 
 
 func setup(state: WorldState, harvest: HarvestSystem, day_night: DayNight, player: Node3D,
@@ -111,7 +113,7 @@ func setup(state: WorldState, harvest: HarvestSystem, day_night: DayNight, playe
 	_hint = _make_label("Hint", Control.PRESET_BOTTOM_LEFT, HORIZONTAL_ALIGNMENT_LEFT)
 	_hint.offset_left = _MARGIN
 	_hint.offset_top = -_MARGIN - _FONT_SIZE * 1.5
-	_hint.text = "E fala · G doa · C famílias · B construir · X demolir · Espaço ataca · H come · F flechas"
+	_hint.text = "E fala · G doa · C famílias · K crônica · B construir · X demolir · Espaço ataca · H come · F flechas"
 	_toast = _make_label("Toast", Control.PRESET_CENTER, HORIZONTAL_ALIGNMENT_CENTER)
 	_toast.add_theme_font_size_override("font_size", _TOAST_FONT_SIZE)
 	_center_h(_toast, _WIDE * 2.0)
@@ -324,6 +326,58 @@ func _make_families_panel(style: StyleBox) -> void:
 func _unhandled_input(event: InputEvent) -> void:
 	if event.is_action_pressed("families"):
 		toggle_families()
+	elif event.is_action_pressed("chronicle"):
+		toggle_chronicle()
+
+
+# --- Chronicle panel (K) --------------------------------------------------------------------
+
+## The kingdom's last `n` public chronicle entries, newest first: "Dia 3, 14h — ...".
+static func chronicle_lines(state: WorldState, k: Dictionary, n: int) -> PackedStringArray:
+	var out: PackedStringArray = []
+	var entries := state.chronicle(k.id, n)
+	entries.reverse()
+	for e: Dictionary in entries:
+		var h := float(e.hour)
+		out.append("Dia %d, %dh — %s" % [floori(h / 24.0) + 1, floori(fmod(h, 24.0)), e.text])
+	return out
+
+
+func toggle_chronicle() -> void:
+	if _chronicle == null:
+		_chronicle = PanelContainer.new()
+		_chronicle.name = "Chronicle"
+		_chronicle.set_anchors_and_offsets_preset(Control.PRESET_CENTER_RIGHT)
+		_chronicle.offset_left = -_MARGIN - _FAMILIES_WIDTH
+		_chronicle.offset_right = -_MARGIN
+		_chronicle.grow_vertical = Control.GROW_DIRECTION_BOTH
+		_chronicle.grow_horizontal = Control.GROW_DIRECTION_BEGIN
+		_chronicle.add_theme_stylebox_override("panel", _families.get_theme_stylebox("panel"))
+		_chronicle_label = Label.new()
+		_chronicle_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		_chronicle_label.custom_minimum_size.x = _FAMILIES_WIDTH - 24.0
+		_chronicle_label.add_theme_font_size_override("font_size", _FONT_SIZE - 4)
+		_chronicle.add_child(_chronicle_label)
+		add_child(_chronicle)
+		_chronicle.visible = false
+	if _chronicle.visible:
+		_chronicle.visible = false
+		return
+	var k := _state.kingdom_at(_player.global_position)
+	if k.is_empty():
+		return
+	_fill_chronicle(k)
+	_chronicle.visible = true
+
+
+func chronicle_visible() -> bool:
+	return _chronicle != null and _chronicle.visible
+
+
+func _fill_chronicle(k: Dictionary) -> void:
+	var lines := chronicle_lines(_state, k, GameConstants.CHRONICLE_LINES)
+	_chronicle_label.text = (GameConstants.CHRONICLE_TITLE % k.name) + "\n\n" + (
+			"\n".join(lines) if not lines.is_empty() else GameConstants.CHRONICLE_EMPTY)
 
 
 ## Opens the list of the families of the kingdom the player is in (or closes it).

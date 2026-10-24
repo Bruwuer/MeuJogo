@@ -545,7 +545,23 @@ static func card_text(rec: Dictionary, state: WorldState) -> String:
 	if not fam.is_empty():
 		lines.append(GameConstants.CARD_FAMILY % fam.surname + (GameConstants.CARD_HEAD if fam.head_id == rec.id else ""))
 	lines.append("%s · %s" % [PersonGen.profession_name(rec).capitalize(), ", ".join(traits)])
+	var vocation := int(rec.get("vocation", -1))
+	if vocation >= 0 and vocation != int(rec.profession) and SocietyRules.is_adult(rec):
+		var dream: String = GameConstants.CARD_VOCATION[g] % GameConstants.PROFESSION_NAMES[vocation][g]
+		lines.append(dream + (GameConstants.CARD_AGAINST_HOUSE if rec.get("conflict", false) else ""))
 	lines.append_array(_kin_lines(rec, state))
+	var relatives := _relatives_line(rec, state)
+	if relatives != "":
+		lines.append(relatives)
+	var desire: Dictionary = rec.get("desire", {})
+	if int(desire.get("kind", GameConstants.Desire.NONE)) != GameConstants.Desire.NONE:
+		var dt: String = GameConstants.DESIRE_TEXTS[int(desire.kind)]
+		if dt.contains("%s"):
+			var who := state.person(int(desire.get("target_id", -1)))
+			dt = dt % (who.name if not who.is_empty() else "?")
+		lines.append(GameConstants.CARD_DESIRE % dt)
+	if not fam.is_empty() and not (fam.get("goal", {}) as Dictionary).is_empty():
+		lines.append(GameConstants.CARD_HOUSE_GOAL % HouseSim.goal_text_of(state, fam.goal))
 	var ties := _ties_line(rec, state)
 	if ties != "":
 		lines.append(ties)
@@ -585,6 +601,22 @@ static func _kin_lines(rec: Dictionary, state: WorldState) -> PackedStringArray:
 	return out
 
 
+## Other living relatives in the kingdom (siblings, uncles/aunts, nephews/nieces, cousins,
+## grandparents): "irmã de Leonor · primo de Joana" (at most 3).
+static func _relatives_line(rec: Dictionary, state: WorldState) -> String:
+	var order := ["sibling", "uncle", "nephew", "cousin", "grandparent", "grandchild"]
+	var found := []
+	for p in state.residents(int(rec.get("kingdom_id", -1))):
+		var kind := Kinship.relation_kind(state, rec.id, p.id)
+		if kind in order:
+			found.append([order.find(kind), p])
+	found.sort_custom(func(a: Array, b: Array) -> bool: return a[0] < b[0] if a[0] != b[0] else a[1].id < b[1].id)
+	var parts: PackedStringArray = []
+	for item in found.slice(0, 3):
+		parts.append("%s de %s" % [Kinship.relation_word(state, rec, item[1]), item[1].name])
+	return GameConstants.CARD_KIN % " · ".join(parts) if not parts.is_empty() else ""
+
+
 ## Best friend and worst rival among living people.
 static func _ties_line(rec: Dictionary, state: WorldState) -> String:
 	var rels := state.relations_of(rec.id)
@@ -612,7 +644,10 @@ static func _ties_line(rec: Dictionary, state: WorldState) -> String:
 static func family_rows(state: WorldState, k: Dictionary) -> Array[Dictionary]:
 	var out: Array[Dictionary] = []
 	var families := state.families_of(k.id)
-	families.sort_custom(func(a: Dictionary, b: Dictionary) -> bool: return a.id < b.id)
+	families.sort_custom(func(a: Dictionary, b: Dictionary) -> bool:
+		var pa := float(a.get("prestige", 0.0))
+		var pb := float(b.get("prestige", 0.0))
+		return pa > pb if not is_equal_approx(pa, pb) else a.id < b.id)
 	for f in families:
 		var members := state.family_members(f.id)
 		var n := members.size()
@@ -632,8 +667,42 @@ static func family_rows(state: WorldState, k: Dictionary) -> Array[Dictionary]:
 				rival = o
 		if not rival.is_empty():
 			text += " · rival da Casa %s" % rival.surname
+		text += "\n" + house_line(state, k, f)
 		out.append({crest = f.crest, text = text})
 	return out
+
+
+## "Lavradores · riqueza 120 · 2 lotes · casa de pedra · referência em agricultor" and, on a new
+## line, what the House wants.
+static func house_line(state: WorldState, k: Dictionary, f: Dictionary) -> String:
+	var plots := (f.get("plots", []) as Array).size()
+	var head := state.person(int(f.head_id))
+	var home := state.building(int(head.get("home_id", -1))) if not head.is_empty() else {}
+	var dwelling := "sem casa própria"
+	if not home.is_empty() and home.type == B.HOUSE:
+		dwelling = GameConstants.HOUSE_LEVEL_NAMES[int(home.get("house_level", 0))]
+	var parts: PackedStringArray = [GameConstants.TRADITION_NAMES[int(f.get("tradition", 0))],
+			"riqueza %d" % floori(float(f.get("wealth", 0.0))), "%d %s" % [plots, "lote" if plots == 1 else "lotes"], dwelling]
+	var best_prof := -1
+	var best := GameConstants.REFERENCE_MIN_HOURS
+	for prof in (f.get("skill", {}) as Dictionary):
+		var h := float(f.skill[prof])
+		if h >= best and _top_in_kingdom(state, k, f, prof, h):
+			best = h
+			best_prof = int(prof)
+	if best_prof >= 0:
+		parts.append("referência em %s" % GameConstants.PROFESSION_NAMES[best_prof][0])
+	var line := " · ".join(parts)
+	if not (f.get("goal", {}) as Dictionary).is_empty():
+		line += "\nQuer: %s" % HouseSim.goal_text_of(state, f.goal)
+	return line
+
+
+static func _top_in_kingdom(state: WorldState, k: Dictionary, f: Dictionary, prof: int, hours: float) -> bool:
+	for o in state.families_of(k.id):
+		if o.id != f.id and float((o.get("skill", {}) as Dictionary).get(prof, 0.0)) > hours:
+			return false
+	return true
 
 
 ## Mean relation between the adults of two families (0 when none).

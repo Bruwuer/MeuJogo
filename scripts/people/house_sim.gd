@@ -438,9 +438,14 @@ func _goal_end(k: Dictionary, f: Dictionary, success: bool) -> void:
 
 
 func goal_text(g: Dictionary) -> String:
+	return goal_text_of(_state, g)
+
+
+## "conseguir mais terra", "superar a Casa Vale"...
+static func goal_text_of(state: WorldState, g: Dictionary) -> String:
 	var text: String = GameConstants.GOAL_TEXTS[int(g.kind)]
 	if text.contains("%s"):
-		var target := _state.family(int(g.get("target_id", -1)))
+		var target := state.family(int(g.get("target_id", -1)))
 		text = text % (target.surname if not target.is_empty() else "?")
 	return text
 
