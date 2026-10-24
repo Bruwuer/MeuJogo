@@ -161,6 +161,7 @@ const CAMPFIRE_LIGHT_COLOR := Color(1.0, 0.62, 0.30)
 # Physics layers (bit values)
 const LAYER_TERRAIN := 1
 const LAYER_OBSTACLES := 2 ## Trees, rocks and buildings.
+const LAYER_CREATURES := 4
 
 # Kingdoms
 const KINGDOM_RADIUS := 40.0
@@ -255,6 +256,35 @@ const SPECIES := {
 		hp = Vector2(50, 65), damage = Vector2(10, 14), perception = 26.0, nocturnal = true, territorial = true,
 		biomes = { Biome.ROCKY: 0.3, Biome.FOREST: 0.3 } },
 }
+
+# Creature behaviour
+const CREATURE_MAX_ACTIVE := 40 ## Creature nodes alive at once (only in loaded chunks).
+const BRAIN_TICK := 0.2 ## Seconds between brain decisions.
+const HUNT_HUNGER := 0.5 ## Carnivores hunt prey above this hunger.
+const FLEE_HP_RATIO := 0.25 ## Below this share of health any creature flees.
+const FLEE_DISTANCE := 15.0 ## How far ahead of a threat a fleeing creature aims.
+const THREAT_SHARE := 0.6 ## Herbivores react to carnivores within this share of perception.
+const WAKE_SHARE := 0.25 ## Sleepers only notice threats within this share of perception.
+const TERRITORY_FIGHT_AGGRESSION := 0.75 ## Territorial carnivores this aggressive fight other carnivores.
+const TERRITORY_FIGHT_SHARE := 0.4 ## ... within this share of perception.
+const PLAYER_DEFENSE_AGGRESSION := 0.5 ## Herbivores at least this aggressive charge a close player.
+const PLAYER_DEFENSE_SHARE := 0.25
+const FOLLOW_DISTANCE := 8.0 ## Pack members rejoin the leader beyond this distance.
+const WANDER_RADIUS := 12.0 ## Wander targets are picked this far around the den.
+const GRAZE_HUNGER := 0.4 ## Herbivores graze above this hunger (eating slowly lowers it).
+const GRAZE_RATE := 0.05 ## Hunger lost per second while grazing.
+const CREATURE_HUNGER_PER_SEC := 1.0 / 240.0 ## Hunger gained per second (half a day to get hungry).
+const CREATURE_ATTACK_RANGE := 1.4 ## Bite reach (m) at size 1, from torso center to target.
+const CREATURE_ATTACK_COOLDOWN := 1.2
+const CREATURE_WANDER_SPEED := 0.35 ## Share of top speed while wandering, grazing or following.
+const CREATURE_ARRIVE := 0.8 ## Distance at which a target point counts as reached.
+const STAMINA_DRAIN := { Diet.HERBIVORE: 1.0 / 5.0, Diet.CARNIVORE: 1.0 / 14.0 } ## Per second sprinting.
+const STAMINA_REGEN := 1.0 / 8.0
+const EXHAUSTED_SPEED := 0.5 ## Share of top speed with no stamina left.
+const AVOID_RAY := 2.2 ## Obstacle look-ahead (m) at size 1.
+const AVOID_TURN_DEG := 70.0
+const CUB_SIZE := 0.45 ## Size of a newborn relative to an adult.
+const CORPSE_SEC := 3.0 ## Dead creatures lie down this long before disappearing.
 
 # Day / night
 const DAY_LENGTH_SEC := 480.0 ## One full day-night cycle.

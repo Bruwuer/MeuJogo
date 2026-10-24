@@ -23,7 +23,8 @@ var _current_anim := ""
 
 func _ready() -> void:
 	floor_snap_length = _FLOOR_SNAP
-	collision_mask = GameConstants.LAYER_TERRAIN | GameConstants.LAYER_OBSTACLES
+	collision_mask = GameConstants.LAYER_TERRAIN | GameConstants.LAYER_OBSTACLES | GameConstants.LAYER_CREATURES
+	add_to_group("player")
 	var players := _model.find_children("*", "AnimationPlayer", true, false)
 	if not players.is_empty():
 		_anim = players[0]

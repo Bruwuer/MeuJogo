@@ -154,3 +154,9 @@ func test_player_without_animations_still_moves() -> void:
 	await _hold(["move_up"], 30)
 	assert_eq(p.current_anim(), "")
 	assert_true(_flat(p.global_position).distance_to(_flat(start)) > 1.0, "player did not move")
+
+
+func test_player_collides_with_creatures_and_is_in_group() -> void:
+	var p := _make_world()
+	assert_true(p.collision_mask & GameConstants.LAYER_CREATURES != 0, "player walks through creatures")
+	assert_true(p.is_in_group("player"))
