@@ -654,6 +654,7 @@ const OPINION_TEXTS := ["Gosta de você", "Simpatiza com você", "Não tem opini
 const JOB_TEXTS := {
 	"wood": "cortando lenha", "stone": "quebrando pedra", "berries": "colhendo frutas", "farm": "cuidando da fazenda",
 	"build": "trabalhando na obra", "market": "cuidando do comércio", "idle": "sem trabalho", "rest": "descansando",
+	"child": "brincando",
 	"": "olhando o reino",
 }
 const STATUS_TEXTS := { "traveler": "chegando ao reino", "leaving": "indo embora", "inside": "em casa" }
@@ -748,3 +749,9 @@ const SOCIETY_MSG_MARRIED := "%s e %s se casaram"
 const SOCIETY_MSG_MERGED := "A Casa %s uniu-se à Casa %s"
 const SOCIETY_MSG_DISSOLVED := "A Casa %s se desfez"
 const VILLAGE_MSG_LEFT_FAMILY := "%s deixou o Reino de %s com a família: %s"
+const SOCIETY_MSG_BORN := "Nasceu %s, %s de %s e %s"
+const CHILD_WORDS := ["filho", "filha"]
+const SOCIETY_MSG_GREW := "%s cresceu e agora é %s"
+const SOCIETY_MSG_DIED := "Morreu %s, aos %d anos"
+const SOCIETY_MSG_BROKE := "%s rompeu com a Casa %s e fundou a Casa %s"
+const SOCIETY_MSG_BRANCH := "%s deixou a Casa %s em paz e fundou a Casa %s"

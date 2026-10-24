@@ -249,16 +249,146 @@ static func transfer_houses(state: WorldState, person_id: int, leaving: Array) -
 
 # --- Life (Task 5) and opinion (Task 6) -----------------------------------------------------
 
-func _age(_k: Dictionary, _rng: RandomNumberGenerator) -> void:
-	pass
+## Everyone ages each hour (children much faster); a child of ADULT_AGE takes the trade the kingdom
+## needs most; the old may die.
+func _age(k: Dictionary, rng: RandomNumberGenerator) -> void:
+	for p in _people(k):
+		var was_child := not SocietyRules.is_adult(p)
+		var rate := GameConstants.CHILD_YEARS_PER_DAY if was_child else GameConstants.ADULT_YEARS_PER_DAY
+		p.age = float(p.age) + rate / 24.0
+		if was_child and SocietyRules.is_adult(p):
+			p.profession = VillageRules.needed_profession(_snapshot.call(k))
+			_say.call(k, GameConstants.SOCIETY_MSG_GREW % [PersonGen.full_name(p), PersonGen.profession_name(p)])
+		elif float(p.age) >= GameConstants.OLD_AGE \
+				and rng.randf() < SocietyRules.hourly_chance(GameConstants.DEATH_CHANCE_PER_DAY):
+			_die(k, p)
 
 
-func _births(_k: Dictionary, _rng: RandomNumberGenerator) -> void:
-	pass
+func _die(k: Dictionary, p: Dictionary) -> void:
+	transfer_houses(_state, p.id, [p.id])
+	_say.call(k, GameConstants.SOCIETY_MSG_DIED % [PersonGen.full_name(p), floori(float(p.age))])
+	person_died.emit(p)
+	_state.remove_person(p.id)
+	_changed = true
 
 
-func _splits(_k: Dictionary, _rng: RandomNumberGenerator) -> void:
-	pass
+## A happy couple living together with food and a free bed may have a child.
+func _births(k: Dictionary, rng: RandomNumberGenerator) -> void:
+	var people := _people(k)
+	if people.size() >= GameConstants.KINGDOM_BIRTH_CAP:
+		return
+	var snap := VillageRules.snapshot(_state, k, _hour)
+	if snap.food_days < GameConstants.BIRTH_FOOD_DAYS:
+		return
+	var chance := SocietyRules.hourly_chance(GameConstants.BIRTH_CHANCE_PER_DAY)
+	for a in people:
+		var b := _state.person(a.spouse_id)
+		if b.is_empty() or b.status != "resident" or a.id > b.id:
+			continue
+		var mother := SocietyRules.birth_mother(a, b)
+		if mother.is_empty() or int(a.home_id) < 0 or a.home_id != b.home_id:
+			continue
+		if room(_state, _state.building(a.home_id)) <= 0:
+			continue
+		if minf(float(a.contentment), float(b.contentment)) < GameConstants.BIRTH_CONTENTMENT:
+			continue
+		if _hour - float(mother.last_birth_hour) < GameConstants.BIRTH_GAP_HOURS or rng.randf() >= chance:
+			continue
+		_bear(k, mother, b if mother == a else a, rng)
+		if _state.residents(k.id).size() >= GameConstants.KINGDOM_BIRTH_CAP:
+			return
+
+
+func _bear(k: Dictionary, mother: Dictionary, father: Dictionary, rng: RandomNumberGenerator) -> void:
+	var fam := _state.family(mother.family_id)
+	if fam.is_empty():
+		fam = _state.family(father.family_id)
+	var surname: String = fam.surname if not fam.is_empty() else mother.surname
+	var siblings := _state.all_people().filter(func(p: Dictionary) -> bool: return (p.parents as Array).has(mother.id)).map(
+			func(p: Dictionary) -> String: return p.name)
+	var kid := _state.add_person(PersonGen.child(mother, father, surname, rng, siblings), mother.pos, k.id, _hour)
+	kid.status = "resident"
+	kid.home_id = mother.home_id
+	kid.inside = mother.home_id if mother.inside == mother.home_id else -1
+	kid.family_id = fam.get("id", -1)
+	kid.parents = [mother.id, father.id]
+	for parent in [mother, father]:
+		_state.set_relation(kid.id, parent.id, GameConstants.SPOUSE_START_RELATION)
+	mother.last_birth_hour = _hour
+	var word: String = GameConstants.CHILD_WORDS[1 if kid.female else 0]
+	_say.call(k, GameConstants.SOCIETY_MSG_BORN % [kid.name, word, PersonGen.full_name(mother), PersonGen.full_name(father)])
+	person_born.emit(kid)
+	_changed = true
+
+
+## A member who is the head's bitter rival breaks away; a big family lets a household with its
+## own house branch off in peace. At most one split per family per cooldown.
+func _splits(k: Dictionary, rng: RandomNumberGenerator) -> void:
+	var cooldown := GameConstants.FAMILY_SPLIT_COOLDOWN_DAYS * 24.0
+	var branch_chance := SocietyRules.hourly_chance(GameConstants.BRANCH_CHANCE_PER_DAY)
+	for f in _state.families_of(k.id):
+		if _hour - float(f.last_split_hour) < cooldown:
+			continue
+		var head := _state.person(f.head_id)
+		if head.is_empty():
+			continue
+		var members := _state.family_members(f.id)
+		members.sort_custom(func(a: Dictionary, b: Dictionary) -> bool: return a.id < b.id)
+		for m in members:
+			if m.id == head.id or m.id == head.spouse_id or not SocietyRules.is_adult(m):
+				continue
+			if _state.relation(m.id, head.id) <= GameConstants.SPLIT_RIVAL_AT:
+				_split(k, f, m, "rival", rng)
+				break
+			var spouse := _state.person(m.spouse_id)
+			if members.size() > GameConstants.FAMILY_BRANCH_SIZE and not spouse.is_empty() \
+					and spouse.family_id == f.id and int(m.home_id) >= 0 and m.home_id != head.home_id \
+					and rng.randf() < branch_chance:
+				_split(k, f, m, "branch", rng)
+				break
+
+
+func _split(k: Dictionary, f: Dictionary, leader: Dictionary, kind: String, rng: RandomNumberGenerator) -> void:
+	var group: Array[Dictionary] = [leader]
+	var spouse := _state.person(leader.spouse_id)
+	if not spouse.is_empty() and spouse.family_id == f.id and spouse.status == "resident":
+		group.append(spouse)
+	var kids: Array[Dictionary] = []
+	for c in _state.family_members(f.id):
+		if not SocietyRules.is_adult(c) and group.any(func(g: Dictionary) -> bool: return (c.parents as Array).has(g.id)):
+			kids.append(c)
+	group.append_array(kids)
+	var old_name := PersonGen.full_name(leader)
+	var surname := _new_surname(k, leader, rng)
+	var crest := Crest.rival(f.crest, rng, _crests(k)) if kind == "rival" else Crest.derive(f.crest, rng, _crests(k))
+	var nf := _state.add_family(surname, crest, k.id, leader.id, _hour, f.id, kind)
+	var ids := group.map(func(g: Dictionary) -> int: return g.id)
+	for g in group:
+		g.family_id = nf.id
+	leader.surname = surname
+	for c in kids:
+		c.surname = surname
+	for o in _state.family_members(f.id):
+		if not ids.has(o.id):
+			var d := GameConstants.SPLIT_RELATION_HIT if kind == "rival" else GameConstants.BRANCH_RELATION_GAIN
+			_state.add_relation(leader.id, o.id, d)
+	f.last_split_hour = _hour
+	var text := GameConstants.SOCIETY_MSG_BROKE if kind == "rival" else GameConstants.SOCIETY_MSG_BRANCH
+	_say.call(k, text % [old_name, f.surname, surname])
+	_changed = true
+
+
+## A surname no family or resident of the kingdom uses ("Seixas de Martim" when none is left).
+func _new_surname(k: Dictionary, leader: Dictionary, rng: RandomNumberGenerator) -> String:
+	var used := {}
+	for f in _state.families_of(k.id):
+		used[f.surname] = true
+	for p in _state.residents(k.id):
+		used[p.surname] = true
+	var free: Array = GameConstants.SURNAMES.filter(func(s: String) -> bool: return not used.has(s))
+	if free.is_empty():
+		return "%s de %s" % [leader.surname, leader.name]
+	return free[rng.randi() % free.size()]
 
 
 func _opinions(_k: Dictionary) -> void:

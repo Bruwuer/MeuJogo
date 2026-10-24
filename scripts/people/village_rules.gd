@@ -261,6 +261,8 @@ static func _crowded(grown: Rect2, state: WorldState) -> bool:
 ## "build" | "wood" | "stone" | "berries" | "farm" | "market" | "idle": the own trade when there
 ## is work for it, else the open site, else whatever the stock lacks.
 static func choose_job(person: Dictionary, snap: Dictionary) -> String:
+	if not SocietyRules.is_adult(person):
+		return "child"
 	var own := _profession_job(person.profession, snap)
 	if own != "":
 		return own
