@@ -82,6 +82,53 @@ const SPAWN_MAX_SLOPE_DEG := 20.0
 const SPAWN_MAX_TRIES := 64
 const SPAWN_PROP_CLEARANCE := 2.0 ## Free space between spawn and any solid prop's edge.
 
+# Buildings
+enum Building { CABIN, CAMPFIRE, STORAGE, FENCE, WELL, FLAG }
+## What the player can choose in build mode (keys 1-5, in this order). FLAG is placed automatically.
+const BUILDABLE := [Building.CABIN, Building.CAMPFIRE, Building.STORAGE, Building.FENCE, Building.WELL]
+const BUILD_NAMES := {
+	Building.CABIN: "Cabana", Building.CAMPFIRE: "Fogueira", Building.STORAGE: "Depósito",
+	Building.FENCE: "Cerca", Building.WELL: "Poço", Building.FLAG: "Bandeira",
+}
+const BUILD_COST := {
+	Building.CABIN: { Res.WOOD: 30, Res.STONE: 10 },
+	Building.CAMPFIRE: { Res.WOOD: 5, Res.STONE: 3 },
+	Building.STORAGE: { Res.WOOD: 25, Res.STONE: 5 },
+	Building.FENCE: { Res.WOOD: 4 },
+	Building.WELL: { Res.WOOD: 5, Res.STONE: 20 },
+	Building.FLAG: {},
+}
+## Footprint (x = local X, y = local Z) in meters at rotation 0.
+const BUILD_FOOTPRINT := {
+	Building.CABIN: Vector2(4.0, 5.0),
+	Building.CAMPFIRE: Vector2(1.6, 1.6),
+	Building.STORAGE: Vector2(4.0, 3.0),
+	Building.FENCE: Vector2(3.0, 0.4),
+	Building.WELL: Vector2(2.0, 2.0),
+	Building.FLAG: Vector2(0.3, 0.3),
+}
+## Collision boxes per type at rotation 0: [center, size], local to the building origin.
+const BUILD_COLLIDERS := {
+	Building.CABIN: [[Vector3(0, 1.5, 0), Vector3(4.0, 3.0, 5.0)]],
+	Building.CAMPFIRE: [[Vector3(0, 0.25, 0), Vector3(1.4, 0.5, 1.4)]],
+	Building.STORAGE: [[Vector3(0, 1.4, 0), Vector3(4.0, 2.8, 3.0)]],
+	Building.FENCE: [[Vector3(0, 0.6, 0), Vector3(3.0, 1.2, 0.2)]],
+	Building.WELL: [[Vector3(0, 0.5, 0), Vector3(1.8, 1.0, 1.8)]],
+	Building.FLAG: [[Vector3(0, 2.0, 0), Vector3(0.2, 4.0, 0.2)]],
+}
+const BUILD_SCENES := {
+	Building.CABIN: "res://assets/models/cabin.glb",
+	Building.CAMPFIRE: "res://assets/models/campfire.glb",
+	Building.STORAGE: "res://assets/models/storage.glb",
+	Building.FENCE: "res://assets/models/fence.glb",
+	Building.WELL: "res://assets/models/well.glb",
+	Building.FLAG: "res://assets/models/flag.glb",
+}
+const BUILD_REFUND := 0.5 ## Share of the cost returned on demolish (rounded down).
+
+# Kingdoms
+const KINGDOM_RADIUS := 40.0
+
 # Day / night
 const DAY_LENGTH_SEC := 480.0 ## One full day-night cycle.
 const START_TIME_OF_DAY := 0.30 ## 0 = midnight, 0.5 = noon.

@@ -1,7 +1,7 @@
 class_name WorldState
 extends RefCounted
-## Everything that differs from the freshly generated world (delta persistence): removed props
-## per chunk, resources, player position, time of day and the world seed.
+## Everything that differs from the freshly generated world (delta persistence): removed props,
+## buildings and kingdoms, resources, player position, time of day and the world seed.
 ## File layout: MAGIC | u32 payload length | 16-byte MD5 of payload | var_to_bytes(Dictionary).
 ## Saving goes through `.tmp` and keeps the previous save as `.bak` until the new one is in
 ## place; loading falls back to `.bak` and then `.tmp`, so an interrupted save never loses the world.
@@ -18,6 +18,10 @@ var has_player_position := false
 
 var _removed: Dictionary[Vector2i, PackedInt32Array] = {}
 var _resources: Dictionary[int, int] = {}
+var _buildings: Dictionary[int, Dictionary] = {} # id -> {id, type, pos, rot, color}
+var _buildings_by_chunk: Dictionary[Vector2i, PackedInt32Array] = {} # derived index, not saved
+var _kingdoms: Array[Dictionary] = [] # {id, name, color, center, radius, seat_id}
+var _next_building_id := 1
 
 
 func mark_removed(c: Vector2i, id: int) -> void:
@@ -39,6 +43,92 @@ func get_resource(res: int) -> int:
 	return _resources.get(res, 0)
 
 
+func can_afford(cost: Dictionary) -> bool:
+	for res in cost:
+		if get_resource(res) < cost[res]:
+			return false
+	return true
+
+
+## Spends the whole cost, or nothing when any resource is short.
+func spend(cost: Dictionary) -> bool:
+	if not can_afford(cost):
+		return false
+	for res in cost:
+		_resources[res] = get_resource(res) - cost[res]
+	return true
+
+
+func refund(cost: Dictionary, ratio: float) -> void:
+	for res in cost:
+		add_resource(res, floori(cost[res] * ratio))
+
+
+func add_building(type: int, pos: Vector3, rot: int, color := Color.WHITE) -> Dictionary:
+	var rec := {id = _next_building_id, type = type, pos = pos, rot = rot, color = color}
+	_next_building_id += 1
+	_buildings[rec.id] = rec
+	_index_building(rec)
+	return rec
+
+
+func remove_building(id: int) -> Dictionary:
+	if not _buildings.has(id):
+		return {}
+	var rec: Dictionary = _buildings[id]
+	_buildings.erase(id)
+	var c := ChunkMath.world_to_chunk(rec.pos)
+	var ids: PackedInt32Array = _buildings_by_chunk.get(c, PackedInt32Array())
+	var i := ids.find(id)
+	if i >= 0:
+		ids.remove_at(i)
+		_buildings_by_chunk[c] = ids
+	return rec
+
+
+func building(id: int) -> Dictionary:
+	return _buildings.get(id, {})
+
+
+func buildings_in(c: Vector2i) -> Array[Dictionary]:
+	var out: Array[Dictionary] = []
+	for id in _buildings_by_chunk.get(c, PackedInt32Array()):
+		out.append(_buildings[id])
+	return out
+
+
+func all_buildings() -> Array[Dictionary]:
+	var out: Array[Dictionary] = []
+	out.assign(_buildings.values())
+	return out
+
+
+func add_kingdom(kingdom_name: String, color: Color, center: Vector3, seat_id: int) -> Dictionary:
+	var k := {id = _kingdoms.size() + 1, name = kingdom_name, color = color, center = center,
+			radius = GameConstants.KINGDOM_RADIUS, seat_id = seat_id}
+	_kingdoms.append(k)
+	return k
+
+
+func kingdoms() -> Array[Dictionary]:
+	return _kingdoms
+
+
+## The kingdom whose territory contains `pos` (flat distance), or {}.
+func kingdom_at(pos: Vector3) -> Dictionary:
+	for k in _kingdoms:
+		if Vector2(pos.x - k.center.x, pos.z - k.center.z).length() <= k.radius:
+			return k
+	return {}
+
+
+func _index_building(rec: Dictionary) -> void:
+	var c := ChunkMath.world_to_chunk(rec.pos)
+	var ids: PackedInt32Array = _buildings_by_chunk.get(c, PackedInt32Array())
+	ids.append(rec.id)
+	_buildings_by_chunk[c] = ids
+
+
 func save_to(path: String) -> Error:
 	var err := write_payload(path + ".tmp", {
 		version = GameConstants.WORLDGEN_VERSION,
@@ -49,6 +139,9 @@ func save_to(path: String) -> Error:
 		has_player_position = has_player_position,
 		removed = _removed,
 		resources = _resources,
+		buildings = _buildings.values(),
+		kingdoms = _kingdoms,
+		next_building_id = _next_building_id,
 	})
 	if err != OK:
 		return err
@@ -136,6 +229,11 @@ static func _from_dict(data: Dictionary) -> WorldState:
 	s.has_player_position = data.get("has_player_position", false)
 	for res in data.get("resources", {}):
 		s._resources[res] = data.resources[res]
+	for rec: Dictionary in data.get("buildings", []):
+		s._buildings[rec.id] = rec
+		s._index_building(rec)
+	s._kingdoms.assign(data.get("kingdoms", []))
+	s._next_building_id = data.get("next_building_id", 1)
 	if data.get("version", -1) == GameConstants.WORLDGEN_VERSION:
 		for c in data.get("removed", {}):
 			s._removed[c] = data.removed[c]
