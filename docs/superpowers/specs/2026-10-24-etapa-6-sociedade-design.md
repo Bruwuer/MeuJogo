@@ -173,3 +173,82 @@ pessoa mostra família, brasão, cônjuge, filhos, amigo, rival e o que acha do 
 | Roubo | às 10 h, cada inimigo adulto rouba 2 do recurso que o jogador tem mais |
 | Notícias | a fila de mensagens de reinos longe guarda no máximo 40 |
 | Doação | opinião +0,05 × (total doado / 10, até 1) |
+
+## 5. Decisões após a revisão do design (Claude)
+
+A revisão de "quem vai construir" levantou 25 pontos. Decisões, na mesma ordem:
+
+1. **Sobrenome da ruptura:** um sobrenome de `SURNAMES` que nenhuma família nem morador do reino usa
+   (sem sobra: "Seixas de Martim"). Quem rompe e os filhos menores dele passam a usar o sobrenome novo; o
+   cônjuge fica com o dele. A regra "mesmo sobrenome entra na família" vale só para quem chega.
+2. **Sobrenome da pessoa × da família:** quem chega é comparado com `family.surname`. O cartão mostra o
+   nome da pessoa e a linha "Casa <sobrenome da família>".
+3. **Casais:** quaisquer dois adultos podem se casar. Filhos só de um casal de mulher (18 a 45) e homem.
+   Sem adoção nesta etapa.
+4. **Traços do filho:** um traço sorteado de cada pai; se os dois caem no mesmo par (iguais ou opostos),
+   o segundo vem de outro par ao acaso. Sexo 50 %, nome ao acaso sem repetir irmãos vivos, roupas ao
+   acaso, altura = média dos pais ± 0,03.
+5. **Profissão da criança:** `-1`. `profession_name` devolve "criança" para `-1`; crianças ficam fora de
+   `snapshot.professions`. `choose_job` devolve `"child"` antes de tudo, e o trabalho resumido ignora.
+6. **Crianças nos números:** contam como moradores (teto, comida, casas). Ficam fora da fama, das
+   posições (aliado/inimigo), da média de opinião da família e da conta de partida: nunca vão embora
+   sozinhas.
+7. **Teto:** `KINGDOM_MAX_PEOPLE = 16` para todos. Nascimentos só enquanto o reino tem menos de
+   `KINGDOM_BIRTH_CAP = 14` moradores (sobra lugar para viajantes, que trazem gente sem parentesco).
+8. **Casas por família:** `_assign_homes` escolhe para cada sem-teto, nesta ordem: a casa do cônjuge, a
+   de um dos pais (menor), a de alguém da família, uma casa vazia, qualquer casa com cama. Ninguém é
+   despejado. O bebê nasce na casa dos pais (o nascimento exige cama livre nela). `_reunite`: casal
+   separado vai para a casa de um dos dois que tenha lugar, ou para uma casa com 2 camas livres. O
+   planejador conta casais separados como necessidade de casa (`homeless + apart > free_beds`).
+9. **Dono da casa:** quem assina continua dono. Se o dono morre ou deixa o reino, a casa passa ao adulto
+   mais velho que mora nela; sem ninguém, vira do reino (`OWNER_KINGDOM`) e perde o estandarte. Só
+   casas (`HOUSE`) com dono pessoa têm estandarte; o jogador não constrói casas.
+10. **Partida com a família:** o cônjuge e os filhos menores vão junto (mesmo contentes) e cada um passa
+    pelo `_leave` (lar, sinal, remoção). Uma só mensagem ("… deixou o Reino de X com a família: …").
+11. **Morte com nó:** o `SocietySim` emite `person_died` antes de remover o registro; o `PeopleManager`
+    libera o nó e as reservas de trabalho. Quem está dentro de casa morre do mesmo jeito.
+12. **Referências soltas:** `parents` nunca é apagado (o parentesco vale depois da morte). `remove_person`
+    zera o `spouse_id` do cônjuge e marca `widowed = true`; viúvos podem casar de novo. O cartão só mostra
+    nomes de quem ainda existe.
+13. **Chefe:** se o chefe não é mais membro, assume o adulto mais velho; sem adultos, a criança mais
+    velha. Quem casa e entra na família do outro sai sozinho da antiga (ela continua com quem ficou). Os
+    filhos menores de um viúvo que casa de novo vão com ele.
+14. **Ruptura:** cônjuges não rompem (sem divórcio nesta etapa). Um filho adulto do chefe pode romper.
+    Limite `SPLIT_RIVAL_AT = −0,5` (mais forte que rival). A família nova fica nas casas onde já moram.
+    "Casal com casa própria" = mora numa casa diferente da do chefe. O líder da família nova é quem
+    rompeu. Uma família só solta ramo a cada `FAMILY_SPLIT_COOLDOWN_DAYS` (3 dias), e uma família nova
+    também espera esse tempo.
+15. **Chances por dia:** convertidas para chance por hora (`1 − (1 − p)^(1/24)`). Conversa: uma vez por
+    dia de jogo (`talk_day = floor(hora/24)`). Presente e roubo: uma vez por dia, na primeira hora a partir
+    das 10 h em que o jogador está no reino (`deed_day` na família e na pessoa).
+16. **Determinismo:** `tick_hours(n)` passa a hora simulada de cada volta ao `SocietySim` (não a mesma
+    hora n vezes). Os moradores são ordenados por id antes dos sorteios. O brasão é semeado por
+    (semente, família).
+17. **Saves antigos:** `person_defaults` no carregamento; cartão e HUD aceitam `family_id = −1`. Moradores
+    antigos com o mesmo sobrenome viram parentes (aceito). Casas antigas ganham a 4ª cama. A idade vira
+    número com fração e é mostrada sem a fração.
+18. **Brasões:** o escudo pleno sempre tem figura (duas cores). A figura contrasta com o campo. Sem
+    variação livre depois de `CREST_TRIES`, aceita-se repetir (raríssimo).
+19. **Estandarte e `ModelLibrary`:** tipo novo de carga `"crest"` na mesma fila (o `is_ready` espera por
+    ele), mantendo os materiais próprios; o pano usa `set_surface_override_material` na superfície
+    `crest`. O estandarte não some na frente do jogador (é fino e fica de lado); aceito.
+20. **Estandartes nos chunks:** `PeopleManager.refresh_crests()` é idempotente (`Chunk.set_crest` não faz
+    nada se o brasão é o mesmo) e roda no `chunk_loaded`, no `site_finished`, no `families_changed` e no
+    `_sync` de 1 s (pega qualquer outra troca de dono). Fica no canto da frente, fora da planta e ao lado
+    da parede, sem colisão: não bloqueia a porta.
+21. **Nó da criança:** só o modelo encolhe (a cápsula fica, só colide com chão e obstáculos). A criança
+    brinca perto da porta de casa (o `seat_pos` do contexto vira a porta). O bebê nasce dentro de casa se
+    a mãe está dentro. `person_born` chama `_fill()`.
+22. **Forças da opinião:** as parcelas da hora (contentamento, família, amigos, rivais) são calculadas
+    com as opiniões do começo da hora e aplicadas juntas; depois vem a deriva de "longe". A família usa a
+    média dos adultos.
+23. **Mensagens:** quem fica gera só "decidiu ficar" (fundar a casa é silencioso; entrar na de parentes
+    avisa). Posição: só adultos e famílias. Roubos: no máximo `THEFT_MAX_PER_DAY = 2` por reino por dia
+    (os de pior opinião). O limite de 40 vale para a fila do `VillageSim` e descarta as mais antigas,
+    contando-as em "mais N coisas".
+24. **Presente e roubo:** presente só de madeira ou pedra (nunca comida). Roubo só de madeira, pedra ou
+    frutas do jogador (nunca flechas); empate na ordem do enum; sem nada, sem roubo e sem mensagem. É um
+    evento resumido do dia: não precisa do nó do ladrão.
+25. **Testes e custo:** o `SocietySim` recebe as funções (`say`, `is_player_in`) por `setup`, e os testes
+    as trocam. A cada hora monta um cache família → membros. O painel C só se refaz ao abrir e a cada 1 s
+    aberto; o cartão é montado uma vez ao falar.
