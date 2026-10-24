@@ -22,6 +22,14 @@ $jobs = @(
     @{ Script = "buildings.py"; Args = @("well"); Out = "assets/models/well.glb" },
     @{ Script = "buildings.py"; Args = @("flag"); Out = "assets/models/flag.glb" }
 )
+$parts = @("body_canine", "body_bulky", "body_lizard", "body_deer",
+    "head_wolf", "head_bear", "head_boar", "head_deer", "head_lizard", "head_horned",
+    "leg_thin", "leg_thick", "leg_clawed", "tail_bushy", "tail_stub", "tail_long", "tail_spiked",
+    "extra_antlers", "extra_horns", "extra_spikes", "extra_mane")
+New-Item -ItemType Directory -Force (Join-Path $root "assets/models/parts") | Out-Null
+foreach ($part in $parts) {
+    $jobs += @{ Script = "creature_parts.py"; Args = @($part); Out = "assets/models/parts/$part.glb" }
+}
 foreach ($job in $jobs) {
     # Export to a temp file and replace the committed model only on success.
     $out = Join-Path $root $job.Out

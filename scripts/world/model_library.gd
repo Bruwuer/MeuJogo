@@ -1,6 +1,7 @@
 class_name ModelLibrary
 extends Node
-## Loads every model the world streams (prop meshes for MultiMesh, building scenes) on a
+## Loads every model the world streams (prop meshes for MultiMesh, building scenes, creature
+## parts) on a
 ## background thread, ONE file at a time: concurrent threaded loads that create meshes race
 ## inside the rendering server's storage (seen with the headless dummy renderer).
 ## Every surface material is swapped for the occlusion shader (same color, emission and name),
@@ -12,7 +13,8 @@ const _DEFAULT_ROUGHNESS := 0.9
 
 var _meshes: Dictionary[int, Mesh] = {} # Prop type -> mesh
 var _scenes: Dictionary[int, PackedScene] = {} # Building type -> scene
-var _queue: Array[Array] = [] # [kind ("prop" | "building"), key, path] not requested yet
+var _parts: Dictionary[String, PackedScene] = {} # creature part name -> scene
+var _queue: Array[Array] = [] # [kind ("prop" | "building" | "part"), key, path] not requested yet
 var _current: Array = [] # entry being loaded, [] = none
 var _started := false
 
@@ -23,6 +25,8 @@ func start_loading() -> void:
 		_queue.append(["prop", type, GameConstants.PROP_SCENES[type]])
 	for type in GameConstants.BUILD_SCENES:
 		_queue.append(["building", type, GameConstants.BUILD_SCENES[type]])
+	for part in GameConstants.CREATURE_PARTS:
+		_queue.append(["part", part, GameConstants.CREATURE_PART_PATH % part])
 	_request_next()
 
 
@@ -36,6 +40,10 @@ func mesh_for(type: int) -> Mesh:
 
 func scene_for(building: int) -> PackedScene:
 	return _scenes.get(building)
+
+
+func part_scene(part: String) -> PackedScene:
+	return _parts.get(part)
 
 
 func _request_next() -> void:
@@ -62,8 +70,10 @@ func _process(_delta: float) -> void:
 		if _current[0] == "prop":
 			if not meshes.is_empty():
 				_meshes[_current[1]] = (meshes[0] as MeshInstance3D).mesh
-		else:
+		elif _current[0] == "building":
 			_scenes[_current[1]] = scene
+		else:
+			_parts[_current[1]] = scene
 		root.free()
 	else:
 		push_error("ModelLibrary: failed to load %s" % path)

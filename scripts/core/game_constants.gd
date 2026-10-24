@@ -176,6 +176,34 @@ enum Diet { HERBIVORE, CARNIVORE }
 const MUTATION_CHANCE := 0.05 ## Per gene, when two creatures have a cub.
 const MUTATION_SPREAD := 0.15 ## Numeric genes mutate by up to +-15 %.
 const HYBRID_COMPATIBILITY := 0.3 ## Chance factor for close species to breed.
+## Blender parts (tools/blender/creature_parts.py); names are <slot>_<enum name in lower case>.
+const CREATURE_PART_PATH := "res://assets/models/parts/%s.glb"
+const CREATURE_PARTS := [
+	"body_canine", "body_bulky", "body_lizard", "body_deer",
+	"head_wolf", "head_bear", "head_boar", "head_deer", "head_lizard", "head_horned",
+	"leg_thin", "leg_thick", "leg_clawed",
+	"tail_bushy", "tail_stub", "tail_long", "tail_spiked",
+	"extra_antlers", "extra_horns", "extra_spikes", "extra_mane",
+]
+## Attachment points per body at size 1 (Godot axes: front +Z, up +Y), relative to the torso center.
+## Legs hang from their hip socket; leg_length is the hip height above the ground.
+const BODY_SOCKETS := {
+	Body.CANINE: { head = Vector3(0, 0.12, 0.55), tail = Vector3(0, 0.08, -0.5), extra = Vector3(0, 0.2, 0.3),
+		legs = [Vector3(0.14, -0.15, 0.35), Vector3(-0.14, -0.15, 0.35), Vector3(0.14, -0.15, -0.35), Vector3(-0.14, -0.15, -0.35)],
+		leg_length = 0.55 },
+	Body.BULKY: { head = Vector3(0, 0.1, 0.65), tail = Vector3(0, 0.15, -0.6), extra = Vector3(0, 0.33, 0.35),
+		legs = [Vector3(0.24, -0.28, 0.4), Vector3(-0.24, -0.28, 0.4), Vector3(0.24, -0.28, -0.4), Vector3(-0.24, -0.28, -0.4)],
+		leg_length = 0.5 },
+	Body.LIZARD: { head = Vector3(0, 0.02, 0.72), tail = Vector3(0, 0.0, -0.7), extra = Vector3(0, 0.15, 0.0),
+		legs = [Vector3(0.3, -0.1, 0.45), Vector3(-0.3, -0.1, 0.45), Vector3(0.3, -0.1, -0.45), Vector3(-0.3, -0.1, -0.45)],
+		leg_length = 0.3 },
+	Body.DEER: { head = Vector3(0, 0.22, 0.5), tail = Vector3(0, 0.12, -0.48), extra = Vector3(0, 0.2, 0.3),
+		legs = [Vector3(0.12, -0.17, 0.33), Vector3(-0.12, -0.17, 0.33), Vector3(0.12, -0.17, -0.33), Vector3(-0.12, -0.17, -0.33)],
+		leg_length = 0.8 },
+}
+## Extras that sit on top of the head instead of on the body socket, and where (head space).
+const EXTRA_ON_HEAD := [Extra.ANTLERS, Extra.HORNS]
+const HEAD_TOP := Vector3(0, 0.18, 0.12)
 ## Ranges are Vector2(min, max) (Vector2i for pack size). Biome weights drive spawning.
 const SPECIES := {
 	"lobo": { name = "Lobo", invented = false, body = Body.CANINE, head = Head.WOLF, legs = Legs.THIN,
