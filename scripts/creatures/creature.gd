@@ -172,6 +172,11 @@ func _sense() -> Array:
 			continue
 		out.append({ id = c.record.id, kind = "creature", pos = c.global_position, diet = c.genome.diet,
 				species = c.genome.species, is_cub = c.is_cub() })
+	for n in get_tree().get_nodes_in_group("people"):
+		var person := n as Node3D
+		if person.visible and person.global_position.distance_to(global_position) <= reach:
+			out.append({ id = person.get_instance_id(), kind = "person", pos = person.global_position,
+					diet = GameConstants.Diet.HERBIVORE, species = "", is_cub = false })
 	for n in get_tree().get_nodes_in_group("player"):
 		var p := n as Node3D
 		if p.global_position.distance_to(global_position) <= reach:

@@ -80,7 +80,7 @@ func resolve_offscreen_raid(pack: Dictionary, kingdom: Dictionary) -> Array[Stri
 		strength += float(m.genome.damage) * GameConstants.OFFSCREEN_RAID_HITS
 	var center: Vector3 = kingdom.center
 	var targets := _state.all_buildings().filter(func(b: Dictionary) -> bool:
-		return b.id != kingdom.seat_id and b.type != GameConstants.Building.FLAG \
+		return b.id != kingdom.seat_id and b.type != GameConstants.Building.FLAG and not b.get("site", false) \
 				and _flat_dist(b.pos, center) <= kingdom.radius)
 	var den: Vector3 = pack.den
 	targets.sort_custom(func(a: Dictionary, b: Dictionary) -> bool: return _flat_dist(a.pos, den) < _flat_dist(b.pos, den))
@@ -125,6 +125,7 @@ func _maybe_raid(pack: Dictionary, members: Array) -> void:
 	if mode == "none":
 		return
 	pack.raid_kingdom = kingdom.id
+	kingdom.last_raid_hour = now_hours() # villagers fear a raided kingdom for a while
 	pack.raid_hour = now_hours()
 	var motive := PackMotives.dominant(pack)
 	raid_started.emit(pack, kingdom, motive)

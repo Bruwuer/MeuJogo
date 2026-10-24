@@ -5,7 +5,8 @@ extends RefCounted
 ##
 ## me: {id, genome, pos, hp_ratio, hunger, is_night, pack_leader_pos (Vector3 or null), den_pos,
 ##      mate ({id, pos} or {}), raid_target ({id, pos} or {}), hostile_to_player, wander_pos?}
-## ctx.nearby: Array of {id, kind ("creature" | "player"), pos, diet, species, is_cub}
+## ctx.nearby: Array of {id, kind ("creature" | "player" | "person"), pos, diet, species, is_cub}
+## (people are a mild threat: herbivores flee them, carnivores ignore them for now)
 
 enum State { WANDER, GRAZE, HUNT, ATTACK, FLEE, SLEEP, FOLLOW, MATE, RAID, RETURN }
 
@@ -72,7 +73,7 @@ static func attack_reach(g: Dictionary) -> float:
 static func _is_threat(me: Dictionary, o: Dictionary) -> bool:
 	if me.genome.diet == GameConstants.Diet.CARNIVORE:
 		return false
-	return o.kind == "player" or (o.kind == "creature" and o.diet == GameConstants.Diet.CARNIVORE)
+	return o.kind == "player" or o.kind == "person" or (o.kind == "creature" and o.diet == GameConstants.Diet.CARNIVORE)
 
 
 static func _chase(me: Dictionary, target: Dictionary) -> Dictionary:

@@ -33,6 +33,7 @@ var _scatter: PropScatter
 var _day_night: DayNight
 var _rng := RandomNumberGenerator.new()
 var _last_hour := -1.0
+var _props_near: Dictionary = {} # Vector3 center -> props around it (the scatter is deterministic)
 
 
 func setup(state: WorldState, gen: TerrainGenerator, scatter: PropScatter, day_night: DayNight) -> void:
@@ -313,7 +314,7 @@ func _offscreen_work(k: Dictionary) -> void:
 				_harvest(k, job, GameConstants.OFFSCREEN_RATE[job])
 	var food := mini(farmers, snap.farms) * GameConstants.FARM_FOOD_PER_HOUR
 	if food > 0.0:
-		_add_fraction(k, "food", R.FOOD, food)
+		add_fraction(k, "food", R.FOOD, food)
 
 
 ## Accumulates `amount` of a job's yield; every whole prop's worth removes the prop nearest to
@@ -337,7 +338,7 @@ func _harvest(k: Dictionary, job: String, amount: float) -> void:
 		prop_removed.emit(c, prop.id)
 
 
-func _add_fraction(k: Dictionary, key: String, res: int, amount: float) -> void:
+func add_fraction(k: Dictionary, key: String, res: int, amount: float) -> void:
 	var frac: Dictionary = k.work_frac
 	frac[key] = float(frac.get(key, 0.0)) + amount
 	var whole := floori(float(frac[key]))
@@ -360,7 +361,7 @@ static func _job_props(job: String) -> Array:
 func nearest_prop(from: Vector3, types: Array, exclude: Dictionary = {}) -> Dictionary:
 	var best := {}
 	var best_d := INF
-	for p in _scatter.props_near(from, GameConstants.VILLAGE_HARVEST_RADIUS):
+	for p: Dictionary in nearest_prop_list(from):
 		if not (p.type in types):
 			continue
 		var c := ChunkMath.world_to_chunk(p.pos)
@@ -378,3 +379,11 @@ func _say(k: Dictionary, text: String) -> void:
 		message.emit(text)
 	else:
 		pending_messages.append(text)
+
+
+## Every prop (standing or not) within VILLAGE_HARVEST_RADIUS of a kingdom center, cached
+## (the scatter is deterministic; call it with fixed centers only).
+func nearest_prop_list(from: Vector3) -> Array:
+	if not _props_near.has(from):
+		_props_near[from] = _scatter.props_near(from, GameConstants.VILLAGE_HARVEST_RADIUS)
+	return _props_near[from]

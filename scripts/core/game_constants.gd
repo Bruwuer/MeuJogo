@@ -625,3 +625,12 @@ const PERSON_FIRE_SLEEP_RADIUS := 2.5 ## Homeless people sleep this close to the
 const PERSON_FLEE_DIST := 14.0
 const PERSON_EVALUATE_SEC := 4.0 ## A traveler looks at the kingdom this long before deciding.
 const PERSON_IDLE_RADIUS := 6.0 ## Idle people stroll this far around the seat.
+const PEOPLE_SYNC_SEC := 1.0 ## Live people are written back to their records this often.
+const PEOPLE_SNAPSHOT_MS := 1000 ## A kingdom's snapshot is reused this long by the brains.
+const PERSON_DOOR_GAP := 0.7 ## Door spot in front of a footprint.
+const PERSON_THREAT_RADIUS := 10.0 ## Carnivores (and raiders) this close scare a person.
+const PERSON_WORK_GAP := 0.6 ## Distance kept from a prop's trunk while working on it.
+## Seconds of work per prop (then the person carries the yield to the stock).
+const PERSON_HARVEST_SEC := { Prop.OAK: 6.0, Prop.PINE: 6.0, Prop.ROCK: 8.0, Prop.BUSH: 2.0 }
+const PERSON_SITE_SEC := 5.0 ## One work action on a site (adds 5 s worth of person-hours).
+const PERSON_FARM_SEC := 5.0
