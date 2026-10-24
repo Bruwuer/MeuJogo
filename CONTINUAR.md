@@ -20,7 +20,9 @@ primeiro e atualizá-lo ao concluir cada tarefa** (seção "Estado atual").
 ## Estado atual
 
 - Etapas 1 a 4: concluídas e no `main` (262 testes passando). Resumo em `docs/ENTREGAS.md`.
-- **Próxima: Etapa 5 (pessoas).** Começar pelo design curto em `docs/superpowers/specs/`, criando o branch `etapa-5` a partir do `main`.
+- **Em andamento: Etapa 5 (pessoas)** no branch `etapa-5`. Design (`docs/superpowers/specs/2026-10-24-etapa-5-pessoas-design.md`,
+  revisado) e plano (`docs/superpowers/plans/2026-10-24-etapa-5-pessoas.md`) prontos. Ledger em `.superpowers/sdd/etapa-5/progress.md`
+  (fora do git; se sumir, refaça a partir do `git log` do branch). Próxima: tarefa 1 (PersonGen).
   Pedidos do autor da etapa 4 continuam valendo: combate e construção só por teclado; ataques ao reino só com motivo.
 - Etapas 6 a 9: não iniciadas (ver roadmap no `CLAUDE.md`).
 
