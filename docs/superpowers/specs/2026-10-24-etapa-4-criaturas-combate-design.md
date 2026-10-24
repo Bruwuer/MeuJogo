@@ -129,3 +129,19 @@ ser uma ameaça ao reino.
   bandos, alimentar a fome deles longe do reino (caçando para eles não é necessário nesta etapa).
 - Construções têm vida; a cabana-sede não cai abaixo de 1 nesta etapa. Bandos que satisfazem o
   motivo (comeram, afastaram o invasor, mataram o alvo do rancor) voltam para a toca.
+
+## 7. Decisões após a revisão do design (Claude)
+
+1. **Ataques com o jogador longe:** bandos existem como registros persistentes mesmo congelados.
+   Um `PackSim` barato atualiza os motivos de todos os bandos a cada hora do jogo. Se um bando decide
+   atacar um reino **não carregado**, o ataque é resolvido de forma resumida (dano a construções
+   que não sejam a sede, segundo força do bando × motivo) e vira mensagem na volta do jogador:
+   "Enquanto você estava fora, lobos famintos destruíram uma Cerca". Com o reino carregado, o
+   ataque é simulado de verdade.
+2. **Armas visíveis:** espada, lança e arco modelados em `tools/blender/weapons.py`; o humanoide
+   ganha um osso de mão (`hand.R`) e os clipes `attack_sword`, `attack_spear` e `shoot_bow`. A arma
+   ativa aparece na mão via `BoneAttachment3D`. O dano acontece no meio do golpe
+   (`WEAPONS[...].hit_time`).
+3. **Sem espólio:** criaturas mortas não deixam itens nesta etapa.
+4. **Primeiro encontro:** num mundo novo, um bando de lobos é colocado entre 60 e 120 m do ponto
+   inicial (sem atacar de imediato: fome baixa, sem rancor).
