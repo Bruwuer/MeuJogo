@@ -215,6 +215,7 @@ const CAMPFIRE_LIGHT_COLOR := Color(1.0, 0.62, 0.30)
 const LAYER_TERRAIN := 1
 const LAYER_OBSTACLES := 2 ## Trees, rocks and buildings.
 const LAYER_CREATURES := 4
+const LAYER_PEOPLE := 8 ## Villagers: collide with terrain and obstacles only.
 
 # Kingdoms
 const KINGDOM_RADIUS := 40.0
@@ -609,3 +610,18 @@ const VILLAGE_MSG_SITE := "Os moradores do Reino de %s começaram a construir: %
 const VILLAGE_MSG_HOUSE_DONE := "Ficou pronta a casa de %s"
 const VILLAGE_MSG_DONE := "Os moradores do Reino de %s terminaram: %s"
 const VILLAGE_MSG_ABANDONED := "A obra (%s) do Reino de %s foi abandonada"
+
+# People nodes
+const PEOPLE_MAX_ACTIVE := 30
+const PEOPLE_SPAWNS_PER_FRAME := 2
+const PERSON_BRAIN_TICK := 0.25
+const PERSON_WALK_SPEED := 2.2
+const PERSON_RUN_SPEED := 4.5 ## Fleeing.
+const PERSON_ARRIVE := 0.8
+const PERSON_RADIUS := 0.3
+const PERSON_AVOID_RAY := 1.6
+const PERSON_SEAT_RADIUS := 3.5 ## Travelers stop this close to the seat to look around.
+const PERSON_FIRE_SLEEP_RADIUS := 2.5 ## Homeless people sleep this close to the campfire.
+const PERSON_FLEE_DIST := 14.0
+const PERSON_EVALUATE_SEC := 4.0 ## A traveler looks at the kingdom this long before deciding.
+const PERSON_IDLE_RADIUS := 6.0 ## Idle people stroll this far around the seat.
