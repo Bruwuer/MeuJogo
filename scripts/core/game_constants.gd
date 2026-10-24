@@ -833,3 +833,14 @@ const SKILL_HOURS_FOR_MAX := 200.0 ## House hours in a trade for the full skill 
 const SKILL_MAX_BONUS := 0.5
 const SKILL_INHERIT := 0.6 ## Share of the House's skill a child following the trade starts with.
 const CHRONICLE_MAX := 200
+const TRADITION_TRAIT_NUDGE := 0.25 ## Chance a head's trait pulls the new House to another tradition.
+const VOCATION_FOLLOW_TRADITION := 0.6 ## Chance a child wants the House trade.
+const VOCATION_FROM_TRAIT := 0.25 ## Else, chance the vocation comes from a trait (rest: any trade).
+## Trades a trait pulls toward (vocation and tradition nudges).
+const TRAIT_VOCATIONS := {
+	Trait.BRAVE: [Profession.GUARD], Trait.GREEDY: [Profession.MERCHANT], Trait.SOCIABLE: [Profession.MERCHANT],
+	Trait.LONER: [Profession.WOODCUTTER, Profession.GATHERER], Trait.DEVOUT: [Profession.FARMER],
+	Trait.WORKER: [Profession.MASON, Profession.BUILDER],
+}
+const DEPART_FRIENDLY_AT := 0.25 ## Relation with the head above this: a friendly departure.
+const DEPART_HOSTILE_AT := -0.3
