@@ -211,3 +211,33 @@ func test_harvest_disabled_in_build_mode() -> void:
 	assert_true(not _player.harvest_enabled)
 	_build.toggle()
 	assert_true(_player.harvest_enabled)
+
+
+func test_ray_ignores_player() -> void:
+	var spot := _spot()
+	await _setup(spot)
+	await wait_physics_frames(3)
+	var pp := _player.global_position
+	var hit: Variant = _build.ground_hit(pp + Vector3(0, 30, 0), pp - Vector3(0, 30, 0))
+	assert_true(hit != null)
+	if hit != null:
+		assert_near((hit as Vector3).y, _gen.height_at(pp.x, pp.z), 0.3, "ray stopped on the player")
+
+
+func test_demolish_skips_seat_for_nearby_fence() -> void:
+	var spot := _spot(B.CABIN)
+	await _setup(spot)
+	_rich()
+	_build.select(B.CABIN)
+	assert_true(_build.try_place())
+	# Fence touching the cabin's back wall (cabin depth 5 m: back edge at +2.5 from its center).
+	var cabin: Dictionary = _state.building(_state.kingdoms()[0].seat_id)
+	_build.select(B.FENCE)
+	_move_player(cabin.pos + Vector3(0, 0, 2.5 + 0.2 + 0.5))
+	assert_true(_build.try_place(), "fence: %s" % _build.preview().reason)
+	_build.toggle()
+	var fence: Dictionary = _state.all_buildings().filter(func(b: Dictionary) -> bool: return b.type == B.FENCE)[0]
+	# Stand between them: the seat is the closest building, the fence is still in range.
+	assert_true(_build.try_demolish(cabin.pos + Vector3(0, 0, 2.6)), "could not demolish the fence next to the seat")
+	assert_eq(_state.building(fence.id), {})
+	assert_true(not _state.building(cabin.id).is_empty())

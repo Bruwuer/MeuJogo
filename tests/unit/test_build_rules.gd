@@ -49,7 +49,7 @@ func _find(ok: Callable) -> Vector3:
 func _flat_clear(type: int) -> Vector3:
 	return _find(func(p: Vector3) -> bool:
 		return _height_diff(type, p) < 0.3 and _solid_props_touching(type, p, 0).is_empty() \
-				and _scatter.props_near(p, 4.0).is_empty())
+				and _scatter.props_near(p, 6.0).is_empty())
 
 
 func test_ok_on_flat_clear_ground() -> void:
@@ -115,7 +115,7 @@ func test_overlap_other_building() -> void:
 	var p := _flat_clear(B.CABIN)
 	var s := _rich_state()
 	s.add_building(B.CABIN, p, 0)
-	assert_eq(BuildRules.check(B.CABIN, p + Vector3(1, 0, 0), 0, _gen, _scatter, s).reason, GameConstants.BUILD_MSG_OCCUPIED)
+	assert_eq(BuildRules.check(B.CABIN, p + Vector3(0.5, 0, 0), 0, _gen, _scatter, s).reason, GameConstants.BUILD_MSG_OCCUPIED)
 
 
 func test_touching_is_not_overlap() -> void:
@@ -173,3 +173,26 @@ func test_y_is_max_ground() -> void:
 
 func test_snap() -> void:
 	assert_eq(BuildRules.snap(Vector3(10.26, 3.0, 7.74)), Vector3(10.5, 3.0, 7.5))
+
+
+func test_rejects_footprint_over_player() -> void:
+	var p := _flat_clear(B.CABIN)
+	var r := BuildRules.check(B.CABIN, p, 0, _gen, _scatter, _rich_state(), [p + Vector3(1.0, 0, 1.0)])
+	assert_eq(r.reason, GameConstants.BUILD_MSG_PLAYER)
+	var far := BuildRules.check(B.CABIN, p, 0, _gen, _scatter, _rich_state(), [p + Vector3(6.0, 0, 0)])
+	assert_true(far.ok, "player far away still blocks: %s" % far.reason)
+
+
+func test_tree_crown_blocks_near_trunk() -> void:
+	# A trunk 0.9 m outside the cabin wall: the trunk misses, but the crown would cross the wall.
+	var oak := _gentle_oak()
+	var pos: Vector3 = oak.pos + Vector3(2.0 + 0.9, 0, 0) # cabin half-width 2 m along X
+	var s := _rich_state()
+	for p in _scatter.props_near(pos, 8.0):
+		if p.id != oak.id or ChunkMath.world_to_chunk(p.pos) != ChunkMath.world_to_chunk(oak.pos):
+			s.mark_removed(ChunkMath.world_to_chunk(p.pos), p.id)
+	var r := BuildRules.check(B.CABIN, pos, 0, _gen, _scatter, s)
+	assert_true(r.reason == GameConstants.BUILD_MSG_PROP or r.reason == GameConstants.BUILD_MSG_SLOPE,
+			"crown ignored: %s" % (r.reason if r.reason != "" else "ok"))
+	if r.reason == GameConstants.BUILD_MSG_SLOPE:
+		failures.append("test spot too steep; pick another oak")

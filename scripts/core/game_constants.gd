@@ -138,6 +138,10 @@ const BUILD_MSG_PROP := "Há uma árvore ou rocha no caminho"
 const BUILD_MSG_OCCUPIED := "Ocupado por outra construção"
 const BUILD_MSG_MISSING := "Falta %s (%d/%d)" ## resource name in lower case, have, need
 const BUILD_MSG_SEAT := "A sede do reino não pode ser demolida"
+const BUILD_MSG_PLAYER := "Você está no caminho"
+const BUILD_PLAYER_RADIUS := 0.4 ## Capsule radius plus margin kept free of new footprints.
+## Space a footprint must keep from each prop (crowns are wider than trunks), at scale 1.
+const BUILD_PROP_CLEARANCE := { Prop.OAK: 1.3, Prop.PINE: 1.4, Prop.ROCK: 0.9, Prop.BUSH: 0.0 }
 const BUILD_GHOST_DISTANCE := 3.0 ## Ghost distance in front of the player when the mouse is not used.
 const BUILD_DEMOLISH_RANGE := 3.0 ## Max distance from the player to a building's footprint edge.
 const BUILD_RAY_LENGTH := 500.0

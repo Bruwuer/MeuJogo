@@ -65,13 +65,13 @@ func ghost_position() -> Vector3:
 
 
 func preview() -> Dictionary:
-	return BuildRules.check(type, ghost_position(), rot, _gen, _scatter, _state)
+	return BuildRules.check(type, ghost_position(), rot, _gen, _scatter, _state, [_player.global_position])
 
 
 ## Validates, spends and builds at the ghost. Nothing is spent unless the building is placed.
 func try_place() -> bool:
 	var pos := ghost_position()
-	var check := BuildRules.check(type, pos, rot, _gen, _scatter, _state)
+	var check := BuildRules.check(type, pos, rot, _gen, _scatter, _state, [_player.global_position])
 	if not check.ok:
 		message.emit(check.reason)
 		return false
@@ -90,10 +90,12 @@ func try_place() -> bool:
 	return true
 
 
-## Removes the closest building whose footprint is within BUILD_DEMOLISH_RANGE of `near`.
+## Removes the closest demolishable building whose footprint is within BUILD_DEMOLISH_RANGE of
+## `near`. Kingdom seats (and flags) are skipped, so a fence next to the seat can still go.
 func try_demolish(near: Vector3) -> bool:
 	var target := {}
 	var best := GameConstants.BUILD_DEMOLISH_RANGE
+	var seat_in_range := false
 	var center := ChunkMath.world_to_chunk(near)
 	for dy in range(-1, 2):
 		for dx in range(-1, 2):
@@ -104,13 +106,16 @@ func try_demolish(near: Vector3) -> bool:
 				var p := Vector2(near.x, near.z)
 				var closest := Vector2(clampf(p.x, rect.position.x, rect.end.x), clampf(p.y, rect.position.y, rect.end.y))
 				var d := closest.distance_to(p)
-				if d <= best:
+				if d > GameConstants.BUILD_DEMOLISH_RANGE:
+					continue
+				if _is_seat(b.id):
+					seat_in_range = true
+				elif d <= best:
 					best = d
 					target = b
 	if target.is_empty():
-		return false
-	if _state.kingdoms().any(func(k: Dictionary) -> bool: return k.seat_id == target.id):
-		message.emit(GameConstants.BUILD_MSG_SEAT)
+		if seat_in_range:
+			message.emit(GameConstants.BUILD_MSG_SEAT)
 		return false
 	_state.remove_building(target.id)
 	_state.refund(GameConstants.BUILD_COST[target.type], GameConstants.BUILD_REFUND)
@@ -124,6 +129,7 @@ func try_demolish(near: Vector3) -> bool:
 ## First terrain hit along a ray (trees, rocks and buildings are ignored), or null.
 func ground_hit(from: Vector3, to: Vector3) -> Variant:
 	var query := PhysicsRayQueryParameters3D.create(from, to, GameConstants.LAYER_TERRAIN)
+	query.exclude = [_player.get_rid()] # the player capsule is on the default layer too
 	var hit := _player.get_world_3d().direct_space_state.intersect_ray(query)
 	return hit.position if hit else null
 
@@ -184,6 +190,10 @@ func _found_kingdom(cabin: Dictionary) -> void:
 	_add_to_chunk(flag)
 	var kingdom := _state.add_kingdom(name, color, cabin.pos, cabin.id)
 	kingdom_founded.emit(kingdom)
+
+
+func _is_seat(building_id: int) -> bool:
+	return _state.kingdoms().any(func(k: Dictionary) -> bool: return k.seat_id == building_id)
 
 
 func _add_to_chunk(rec: Dictionary) -> void:

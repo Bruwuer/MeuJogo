@@ -26,8 +26,9 @@ static func circle_hits_rect(center: Vector2, radius: float, rect: Rect2) -> boo
 
 ## {ok: bool, reason: String, y: float, bushes: Array[{chunk: Vector2i, id: int}]}.
 ## `y` is the highest ground under the footprint (the building's floor level).
+## `blockers`: positions of characters (the player) the footprint must not cover.
 static func check(type: int, pos: Vector3, rot: int, gen: TerrainGenerator, scatter: PropScatter,
-		state: WorldState) -> Dictionary:
+		state: WorldState, blockers: Array = []) -> Dictionary:
 	var rect := footprint_rect(type, pos, rot)
 	var result := {ok = false, reason = "", y = 0.0, bushes = []}
 	var map := Rect2(Vector2.ZERO, Vector2.ONE * ChunkMath.playable_size())
@@ -58,7 +59,7 @@ static func check(type: int, pos: Vector3, rot: int, gen: TerrainGenerator, scat
 			if state.removed_in(c).has(p.id):
 				continue
 			var center := Vector2(p.pos.x, p.pos.z)
-			var radius: float = GameConstants.PROP_COLLISION_RADIUS[p.type] * p.scale
+			var radius: float = GameConstants.BUILD_PROP_CLEARANCE[p.type] * p.scale
 			if radius > 0.0:
 				if circle_hits_rect(center, radius, rect):
 					result.reason = GameConstants.BUILD_MSG_PROP
@@ -69,6 +70,11 @@ static func check(type: int, pos: Vector3, rot: int, gen: TerrainGenerator, scat
 		if _overlaps_building(type, rect, state):
 			result.reason = GameConstants.BUILD_MSG_OCCUPIED
 			return result
+
+		for b: Vector3 in blockers:
+			if circle_hits_rect(Vector2(b.x, b.z), GameConstants.BUILD_PLAYER_RADIUS, rect):
+				result.reason = GameConstants.BUILD_MSG_PLAYER
+				return result
 
 		var cost: Dictionary = GameConstants.BUILD_COST[type]
 		for res in cost:
