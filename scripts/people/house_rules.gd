@@ -110,3 +110,141 @@ static func capacity(level: int) -> int:
 ## Price to go up from `level`, or -1 at the top level.
 static func upgrade_price(level: int) -> int:
 	return GameConstants.UPGRADE_PRICE[level] if level < GameConstants.UPGRADE_PRICE.size() else -1
+
+
+# --- Goals ----------------------------------------------------------------------------------
+
+## Score of each goal for a House (0 = makes no sense now). ctx keys: members, adults,
+## unmarried_adults, heirs, plots, wealth, house_level, has_house, rival_id, rival_gap, allies,
+## partner_families, insulted_by, head_age.
+static func goal_scores(family: Dictionary, ctx: Dictionary) -> Dictionary:
+	var v: Dictionary = family.values
+	var G := GameConstants.Goal
+	var s := {}
+	var wanted_plots := mini(int(ctx.adults) * GameConstants.PLOTS_PER_ADULT, GameConstants.PLOTS_MAX)
+	if int(ctx.plots) < wanted_plots and float(ctx.wealth) >= GameConstants.PLOT_PRICE * 0.5:
+		s[G.LAND] = v.land * minf(1.0, (wanted_plots - int(ctx.plots)) / 2.0) + 0.1
+	var price := upgrade_price(int(ctx.house_level))
+	if ctx.has_house and price > 0 and float(ctx.wealth) >= price * 0.6:
+		s[G.UPGRADE] = v.prestige * 0.8 + 0.1
+	if int(ctx.unmarried_adults) > 0 and not (ctx.partner_families as Array).is_empty():
+		s[G.ALLIANCE] = v.prestige * 0.5 + v.wealth * 0.3
+	if int(ctx.rival_id) >= 0 and float(ctx.rival_gap) > 0.0:
+		s[G.SURPASS] = v.prestige * 0.7 + float(ctx.rival_gap) * 0.3
+	if int(ctx.insulted_by) >= 0:
+		s[G.REVENGE] = v.honor * 0.9
+	if float(ctx.wealth) < GameConstants.WEALTH_POOR:
+		s[G.WEALTH] = v.wealth * 0.8 + 0.2
+	if int(ctx.heirs) == 0 and int(ctx.adults) > 0 and float(ctx.head_age) >= GameConstants.HEIR_AGE:
+		s[G.HEIR] = 0.6
+	if int(ctx.members) <= GameConstants.UNION_MAX_MEMBERS and int(ctx.heirs) == 0 and not (ctx.allies as Array).is_empty():
+		s[G.UNION] = 0.9
+	return s
+
+
+## The best-scoring goal ({kind, target_id}), or {} when nothing makes sense.
+static func pick_goal(family: Dictionary, ctx: Dictionary, rng: RandomNumberGenerator) -> Dictionary:
+	var scores := goal_scores(family, ctx)
+	var best := -1
+	var best_score := 0.0
+	for kind in scores:
+		var sc: float = scores[kind] + rng.randf_range(-GameConstants.GOAL_NOISE, GameConstants.GOAL_NOISE)
+		if sc > best_score:
+			best_score = sc
+			best = kind
+	if best < 0:
+		return {}
+	var G := GameConstants.Goal
+	var target := -1
+	match best:
+		G.SURPASS:
+			target = int(ctx.rival_id)
+		G.REVENGE:
+			target = int(ctx.insulted_by)
+		G.ALLIANCE:
+			target = int(ctx.partner_families[0])
+		G.UNION:
+			target = int(ctx.allies[0])
+	return {kind = best, target_id = target}
+
+
+# --- Marriages, corruption, infiltration, secret romance ------------------------------------
+
+## Pairs one of `own` (unmarried adults of the House) with one of `partners` (another House):
+## a man and a woman, not close kin, age gap allowed; the closest ages win. {person_id, partner_id} or {}.
+static func arranged_match(own: Array, partners: Array, state: WorldState) -> Dictionary:
+	var best := {}
+	var best_gap := INF
+	for a: Dictionary in own:
+		for b: Dictionary in partners:
+			if bool(a.female) == bool(b.female) or int(a.get("spouse_id", -1)) >= 0 or int(b.get("spouse_id", -1)) >= 0:
+				continue
+			if float(a.age) < GameConstants.MARRY_MIN_AGE or float(b.age) < GameConstants.MARRY_MIN_AGE:
+				continue
+			var gap := absf(float(a.age) - float(b.age))
+			if gap > GameConstants.COUPLE_MAX_AGE_GAP or Kinship.is_close_kin(state, a, b):
+				continue
+			if gap < best_gap:
+				best_gap = gap
+				best = {person_id = a.id, partner_id = b.id}
+	return best
+
+
+## How someone takes an arranged marriage: "accept", "resist" or "flee" (with the one they love).
+## `rel` = relation with the proposed partner; `love_rel` = with someone else they love (-1: no one).
+static func arranged_response(person: Dictionary, rel: float, love_rel: float, rng: RandomNumberGenerator) -> String:
+	if rel >= GameConstants.COUPLE_AT:
+		return "accept"
+	var traits: Array = person.get("traits", [])
+	var in_love := love_rel >= GameConstants.COUPLE_AT
+	var p_accept := 0.55 + rel * 0.4 - (0.3 if in_love else 0.0)
+	if traits.has(T.FEARFUL):
+		p_accept += 0.15
+	if traits.has(T.BRAVE):
+		p_accept -= 0.15
+	var roll := rng.randf()
+	if roll < clampf(p_accept, 0.05, 0.95):
+		return "accept"
+	if in_love and rng.randf() < 0.35 + (0.2 if traits.has(T.BRAVE) else 0.0):
+		return "flee"
+	return "resist"
+
+
+## Chance per working day that a House skims from the kingdom stock (only greedy heads).
+static func corruption_chance(family: Dictionary, head: Dictionary) -> float:
+	if not (head.get("traits", []) as Array).has(T.GREEDY):
+		return 0.0
+	var goal: Dictionary = family.get("goal", {})
+	var bonus := 0.1 if goal.get("kind", -1) == GameConstants.Goal.WEALTH else 0.0
+	return GameConstants.CORRUPTION_BASE + float((family.get("values", {}) as Dictionary).get("wealth", 0.5)) * 0.15 + bonus
+
+
+## Chance per day that a secret (skimming, a spy, a hidden romance) comes out, given how many
+## honest/curious people watch.
+static func discovery_chance(watchers: int) -> float:
+	return minf(GameConstants.DISCOVERY_BASE + GameConstants.DISCOVERY_PER_WATCHER * watchers, GameConstants.DISCOVERY_MAX)
+
+
+## A member the House could plant in its rival (never the head; prefers loners and the greedy),
+## or {} when `rival` is not this House's rival.
+static func spy_candidate(family: Dictionary, rival: Dictionary, members: Array) -> Dictionary:
+	if rival.is_empty() or int(rival.id) == int(family.id) or int(family.get("rival_id", -1)) != int(rival.id):
+		return {}
+	var best := {}
+	var best_score := -1.0
+	for m: Dictionary in members:
+		if int(m.id) == int(family.get("head_id", -1)) or float(m.get("age", 0.0)) < GameConstants.ADULT_AGE:
+			continue
+		var traits: Array = m.get("traits", [])
+		var sc := 0.1 + (0.5 if traits.has(T.LONER) else 0.0) + (0.4 if traits.has(T.GREEDY) else 0.0)
+		if sc > best_score:
+			best_score = sc
+			best = m
+	return best
+
+
+## Two adults of the same sex in love can only meet in secret (frowned upon, medieval custom).
+static func secret_romance_possible(a: Dictionary, b: Dictionary, rel: float, kin: bool) -> bool:
+	if kin or bool(a.female) != bool(b.female) or rel < GameConstants.COUPLE_AT:
+		return false
+	return float(a.age) >= GameConstants.MARRY_MIN_AGE and float(b.age) >= GameConstants.MARRY_MIN_AGE

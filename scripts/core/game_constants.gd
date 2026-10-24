@@ -844,3 +844,12 @@ const TRAIT_VOCATIONS := {
 }
 const DEPART_FRIENDLY_AT := 0.25 ## Relation with the head above this: a friendly departure.
 const DEPART_HOSTILE_AT := -0.3
+const WEALTH_POOR := 50.0 ## Below this a House wants to gather wealth.
+const WEALTH_COMFORT := 150.0 ## The "gather wealth" goal is met here.
+const HEIR_AGE := 40.0 ## A head this old without an heir in the trade wants one.
+const UNION_MAX_MEMBERS := 2 ## Houses this small without heirs seek a union with an ally.
+const GOAL_NOISE := 0.05
+const CORRUPTION_BASE := 0.15
+const DISCOVERY_BASE := 0.05
+const DISCOVERY_PER_WATCHER := 0.04
+const DISCOVERY_MAX := 0.4
