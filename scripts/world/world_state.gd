@@ -39,6 +39,9 @@ var _people: Dictionary[int, Dictionary] = {} # id -> person (see add_person)
 var _people_by_chunk: Dictionary[Vector2i, PackedInt32Array] = {} # derived index, not saved
 var _person_chunk: Dictionary[int, Vector2i] = {}
 var _next_person_id := 1
+var _families: Dictionary[int, Dictionary] = {} # id -> family (see add_family)
+var _next_family_id := 1
+var _relations: Dictionary[Vector2i, float] = {} # (lower id, higher id) -> -1..1, symmetric
 ## The player's reputation: average opinion of every resident (-1..1), refreshed hourly.
 var fame := 0.0
 
@@ -212,6 +215,9 @@ func save_to(path: String) -> Error:
 		people = _people.values(),
 		next_person_id = _next_person_id,
 		fame = fame,
+		families = _families.values(),
+		next_family_id = _next_family_id,
+		relations = _relation_list(),
 	})
 	if err != OK:
 		return err
@@ -319,10 +325,16 @@ static func _from_dict(data: Dictionary) -> WorldState:
 		s._packs[p.id] = p
 	s._next_pack_id = data.get("next_pack_id", 1)
 	for p: Dictionary in data.get("people", []):
+		person_defaults(p)
 		s._people[p.id] = p
 		s._index_person(p)
 	s._next_person_id = data.get("next_person_id", 1)
 	s.fame = data.get("fame", 0.0)
+	for fam: Dictionary in data.get("families", []):
+		s._families[fam.id] = fam
+	s._next_family_id = data.get("next_family_id", 1)
+	for r: Array in data.get("relations", []):
+		s._relations[Vector2i(r[0], r[1])] = r[2]
 	for c in data.get("visited", []):
 		s._visited[c] = true
 	if data.get("version", -1) == GameConstants.WORLDGEN_VERSION:
@@ -477,6 +489,7 @@ func add_person(p: Dictionary, pos: Vector3, kingdom_id := -1, hour := 0.0) -> D
 	rec.merge({id = _next_person_id, pos = pos, kingdom_id = kingdom_id, home_id = -1, inside = -1,
 			hunger = 0.0, contentment = GameConstants.PERSON_START_CONTENTMENT, status = "traveler",
 			unhappy_hours = 0.0, job = "", carrying = {}, arrived_hour = hour}, true)
+	person_defaults(rec)
 	_next_person_id += 1
 	_people[rec.id] = rec
 	_index_person(rec)
@@ -489,7 +502,104 @@ func remove_person(id: int) -> Dictionary:
 	var rec: Dictionary = _people[id]
 	_people.erase(id)
 	_unindex_person(id)
+	var spouse: Dictionary = _people.get(int(rec.get("spouse_id", -1)), {})
+	if not spouse.is_empty() and spouse.spouse_id == id:
+		spouse.spouse_id = -1
+		spouse.widowed = true
+	for key in _relations.keys():
+		if key.x == id or key.y == id:
+			_relations.erase(key)
 	return rec
+
+
+## Fields added in stage 6 (records from older saves lack them). `parents` is never cleared: kinship
+## still counts after a parent is gone.
+static func person_defaults(p: Dictionary) -> void:
+	var defaults := {family_id = -1, spouse_id = -1, parents = [], stance = "", last_birth_hour = -1e9,
+			talk_day = -1, deed_day = -1, widowed = false}
+	for key in defaults:
+		if not p.has(key):
+			p[key] = defaults[key]
+
+
+# --- Families and relations -----------------------------------------------------------------
+
+## origin: "founded" (a newcomer), "branch" (left in peace), "rival" (broke away).
+func add_family(surname: String, crest: Dictionary, kingdom_id: int, head_id: int, hour: float,
+		parent_id := -1, origin := "founded") -> Dictionary:
+	var f := {id = _next_family_id, surname = surname, crest = crest, kingdom_id = kingdom_id, head_id = head_id,
+			founded_hour = hour, parent_id = parent_id, origin = origin, stance = "", deed_day = -1,
+			last_split_hour = hour}
+	_next_family_id += 1
+	_families[f.id] = f
+	return f
+
+
+func family(id: int) -> Dictionary:
+	return _families.get(id, {})
+
+
+func all_families() -> Array[Dictionary]:
+	var out: Array[Dictionary] = []
+	out.assign(_families.values())
+	return out
+
+
+func families_of(kingdom_id: int) -> Array[Dictionary]:
+	var out: Array[Dictionary] = []
+	for f: Dictionary in _families.values():
+		if f.kingdom_id == kingdom_id:
+			out.append(f)
+	return out
+
+
+## Residents of the family (people leaving are not members any more).
+func family_members(id: int) -> Array[Dictionary]:
+	var out: Array[Dictionary] = []
+	for p: Dictionary in _people.values():
+		if p.get("family_id", -1) == id and p.status == "resident":
+			out.append(p)
+	return out
+
+
+func remove_family(id: int) -> void:
+	_families.erase(id)
+
+
+func relation(a: int, b: int) -> float:
+	return _relations.get(_pair(a, b), 0.0)
+
+
+func set_relation(a: int, b: int, v: float) -> void:
+	if a == b:
+		return
+	_relations[_pair(a, b)] = clampf(v, -1.0, 1.0)
+
+
+func add_relation(a: int, b: int, d: float) -> void:
+	set_relation(a, b, relation(a, b) + d)
+
+
+## Every relation of `id`: other person id -> value.
+func relations_of(id: int) -> Dictionary:
+	var out := {}
+	for key: Vector2i in _relations:
+		if key.x == id:
+			out[key.y] = _relations[key]
+		elif key.y == id:
+			out[key.x] = _relations[key]
+	return out
+
+
+static func _pair(a: int, b: int) -> Vector2i:
+	return Vector2i(mini(a, b), maxi(a, b))
+
+
+func _relation_list() -> Array:
+	var out := []
+	for key: Vector2i in _relations:
+		out.append([key.x, key.y, _relations[key]])
+	return out
 
 
 func person(id: int) -> Dictionary:
