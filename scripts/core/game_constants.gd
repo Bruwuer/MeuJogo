@@ -117,13 +117,13 @@ const SPAWN_MAX_TRIES := 64
 const SPAWN_PROP_CLEARANCE := 2.0 ## Free space between spawn and any solid prop's edge.
 
 # Buildings
-enum Building { CABIN, CAMPFIRE, STORAGE, FENCE, WELL, FLAG, HOUSE, FARM, MARKET } ## New values only at the end.
+enum Building { CABIN, CAMPFIRE, STORAGE, FENCE, WELL, FLAG, HOUSE, FARM, MARKET, STAKE } ## New values only at the end.
 ## What the player can choose in build mode (keys 1-5, in this order). FLAG is placed automatically.
 const BUILDABLE := [Building.CABIN, Building.CAMPFIRE, Building.STORAGE, Building.FENCE, Building.WELL]
 const BUILD_NAMES := {
 	Building.CABIN: "Cabana", Building.CAMPFIRE: "Fogueira", Building.STORAGE: "Depósito",
 	Building.FENCE: "Cerca", Building.WELL: "Poço", Building.FLAG: "Bandeira",
-	Building.HOUSE: "Casa", Building.FARM: "Fazenda", Building.MARKET: "Comércio",
+	Building.HOUSE: "Casa", Building.FARM: "Fazenda", Building.MARKET: "Comércio", Building.STAKE: "Estaca",
 }
 const BUILD_COST := {
 	Building.CABIN: { Res.WOOD: 30, Res.STONE: 10 },
@@ -135,6 +135,7 @@ const BUILD_COST := {
 	Building.HOUSE: { Res.WOOD: 40, Res.STONE: 10 },
 	Building.FARM: { Res.WOOD: 12 },
 	Building.MARKET: { Res.WOOD: 25, Res.STONE: 8 },
+	Building.STAKE: {},
 }
 ## Footprint (x = local X, y = local Z) in meters at rotation 0.
 const BUILD_FOOTPRINT := {
@@ -147,6 +148,7 @@ const BUILD_FOOTPRINT := {
 	Building.HOUSE: Vector2(4.5, 5.5),
 	Building.FARM: Vector2(6.0, 6.0),
 	Building.MARKET: Vector2(4.0, 3.0),
+	Building.STAKE: Vector2(0.25, 0.25),
 }
 ## Collision boxes per type at rotation 0: [center, size], local to the building origin.
 const BUILD_COLLIDERS := {
@@ -159,6 +161,7 @@ const BUILD_COLLIDERS := {
 	Building.HOUSE: [[Vector3(0, 1.6, 0), Vector3(4.5, 3.2, 5.5)]],
 	Building.FARM: [], # walkable field
 	Building.MARKET: [[Vector3(0, 1.2, 0), Vector3(4.0, 2.4, 3.0)]],
+	Building.STAKE: [],
 }
 const BUILD_SCENES := {
 	Building.CABIN: "res://assets/models/cabin.glb",
@@ -170,6 +173,7 @@ const BUILD_SCENES := {
 	Building.HOUSE: "res://assets/models/house.glb",
 	Building.FARM: "res://assets/models/farm.glb",
 	Building.MARKET: "res://assets/models/market.glb",
+	Building.STAKE: "res://assets/models/stake.glb",
 }
 const BUILD_REFUND := 0.5 ## Share of the cost returned on demolish (rounded down).
 const BUILD_MAX_HEIGHT_DIFF := 1.2 ## Max ground height difference under a footprint.
@@ -191,7 +195,7 @@ const BUILD_MSG_SITE := "É uma obra dos moradores: não pode ser demolida"
 const OWNER_PLAYER := -1
 const OWNER_KINGDOM := -2
 ## Buildings that get no stone foundation nor collision (fields).
-const BUILD_FLAT := [Building.FARM]
+const BUILD_FLAT := [Building.FARM, Building.STAKE]
 const BUILD_PLAYER_RADIUS := 0.4 ## Capsule radius plus margin kept free of new footprints.
 ## Space a footprint must keep from each prop (crowns are wider than trunks), at scale 1.
 const BUILD_PROP_CLEARANCE := { Prop.OAK: 1.3, Prop.PINE: 1.4, Prop.ROCK: 0.9, Prop.BUSH: 0.0 }
@@ -395,12 +399,13 @@ const BUILD_DESTROYED_MSG := {
 	Building.WELL: "Um Poço foi destruído pelos %s", Building.FLAG: "A Bandeira foi destruída pelos %s",
 	Building.HOUSE: "Uma Casa foi destruída pelos %s", Building.FARM: "Uma Fazenda foi destruída pelos %s",
 	Building.MARKET: "Um Comércio foi destruído pelos %s",
+	Building.STAKE: "Uma Estaca foi derrubada pelos %s",
 }
 ## Building hit points; the seat cabin never drops below 1.
 const BUILD_HP := {
 	Building.CABIN: 300.0, Building.CAMPFIRE: 60.0, Building.STORAGE: 250.0,
 	Building.FENCE: 80.0, Building.WELL: 200.0, Building.FLAG: 50.0,
-	Building.HOUSE: 300.0, Building.FARM: 60.0, Building.MARKET: 200.0,
+	Building.HOUSE: 300.0, Building.FARM: 60.0, Building.MARKET: 200.0, Building.STAKE: 20.0,
 }
 
 # Day / night
@@ -514,7 +519,7 @@ const KINGDOM_START_STOCK := { Res.WOOD: 20, Res.BERRIES: 24 }
 ## Person-hours of work to finish a site of each type.
 const BUILD_WORK_HOURS := {
 	Building.CABIN: 8.0, Building.CAMPFIRE: 1.0, Building.STORAGE: 6.0, Building.FENCE: 1.0, Building.WELL: 5.0,
-	Building.FLAG: 1.0, Building.HOUSE: 8.0, Building.FARM: 4.0, Building.MARKET: 6.0,
+	Building.FLAG: 1.0, Building.HOUSE: 8.0, Building.FARM: 4.0, Building.MARKET: 6.0, Building.STAKE: 1.0,
 }
 ## Beds per building type for villagers (the seat cabin is the player's).
 const HOUSE_CAPACITY := { Building.HOUSE: 4, Building.CABIN: 2 } ## A house fits a couple and two children.
@@ -870,3 +875,17 @@ const HOUSE_MSG_RUNAWAY := "%s fugiu da Casa %s durante a noite"
 const HOUSE_MSG_CONFORM := "%s aceitou seguir o ofício da Casa %s, contra a vontade"
 const HOUSE_MSG_NEGOTIATE := "A Casa %s aceitou que %s seja %s"
 const HOUSE_MSG_ADOPTED := "%s foi adotado pela Casa %s"
+const GOAL_DAYS := 3.0 ## A House gives itself this long to reach a goal.
+const GOAL_SUCCESS_CONTENT := 0.08
+const GOAL_FAIL_CONTENT := -0.1
+const GOAL_SUCCESS_HONOR := 0.3 ## Dishonor wiped by a reached goal.
+const PLOT_SEARCH_RINGS := 6 ## Rings of PLOT_SIZE around the home searched for a free plot.
+const PLOT_MAX_HEIGHT_DIFF := 2.5
+const PLOT_BUY_MARKUP := 1.5
+const HOUSE_MSG_PLOT := "A Casa %s tomou posse de um lote"
+const HOUSE_MSG_PLOT_BOUGHT := "A Casa %s comprou um lote da Casa %s"
+const HOUSE_MSG_UPGRADE := "A Casa %s transformou o lar em %s"
+const HOUSE_MSG_GOAL_SET := "A Casa %s quer %s"
+const HOUSE_MSG_GOAL_DONE := "A Casa %s conseguiu %s"
+const HOUSE_MSG_GOAL_FAILED := "A Casa %s não conseguiu %s"
+const FAMILY_ALLY_AT := 0.3 ## Heads this fond of each other make their Houses allies.

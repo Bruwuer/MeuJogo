@@ -232,9 +232,8 @@ func _move_home(p: Dictionary, home_id: int) -> void:
 
 ## Free beds of a home (0 for anything that is not a finished home).
 static func room(state: WorldState, b: Dictionary) -> int:
-	if b.is_empty() or b.get("site", false) or not GameConstants.HOUSE_CAPACITY.has(b.type):
-		return 0
-	return GameConstants.HOUSE_CAPACITY[b.type] - occupants(state, b.id)
+	var total := HouseRules.beds(b)
+	return total - occupants(state, b.id) if total > 0 else 0
 
 
 static func occupants(state: WorldState, id: int) -> int:

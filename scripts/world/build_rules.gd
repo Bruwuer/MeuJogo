@@ -105,7 +105,7 @@ static func _overlaps_building(type: int, rect: Rect2, state: WorldState) -> boo
 	for cy in range(lo.y, hi.y + 1):
 		for cx in range(lo.x, hi.x + 1):
 			for b in state.buildings_in(Vector2i(cx, cy)):
-				if b.type == GameConstants.Building.FLAG:
+				if b.type == GameConstants.Building.FLAG or b.type == GameConstants.Building.STAKE:
 					continue
 				if type == GameConstants.Building.FENCE and b.type == GameConstants.Building.FENCE:
 					continue

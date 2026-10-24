@@ -42,6 +42,7 @@ func setup(state: WorldState, gen: TerrainGenerator, scatter: PropScatter, strea
 	sim.is_kingdom_loaded = is_kingdom_loaded
 	sim.message.connect(func(t: String) -> void: message.emit(t))
 	sim.site_opened.connect(_show_building)
+	sim.houses.buildings_changed.connect(_on_house_buildings)
 	sim.site_finished.connect(_refresh_building)
 	sim.site_finished.connect(func(_r: Dictionary) -> void: refresh_crests())
 	sim.families_changed.connect(refresh_crests)
@@ -616,6 +617,15 @@ func _show_building(rec: Dictionary) -> void:
 	var chunk := _chunk_of(rec.pos)
 	if chunk:
 		chunk.add_building(rec)
+
+
+## Plot stakes appeared or changed hands, or a home was upgraded: (re)build their nodes.
+func _on_house_buildings(recs: Array) -> void:
+	for rec: Dictionary in recs:
+		var chunk := _chunk_of(rec.pos)
+		if chunk:
+			chunk.remove_building(rec.id)
+			chunk.add_building(rec)
 
 
 func _refresh_building(rec: Dictionary) -> void:

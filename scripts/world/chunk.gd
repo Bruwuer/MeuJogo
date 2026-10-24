@@ -95,7 +95,7 @@ func add_building(rec: Dictionary) -> void:
 		node.add_child(_foundation(type, fp))
 	if not flat:
 		node.add_child(_colliders(type, fp, site))
-	if type == GameConstants.Building.FLAG:
+	if type == GameConstants.Building.FLAG or type == GameConstants.Building.STAKE:
 		_color_banner(node, rec.color)
 	elif type == GameConstants.Building.CAMPFIRE:
 		var light := CampfireLight.new()

@@ -22,12 +22,12 @@ static func snapshot(state: WorldState, k: Dictionary, hour: float) -> Dictionar
 			continue
 		match b.type:
 			B.HOUSE:
-				beds += GameConstants.HOUSE_CAPACITY[B.HOUSE]
+				beds += HouseRules.beds(b)
 			B.CABIN:
 				if b.id == k.seat_id:
 					has.campfire = true # the seat shelters people sleeping outdoors
 				else:
-					beds += GameConstants.HOUSE_CAPACITY[B.CABIN]
+					beds += HouseRules.beds(b)
 			B.CAMPFIRE:
 				has.campfire = true
 			B.WELL:

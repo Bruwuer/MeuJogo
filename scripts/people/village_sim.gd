@@ -59,7 +59,7 @@ func setup(state: WorldState, gen: TerrainGenerator, scatter: PropScatter, day_n
 	society.person_born.connect(func(r: Dictionary) -> void: person_born.emit(r))
 	society.person_died.connect(func(r: Dictionary) -> void: person_died.emit(r))
 	society.families_changed.connect(func() -> void: families_changed.emit())
-	houses.setup(state, _say, society)
+	houses.setup(state, _say, society, gen)
 
 
 func _process(_delta: float) -> void:

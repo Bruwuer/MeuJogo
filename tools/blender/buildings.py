@@ -124,6 +124,15 @@ def well():
     ]
 
 
+def stake():
+    """Plot corner stake: a short post with a painted top (recolored per House)."""
+    pole, paint = common.flat_material("pole", POLE), common.flat_material("banner", BANNER)
+    return [
+        box("post", (0.1, 0.1, 0.8), (0, 0, 0.4), pole),
+        box("paint", (0.12, 0.12, 0.16), (0, 0, 0.72), paint),
+    ]
+
+
 def flag():
     pole, banner = common.flat_material("pole", POLE), common.flat_material("banner", BANNER)
     return [
@@ -268,7 +277,7 @@ def crest_banner():
     return parts
 
 
-BUILDERS = {"cabin": cabin, "campfire": campfire, "storage": storage, "fence": fence, "well": well, "flag": flag,
+BUILDERS = {"stake": stake, "cabin": cabin, "campfire": campfire, "storage": storage, "fence": fence, "well": well, "flag": flag,
             "house": house, "farm": farm, "market": market, "scaffold": scaffold, "crest_banner": crest_banner}
 
 if __name__ == "__main__":

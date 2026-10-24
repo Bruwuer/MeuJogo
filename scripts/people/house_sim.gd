@@ -8,16 +8,21 @@ extends RefCounted
 
 const P := GameConstants.Profession
 
+## Buildings created or changed (plot stakes, upgraded homes) so nodes can be refreshed.
+signal buildings_changed(recs: Array)
+
 var _state: WorldState
 var _say: Callable # (k: Dictionary, text: String)
 var _society: SocietySim
+var _gen: TerrainGenerator
 var _hour := 0.0
 
 
-func setup(state: WorldState, say: Callable, society: SocietySim) -> void:
+func setup(state: WorldState, say: Callable, society: SocietySim, gen: TerrainGenerator = null) -> void:
 	_state = state
 	_say = say
 	_society = society
+	_gen = gen
 
 
 ## One simulated hour of kingdom `k`; `hour` = total game hours of that hour.
@@ -32,6 +37,7 @@ func tick_hour(k: Dictionary, hour: float) -> void:
 	_discoveries(k)
 	if _is_daily(GameConstants.DEED_HOUR):
 		_adoptions(k)
+		_goals(k, rng)
 	for f in _state.families_of(k.id):
 		f.prestige = prestige_of(f)
 
@@ -228,3 +234,234 @@ func _log(k: Dictionary, text: String, announce := false) -> void:
 	_state.chronicle_add(_hour, text, k.id)
 	if announce:
 		_say.call(k, text)
+
+
+# --- Land -----------------------------------------------------------------------------------
+
+## Claims the free plot nearest to the House's home for PLOT_PRICE. False when it cannot pay, is
+## at PLOTS_MAX or no free plot is left in the territory.
+func acquire_plot(k: Dictionary, f: Dictionary) -> bool:
+	if (f.plots as Array).size() >= GameConstants.PLOTS_MAX or float(f.wealth) < GameConstants.PLOT_PRICE:
+		return false
+	var rect := _free_plot(k, _home_pos(k, f))
+	if rect.size == Vector2.ZERO:
+		return false
+	f.wealth = float(f.wealth) - GameConstants.PLOT_PRICE
+	(f.plots as Array).append(rect)
+	buildings_changed.emit(_add_stakes(f, rect))
+	_log(k, GameConstants.HOUSE_MSG_PLOT % f.surname)
+	return true
+
+
+## `buyer` buys the last plot of `seller` (a House short of money) for PLOT_PRICE x PLOT_BUY_MARKUP.
+func buy_plot(k: Dictionary, buyer: Dictionary, seller: Dictionary) -> bool:
+	var price := GameConstants.PLOT_PRICE * GameConstants.PLOT_BUY_MARKUP
+	if (seller.plots as Array).is_empty() or float(buyer.wealth) < price \
+			or (buyer.plots as Array).size() >= GameConstants.PLOTS_MAX:
+		return false
+	var rect: Rect2 = (seller.plots as Array).pop_back()
+	(buyer.plots as Array).append(rect)
+	buyer.wealth = float(buyer.wealth) - price
+	seller.wealth = float(seller.wealth) + price
+	var moved := []
+	for b in _state.all_buildings():
+		if b.type == GameConstants.Building.STAKE and b.get("family_id", -1) == seller.id \
+				and rect.grow(0.5).has_point(Vector2(b.pos.x, b.pos.z)):
+			b.family_id = buyer.id
+			b.color = house_color(buyer)
+			moved.append(b)
+	buildings_changed.emit(moved)
+	_log(k, GameConstants.HOUSE_MSG_PLOT_BOUGHT % [buyer.surname, seller.surname])
+	return true
+
+
+## The House's banner color (first field of its crest).
+static func house_color(f: Dictionary) -> Color:
+	return Crest.color_at(f.crest, 0.2, 0.2) if not (f.crest as Dictionary).is_empty() else Color.WHITE
+
+
+func _home_pos(k: Dictionary, f: Dictionary) -> Vector3:
+	var head := _state.person(int(f.head_id))
+	var home := _state.building(int(head.get("home_id", -1))) if not head.is_empty() else {}
+	return home.pos if not home.is_empty() else k.center
+
+
+## Grid-aligned PLOT_SIZE squares around `around`, nearest first: inside the territory and the
+## map, not on another plot or a building, on ground flat enough. Rect2() when none is free.
+func _free_plot(k: Dictionary, around: Vector3) -> Rect2:
+	var size := GameConstants.PLOT_SIZE
+	var base := Vector2i(floori(around.x / size), floori(around.z / size))
+	var taken: Array[Rect2] = []
+	for other in _state.families_of(k.id):
+		for r: Rect2 in other.plots:
+			taken.append(r)
+	var footprints: Array[Rect2] = []
+	for b in VillageRules.kingdom_buildings(_state, k):
+		if b.type != GameConstants.Building.STAKE:
+			footprints.append(BuildRules.footprint_rect(b.type, b.pos, b.rot))
+	var map := Rect2(Vector2.ZERO, Vector2.ONE * ChunkMath.playable_size())
+	for ring in GameConstants.PLOT_SEARCH_RINGS + 1:
+		for dy in range(-ring, ring + 1):
+			for dx in range(-ring, ring + 1):
+				if maxi(absi(dx), absi(dy)) != ring:
+					continue
+				var rect := Rect2(Vector2(base.x + dx, base.y + dy) * size, Vector2.ONE * size)
+				var c := rect.get_center()
+				if c.distance_to(Vector2(k.center.x, k.center.z)) > float(k.radius) - size * 0.5 or not map.encloses(rect):
+					continue
+				var inner := rect.grow(-0.01)
+				if taken.any(func(r: Rect2) -> bool: return inner.intersects(r)) \
+						or footprints.any(func(r: Rect2) -> bool: return inner.intersects(r)):
+					continue
+				if _gen and _height_span(rect) > GameConstants.PLOT_MAX_HEIGHT_DIFF:
+					continue
+				return rect
+	return Rect2()
+
+
+func _height_span(rect: Rect2) -> float:
+	var lo := INF
+	var hi := -INF
+	for x in [rect.position.x, rect.get_center().x, rect.end.x]:
+		for z in [rect.position.y, rect.get_center().y, rect.end.y]:
+			var h := _gen.height_at(x, z)
+			lo = minf(lo, h)
+			hi = maxf(hi, h)
+	return hi - lo
+
+
+func _add_stakes(f: Dictionary, rect: Rect2) -> Array:
+	var out := []
+	var inset := 0.2
+	for corner: Vector2 in [rect.position + Vector2(inset, inset), Vector2(rect.end.x - inset, rect.position.y + inset),
+			Vector2(rect.position.x + inset, rect.end.y - inset), rect.end - Vector2(inset, inset)]:
+		var y := _gen.height_at(corner.x, corner.y) if _gen else 0.0
+		var b := _state.add_building(GameConstants.Building.STAKE, Vector3(corner.x, y, corner.y), 0, house_color(f),
+				GameConstants.OWNER_KINGDOM)
+		b.family_id = f.id
+		out.append(b)
+	return out
+
+
+# --- Home upgrades --------------------------------------------------------------------------
+
+## Simple house -> stone house -> manor, paid with House wealth. False at the top or when short.
+func upgrade(k: Dictionary, f: Dictionary) -> bool:
+	var head := _state.person(int(f.head_id))
+	var home := _state.building(int(head.get("home_id", -1))) if not head.is_empty() else {}
+	if home.is_empty() or home.type != GameConstants.Building.HOUSE or home.get("site", false):
+		return false
+	var level := int(home.get("house_level", 0))
+	var price := HouseRules.upgrade_price(level)
+	if price < 0 or float(f.wealth) < price:
+		return false
+	f.wealth = float(f.wealth) - price
+	home.house_level = level + 1
+	buildings_changed.emit([home])
+	_log(k, GameConstants.HOUSE_MSG_UPGRADE % [f.surname, GameConstants.HOUSE_LEVEL_NAMES[level + 1]], true)
+	return true
+
+
+# --- Goals ----------------------------------------------------------------------------------
+
+func _goals(k: Dictionary, rng: RandomNumberGenerator) -> void:
+	for f in _state.families_of(k.id):
+		var goal: Dictionary = f.goal
+		if not goal.is_empty():
+			if goal_reached(f, goal, goal_ctx(k, f)):
+				_goal_end(k, f, true)
+			elif _hour > float(goal.get("deadline_hour", INF)):
+				_goal_end(k, f, false)
+		if (f.goal as Dictionary).is_empty():
+			var g := HouseRules.pick_goal(f, goal_ctx(k, f), rng)
+			if not g.is_empty():
+				g.deadline_hour = _hour + GameConstants.GOAL_DAYS * 24.0
+				g.start_level = house_level_of(f)
+				f.goal = g
+				_state.chronicle_add(_hour, GameConstants.HOUSE_MSG_GOAL_SET % [f.surname, goal_text(g)], k.id)
+		_pursue(k, f)
+
+
+## Daily step toward the goal (the rest happens through work, marriages and intrigue).
+func _pursue(k: Dictionary, f: Dictionary) -> void:
+	var G := GameConstants.Goal
+	match int((f.goal as Dictionary).get("kind", -1)):
+		G.LAND:
+			if not acquire_plot(k, f):
+				for other in _state.families_of(k.id):
+					if other.id != f.id and float(other.wealth) < GameConstants.WEALTH_POOR and buy_plot(k, f, other):
+						break
+		G.UPGRADE:
+			upgrade(k, f)
+
+
+func goal_reached(f: Dictionary, goal: Dictionary, ctx: Dictionary) -> bool:
+	var G := GameConstants.Goal
+	match int(goal.kind):
+		G.LAND:
+			return int(ctx.plots) >= mini(maxi(1, int(ctx.adults)) * GameConstants.PLOTS_PER_ADULT, GameConstants.PLOTS_MAX)
+		G.UPGRADE:
+			return int(ctx.house_level) > int(goal.get("start_level", 0))
+		G.WEALTH:
+			return float(f.wealth) >= GameConstants.WEALTH_COMFORT
+		G.SURPASS:
+			var rival := _state.family(int(goal.target_id))
+			return rival.is_empty() or float(f.prestige) > float(rival.prestige)
+		G.HEIR:
+			return int(ctx.heirs) > 0
+	return goal.get("done", false)
+
+
+func _goal_end(k: Dictionary, f: Dictionary, success: bool) -> void:
+	var text := goal_text(f.goal)
+	for m in _state.family_members(f.id):
+		var d := GameConstants.GOAL_SUCCESS_CONTENT if success else GameConstants.GOAL_FAIL_CONTENT
+		m.contentment = clampf(float(m.get("contentment", 0.5)) + d, 0.0, 1.0)
+	if success:
+		f.dishonor = maxf(0.0, float(f.get("dishonor", 0.0)) - GameConstants.GOAL_SUCCESS_HONOR)
+		_log(k, GameConstants.HOUSE_MSG_GOAL_DONE % [f.surname, text])
+	else:
+		_log(k, GameConstants.HOUSE_MSG_GOAL_FAILED % [f.surname, text])
+	f.goal = {}
+
+
+func goal_text(g: Dictionary) -> String:
+	var text: String = GameConstants.GOAL_TEXTS[int(g.kind)]
+	if text.contains("%s"):
+		var target := _state.family(int(g.get("target_id", -1)))
+		text = text % (target.surname if not target.is_empty() else "?")
+	return text
+
+
+## Everything HouseRules.goal_scores needs to know about a House.
+func goal_ctx(k: Dictionary, f: Dictionary) -> Dictionary:
+	var members := _state.family_members(f.id)
+	var adults := members.filter(func(m: Dictionary) -> bool: return SocietyRules.is_adult(m))
+	var unmarried := adults.filter(func(m: Dictionary) -> bool: return int(m.get("spouse_id", -1)) < 0)
+	var expected := HouseRules.expected_professions(f)
+	var heirs := members.filter(func(m: Dictionary) -> bool:
+		return m.id != int(f.head_id) and ((expected.has(int(m.profession)) and SocietyRules.is_adult(m))
+				or expected.has(int(m.get("vocation", -1)))))
+	var head := _state.person(int(f.head_id))
+	var home := _state.building(int(head.get("home_id", -1))) if not head.is_empty() else {}
+	var rival := _state.family(int(f.get("rival_id", -1)))
+	var allies := []
+	var partners := []
+	for other in _state.families_of(k.id):
+		if other.id == f.id:
+			continue
+		if _state.relation(int(f.head_id), int(other.head_id)) > GameConstants.FAMILY_ALLY_AT:
+			allies.append(other.id)
+		if other.id != int(f.get("rival_id", -1)) and _state.family_members(other.id).any(func(o: Dictionary) -> bool:
+				return SocietyRules.is_adult(o) and int(o.get("spouse_id", -1)) < 0 \
+						and unmarried.any(func(u: Dictionary) -> bool: return bool(u.female) != bool(o.female))):
+			partners.append(other.id)
+	return {
+		members = members.size(), adults = adults.size(), unmarried_adults = unmarried.size(), heirs = heirs.size(),
+		plots = (f.plots as Array).size(), wealth = float(f.wealth), house_level = int(home.get("house_level", 0)),
+		has_house = not home.is_empty() and home.type == GameConstants.Building.HOUSE,
+		rival_id = rival.id if not rival.is_empty() else -1,
+		rival_gap = float(rival.prestige) - float(f.prestige) if not rival.is_empty() else 0.0,
+		allies = allies, partner_families = partners, insulted_by = int(f.get("insulted_by", -1)),
+		head_age = float(head.get("age", 0.0)),
+	}

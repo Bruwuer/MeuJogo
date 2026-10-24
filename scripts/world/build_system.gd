@@ -105,7 +105,7 @@ func try_demolish(near: Vector3) -> bool:
 	for dy in range(-1, 2):
 		for dx in range(-1, 2):
 			for b in _state.buildings_in(center + Vector2i(dx, dy)):
-				if b.type == GameConstants.Building.FLAG:
+				if b.type == GameConstants.Building.FLAG or b.type == GameConstants.Building.STAKE:
 					continue
 				var rect := BuildRules.footprint_rect(b.type, b.pos, b.rot)
 				var p := Vector2(near.x, near.z)

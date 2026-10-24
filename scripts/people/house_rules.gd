@@ -260,3 +260,12 @@ static func grown_profession(person: Dictionary, family: Dictionary, needed: int
 	if conflicts(person, family):
 		return {profession = expected_professions(family)[0], conflict = true}
 	return {profession = v, conflict = false}
+
+
+## Beds of a finished home: houses by level (simple / stone / manor), cabins fixed; 0 otherwise.
+static func beds(b: Dictionary) -> int:
+	if b.is_empty() or b.get("site", false) or not GameConstants.HOUSE_CAPACITY.has(b.type):
+		return 0
+	if b.type == GameConstants.Building.HOUSE:
+		return capacity(int(b.get("house_level", 0)))
+	return GameConstants.HOUSE_CAPACITY[b.type]
