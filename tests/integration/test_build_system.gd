@@ -241,3 +241,22 @@ func test_demolish_skips_seat_for_nearby_fence() -> void:
 	assert_true(_build.try_demolish(cabin.pos + Vector3(0, 0, 2.6)), "could not demolish the fence next to the seat")
 	assert_eq(_state.building(fence.id), {})
 	assert_true(not _state.building(cabin.id).is_empty())
+
+
+func test_cannot_demolish_village_buildings() -> void:
+	var spot := _spot(B.WELL)
+	await _setup(spot)
+	var well := _state.add_building(B.WELL, spot, 0, Color.WHITE, GameConstants.OWNER_KINGDOM)
+	var msgs := []
+	_build.message.connect(func(t: String) -> void: msgs.append(t))
+	assert_true(not _build.try_demolish(spot), "village well demolished")
+	assert_true(not _state.building(well.id).is_empty())
+	assert_eq(msgs, [GameConstants.BUILD_MSG_VILLAGE])
+	_state.remove_building(well.id)
+	var r := RandomNumberGenerator.new()
+	var owner := _state.add_person(PersonGen.generate(r), spot)
+	var house := _state.add_building(B.WELL, spot, 0, Color.WHITE, owner.id)
+	assert_true(not _build.try_demolish(spot), "someone's building demolished")
+	assert_eq(msgs[-1], GameConstants.BUILD_MSG_NOT_YOURS % PersonGen.full_name(owner))
+	assert_eq(_state.get_resource(R.STONE), 0, "no refund")
+	assert_true(not _state.building(house.id).is_empty())

@@ -31,7 +31,7 @@ const FOREST_RELIEF := 0.7
 
 # Props and resources
 enum Prop { OAK, PINE, ROCK, BUSH }
-enum Res { WOOD, STONE, BERRIES, ARROWS }
+enum Res { WOOD, STONE, BERRIES, ARROWS, FOOD } ## New values only at the end (saves store ints).
 const PROP_CELL := 4.0 ## Scatter grid cell (m); at most one prop per cell.
 const PROP_MAX_SLOPE_DEG := 30.0
 const PROP_SINK := 0.05 ## Props are sunk this much (x scale) so they never float.
@@ -63,7 +63,7 @@ const HARVEST_PROMPTS := {
 	Prop.ROCK: "[E] Quebrar rocha",
 	Prop.BUSH: "[E] Colher frutas",
 }
-const RES_NAMES := { Res.WOOD: "Madeira", Res.STONE: "Pedra", Res.BERRIES: "Frutas", Res.ARROWS: "Flechas" }
+const RES_NAMES := { Res.WOOD: "Madeira", Res.STONE: "Pedra", Res.BERRIES: "Frutas", Res.ARROWS: "Flechas", Res.FOOD: "Comida" }
 
 # Player
 const WALK_SPEED := 4.0
@@ -117,12 +117,13 @@ const SPAWN_MAX_TRIES := 64
 const SPAWN_PROP_CLEARANCE := 2.0 ## Free space between spawn and any solid prop's edge.
 
 # Buildings
-enum Building { CABIN, CAMPFIRE, STORAGE, FENCE, WELL, FLAG }
+enum Building { CABIN, CAMPFIRE, STORAGE, FENCE, WELL, FLAG, HOUSE, FARM, MARKET } ## New values only at the end.
 ## What the player can choose in build mode (keys 1-5, in this order). FLAG is placed automatically.
 const BUILDABLE := [Building.CABIN, Building.CAMPFIRE, Building.STORAGE, Building.FENCE, Building.WELL]
 const BUILD_NAMES := {
 	Building.CABIN: "Cabana", Building.CAMPFIRE: "Fogueira", Building.STORAGE: "Depósito",
 	Building.FENCE: "Cerca", Building.WELL: "Poço", Building.FLAG: "Bandeira",
+	Building.HOUSE: "Casa", Building.FARM: "Fazenda", Building.MARKET: "Comércio",
 }
 const BUILD_COST := {
 	Building.CABIN: { Res.WOOD: 30, Res.STONE: 10 },
@@ -131,6 +132,9 @@ const BUILD_COST := {
 	Building.FENCE: { Res.WOOD: 4 },
 	Building.WELL: { Res.WOOD: 5, Res.STONE: 20 },
 	Building.FLAG: {},
+	Building.HOUSE: { Res.WOOD: 40, Res.STONE: 10 },
+	Building.FARM: { Res.WOOD: 12 },
+	Building.MARKET: { Res.WOOD: 25, Res.STONE: 8 },
 }
 ## Footprint (x = local X, y = local Z) in meters at rotation 0.
 const BUILD_FOOTPRINT := {
@@ -140,6 +144,9 @@ const BUILD_FOOTPRINT := {
 	Building.FENCE: Vector2(3.0, 0.4),
 	Building.WELL: Vector2(2.0, 2.0),
 	Building.FLAG: Vector2(0.3, 0.3),
+	Building.HOUSE: Vector2(4.5, 5.5),
+	Building.FARM: Vector2(6.0, 6.0),
+	Building.MARKET: Vector2(4.0, 3.0),
 }
 ## Collision boxes per type at rotation 0: [center, size], local to the building origin.
 const BUILD_COLLIDERS := {
@@ -149,6 +156,9 @@ const BUILD_COLLIDERS := {
 	Building.FENCE: [[Vector3(0, 0.6, 0), Vector3(3.0, 1.2, 0.2)]],
 	Building.WELL: [[Vector3(0, 0.5, 0), Vector3(1.8, 1.0, 1.8)]],
 	Building.FLAG: [[Vector3(0, 2.0, 0), Vector3(0.2, 4.0, 0.2)]],
+	Building.HOUSE: [[Vector3(0, 1.6, 0), Vector3(4.5, 3.2, 5.5)]],
+	Building.FARM: [], # walkable field
+	Building.MARKET: [[Vector3(0, 1.2, 0), Vector3(4.0, 2.4, 3.0)]],
 }
 const BUILD_SCENES := {
 	Building.CABIN: "res://assets/models/cabin.glb",
@@ -171,6 +181,14 @@ const BUILD_MSG_OCCUPIED := "Ocupado por outra construção"
 const BUILD_MSG_MISSING := "Falta %s (%d/%d)" ## resource name in lower case, have, need
 const BUILD_MSG_SEAT := "A sede do reino não pode ser demolida"
 const BUILD_MSG_PLAYER := "Você está no caminho"
+const BUILD_MSG_VILLAGE := "Foi erguido pelos moradores: não pode ser demolido"
+const BUILD_MSG_NOT_YOURS := "É de %s: não pode ser demolido"
+const BUILD_MSG_SITE := "É uma obra dos moradores: não pode ser demolida"
+## Building owners: the player (and its kingdom seat), the villagers as a whole, or a person id (>= 0).
+const OWNER_PLAYER := -1
+const OWNER_KINGDOM := -2
+## Buildings that get no stone foundation nor collision (fields).
+const BUILD_FLAT := [Building.FARM]
 const BUILD_PLAYER_RADIUS := 0.4 ## Capsule radius plus margin kept free of new footprints.
 ## Space a footprint must keep from each prop (crowns are wider than trunks), at scale 1.
 const BUILD_PROP_CLEARANCE := { Prop.OAK: 1.3, Prop.PINE: 1.4, Prop.ROCK: 0.9, Prop.BUSH: 0.0 }
@@ -371,11 +389,14 @@ const BUILD_DESTROYED_MSG := {
 	Building.CABIN: "Uma Cabana foi destruída pelos %s", Building.CAMPFIRE: "Uma Fogueira foi destruída pelos %s",
 	Building.STORAGE: "Um Depósito foi destruído pelos %s", Building.FENCE: "Uma Cerca foi destruída pelos %s",
 	Building.WELL: "Um Poço foi destruído pelos %s", Building.FLAG: "A Bandeira foi destruída pelos %s",
+	Building.HOUSE: "Uma Casa foi destruída pelos %s", Building.FARM: "Uma Fazenda foi destruída pelos %s",
+	Building.MARKET: "Um Comércio foi destruído pelos %s",
 }
 ## Building hit points; the seat cabin never drops below 1.
 const BUILD_HP := {
 	Building.CABIN: 300.0, Building.CAMPFIRE: 60.0, Building.STORAGE: 250.0,
 	Building.FENCE: 80.0, Building.WELL: 200.0, Building.FLAG: 50.0,
+	Building.HOUSE: 300.0, Building.FARM: 60.0, Building.MARKET: 200.0,
 }
 
 # Day / night
@@ -478,3 +499,15 @@ const TROUSER_COLORS := [
 ]
 const PERSON_HEIGHT := Vector2(0.92, 1.06) ## Model scale range.
 const PERSON_AGE := Vector2i(16, 60)
+
+# Kingdom stock and villagers' buildings
+## A new kingdom starts with the founders' supplies (separate from the player's inventory).
+const KINGDOM_START_STOCK := { Res.WOOD: 20, Res.BERRIES: 24 }
+## Person-hours of work to finish a site of each type.
+const BUILD_WORK_HOURS := {
+	Building.CABIN: 8.0, Building.CAMPFIRE: 1.0, Building.STORAGE: 6.0, Building.FENCE: 1.0, Building.WELL: 5.0,
+	Building.FLAG: 1.0, Building.HOUSE: 8.0, Building.FARM: 4.0, Building.MARKET: 6.0,
+}
+## Beds per building type for villagers (the seat cabin is the player's).
+const HOUSE_CAPACITY := { Building.HOUSE: 3, Building.CABIN: 2 }
+const PERSON_START_CONTENTMENT := 0.6

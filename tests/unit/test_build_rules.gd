@@ -196,3 +196,13 @@ func test_tree_crown_blocks_near_trunk() -> void:
 			"crown ignored: %s" % (r.reason if r.reason != "" else "ok"))
 	if r.reason == GameConstants.BUILD_MSG_SLOPE:
 		failures.append("test spot too steep; pick another oak")
+
+
+func test_check_site_ignores_cost() -> void:
+	var pos := _flat_clear(B.CABIN)
+	var poor := WorldState.new()
+	assert_true(not BuildRules.check(B.CABIN, pos, 0, _gen, _scatter, poor).ok, "player can't afford")
+	var site := BuildRules.check_site(B.CABIN, pos, 0, _gen, _scatter, poor)
+	assert_true(site.ok, "site check is about the place only: %s" % site.reason)
+	var blocked := BuildRules.check_site(B.CABIN, pos, 0, _gen, _scatter, poor, [pos])
+	assert_true(not blocked.ok, "someone standing there blocks it")

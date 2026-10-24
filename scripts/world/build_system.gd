@@ -92,11 +92,13 @@ func try_place() -> bool:
 
 
 ## Removes the closest demolishable building whose footprint is within BUILD_DEMOLISH_RANGE of
-## `near`. Kingdom seats (and flags) are skipped, so a fence next to the seat can still go.
+## `near`. Kingdom seats, flags and the villagers' buildings are skipped, so a fence next to the
+## seat can still go.
 func try_demolish(near: Vector3) -> bool:
 	var target := {}
 	var best := GameConstants.BUILD_DEMOLISH_RANGE
-	var seat_in_range := false
+	var refusal := "" # why the closest building that is not the player's cannot go
+	var refusal_d := INF
 	var center := ChunkMath.world_to_chunk(near)
 	for dy in range(-1, 2):
 		for dx in range(-1, 2):
@@ -109,14 +111,17 @@ func try_demolish(near: Vector3) -> bool:
 				var d := closest.distance_to(p)
 				if d > GameConstants.BUILD_DEMOLISH_RANGE:
 					continue
-				if _is_seat(b.id):
-					seat_in_range = true
+				var why := _refusal(b)
+				if why != "":
+					if d < refusal_d:
+						refusal = why
+						refusal_d = d
 				elif d <= best:
 					best = d
 					target = b
 	if target.is_empty():
-		if seat_in_range:
-			message.emit(GameConstants.BUILD_MSG_SEAT)
+		if refusal != "":
+			message.emit(refusal)
 		return false
 	_state.remove_building(target.id)
 	_state.refund(GameConstants.BUILD_COST[target.type], GameConstants.BUILD_REFUND)
@@ -218,3 +223,19 @@ static func _ghost_material(color: Color) -> StandardMaterial3D:
 	m.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
 	m.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
 	return m
+
+
+## "" when the player may demolish `b`; otherwise the reason shown. Only the player's own
+## buildings (not the seat) can go: the villagers' are theirs.
+func _refusal(b: Dictionary) -> String:
+	if _is_seat(b.id):
+		return GameConstants.BUILD_MSG_SEAT
+	if b.get("site", false):
+		return GameConstants.BUILD_MSG_SITE
+	var owner: int = b.get("owner", GameConstants.OWNER_PLAYER)
+	if owner == GameConstants.OWNER_KINGDOM:
+		return GameConstants.BUILD_MSG_VILLAGE
+	if owner >= 0:
+		var p := _state.person(owner)
+		return GameConstants.BUILD_MSG_NOT_YOURS % (PersonGen.full_name(p) if not p.is_empty() else "um morador")
+	return ""

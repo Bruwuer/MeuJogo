@@ -24,10 +24,28 @@ static func circle_hits_rect(center: Vector2, radius: float, rect: Rect2) -> boo
 	return closest.distance_to(center) < radius
 
 
+## The place plus the player's resources (build mode). Same result as check_site.
+static func check(type: int, pos: Vector3, rot: int, gen: TerrainGenerator, scatter: PropScatter,
+		state: WorldState, blockers: Array = []) -> Dictionary:
+	var result := check_site(type, pos, rot, gen, scatter, state, blockers)
+	if not result.ok or type == GameConstants.Building.FLAG:
+		return result
+	var cost: Dictionary = GameConstants.BUILD_COST[type]
+	for res in cost:
+		if state.get_resource(res) < cost[res]:
+			result.ok = false
+			result.reason = GameConstants.BUILD_MSG_MISSING % [
+				(GameConstants.RES_NAMES[res] as String).to_lower(), state.get_resource(res), cost[res]]
+			return result
+	return result
+
+
+## Only the place (map, slope, trees and rocks, other buildings, people in the way); the cost is
+## checked by the caller against whoever pays (player inventory or kingdom stock).
 ## {ok: bool, reason: String, y: float, bushes: Array[{chunk: Vector2i, id: int}]}.
 ## `y` is the highest ground under the footprint (the building's floor level).
 ## `blockers`: positions of characters (the player) the footprint must not cover.
-static func check(type: int, pos: Vector3, rot: int, gen: TerrainGenerator, scatter: PropScatter,
+static func check_site(type: int, pos: Vector3, rot: int, gen: TerrainGenerator, scatter: PropScatter,
 		state: WorldState, blockers: Array = []) -> Dictionary:
 	var rect := footprint_rect(type, pos, rot)
 	var result := {ok = false, reason = "", y = 0.0, bushes = []}
@@ -74,13 +92,6 @@ static func check(type: int, pos: Vector3, rot: int, gen: TerrainGenerator, scat
 		for b: Vector3 in blockers:
 			if circle_hits_rect(Vector2(b.x, b.z), GameConstants.BUILD_PLAYER_RADIUS, rect):
 				result.reason = GameConstants.BUILD_MSG_PLAYER
-				return result
-
-		var cost: Dictionary = GameConstants.BUILD_COST[type]
-		for res in cost:
-			if state.get_resource(res) < cost[res]:
-				result.reason = GameConstants.BUILD_MSG_MISSING % [
-					(GameConstants.RES_NAMES[res] as String).to_lower(), state.get_resource(res), cost[res]]
 				return result
 
 	result.ok = true
