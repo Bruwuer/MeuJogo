@@ -585,3 +585,27 @@ const SITE_CANDIDATES := 24 ## Places tested per planning hour.
 const SITE_MIN_RADIUS := 9.0
 const SITE_SPIRAL_STEP := 1.2 ## Radius gained per candidate.
 const SITE_GAP := 1.5 ## Free corridor kept around a new site (to other buildings).
+
+# Village simulation (hourly, every kingdom)
+const TRAVELER_FIRST_HOURS := 1.0 ## First traveler after the founding.
+const TRAVELER_INTERVAL_HOURS := 6.0
+const TRAVELER_INTERVAL_MARKET := 4.0 ## With a Market.
+const TRAVELER_DISTANCE := Vector2(60.0, 90.0) ## Spawn ring around the kingdom center.
+const TRAVELER_NEEDED_SHARE := 0.5 ## Travelers that bring the trade the kingdom needs most.
+const TRAVELER_MAP_MARGIN := 4.0
+const WORK_START_HOUR := 7.0
+const WORK_END_HOUR := 19.0
+const SLEEP_START_HOUR := 21.0
+const SLEEP_END_HOUR := 6.0
+## Summarized output of one work hour of a person without a node.
+const OFFSCREEN_RATE := { "wood": 2.0, "stone": 1.2, "berries": 1.5 }
+const FARM_FOOD_PER_HOUR := 0.75 ## Food per farmer-hour on a farm (one farmer per farm counts).
+const VILLAGE_HARVEST_RADIUS := 35.0 ## Villagers gather props this close to the kingdom center.
+const SITE_STALL_HOURS := 48.0 ## A site with no work for this long is abandoned (cost back).
+const VILLAGE_MSG_STAYS := "%s decidiu ficar: %s"
+const VILLAGE_MSG_GOES := "%s seguiu viagem: %s"
+const VILLAGE_MSG_LEFT := "%s deixou o Reino de %s: %s"
+const VILLAGE_MSG_SITE := "Os moradores do Reino de %s começaram a construir: %s"
+const VILLAGE_MSG_HOUSE_DONE := "Ficou pronta a casa de %s"
+const VILLAGE_MSG_DONE := "Os moradores do Reino de %s terminaram: %s"
+const VILLAGE_MSG_ABANDONED := "A obra (%s) do Reino de %s foi abandonada"
