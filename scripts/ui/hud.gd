@@ -113,7 +113,7 @@ func setup(state: WorldState, harvest: HarvestSystem, day_night: DayNight, playe
 	_hint = _make_label("Hint", Control.PRESET_BOTTOM_LEFT, HORIZONTAL_ALIGNMENT_LEFT)
 	_hint.offset_left = _MARGIN
 	_hint.offset_top = -_MARGIN - _FONT_SIZE * 1.5
-	_hint.text = "E fala · G doa · C famílias · K crônica · B construir · X demolir · Espaço ataca · H come · F flechas"
+	_hint.text = "E fala · G doa · B construir · X demolir · Espaço ataca · H come · F flechas"
 	_toast = _make_label("Toast", Control.PRESET_CENTER, HORIZONTAL_ALIGNMENT_CENTER)
 	_toast.add_theme_font_size_override("font_size", _TOAST_FONT_SIZE)
 	_center_h(_toast, _WIDE * 2.0)
@@ -330,22 +330,23 @@ func _make_families_panel(style: StyleBox) -> void:
 
 
 func _unhandled_input(event: InputEvent) -> void:
-	if event.is_action_pressed("families"):
+	if event.is_action_pressed("adm_houses"):
 		toggle_families()
-	elif event.is_action_pressed("chronicle"):
+	elif event.is_action_pressed("adm_log"):
 		toggle_chronicle()
 
 
-# --- Chronicle panel (K) --------------------------------------------------------------------
+# --- ADM panels (F9 log, F10 Houses): dev only, the player never sees kingdom events ---
 
-## The kingdom's last `n` public chronicle entries, newest first: "Dia 3, 14h — ...".
+## The kingdom's last `n` chronicle entries, secrets included, newest first: "Dia 3, 14h — ...".
 static func chronicle_lines(state: WorldState, k: Dictionary, n: int) -> PackedStringArray:
 	var out: PackedStringArray = []
-	var entries := state.chronicle(k.id, n)
-	entries.reverse()
+	var entries := state.chronicle_all(k.id, n)
+	entries.sort_custom(func(a: Dictionary, b: Dictionary) -> bool: return float(a.hour) > float(b.hour))
 	for e: Dictionary in entries:
 		var h := float(e.hour)
-		out.append("Dia %d, %dh — %s" % [floori(h / 24.0), floori(fmod(h, 24.0)), e.text]) # hours count from day 1
+		out.append("Dia %d, %dh — %s%s" % [floori(h / 24.0), floori(fmod(h, 24.0)), # hours count from day 1
+				"" if e.public else "[segredo] ", e.text])
 	return out
 
 

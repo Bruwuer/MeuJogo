@@ -161,8 +161,8 @@ func test_offscreen_work_builds_site() -> void:
 	assert_eq(house.owner, p1.id, "the first homeless signs it")
 	assert_eq(p1.home_id, house.id)
 	assert_eq(p2.home_id, house.id, "room for three")
-	var texts := sim.take_messages()
-	assert_true(texts.any(func(t: String) -> bool: return t.contains(PersonGen.full_name(p1))), "message names the owner")
+	var texts := s.chronicle(k.id, 50).map(func(e: Dictionary) -> String: return e.text)
+	assert_true(texts.any(func(t: String) -> bool: return t.contains(PersonGen.full_name(p1))), "the log names the owner")
 
 
 func test_offscreen_only_for_nodeless() -> void:
@@ -206,20 +206,15 @@ func test_offscreen_harvest_removes_props() -> void:
 	assert_true(not prop.is_empty() and prop.type in [GameConstants.Prop.OAK, GameConstants.Prop.PINE], "a tree near the kingdom")
 
 
-func test_messages_queued_when_unloaded() -> void:
+func test_news_logged_when_unloaded() -> void:
 	var a := _setup(false)
 	var s: WorldState = a[0]
 	var k: Dictionary = a[1]
 	var sim: VillageSim = a[2]
-	var live: Array[String] = []
-	sim.message.connect(func(t: String) -> void: live.append(t))
 	for i in 3:
 		sim.tick_hours(1.0)
-	assert_true(live.is_empty(), "nothing shown while away")
-	assert_true(not sim.pending_messages.is_empty(), "the traveler's decision waits for the player")
+	assert_true(not s.chronicle(k.id, 10).is_empty(), "the traveler's decision is in the ADM log even far away")
 	assert_eq(s.residents(k.id).size(), 1, "the founder stayed")
-	assert_eq(sim.take_messages().size() > 0, true)
-	assert_true(sim.pending_messages.is_empty())
 
 
 func test_stalled_site_abandoned() -> void:

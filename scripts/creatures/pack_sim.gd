@@ -3,15 +3,13 @@ extends Node
 ## Cheap hourly simulation of every pack, loaded or not: updates the motives from the world
 ## records (prey around the den, buildings in its territory, the player near the cubs) and starts
 ## raids when a motive is strong enough. Raids on kingdoms that are not loaded are summarized at
-## once (buildings other than the seat take damage) and become messages for the player.
+## once (buildings other than the seat take damage) and go to the ADM chronicle.
 
 signal raid_started(pack: Dictionary, kingdom: Dictionary, motive: String)
 signal building_destroyed(rec: Dictionary)
 
 const _RAID_MAX_HOURS := 6.0 ## A live raid that never ends on its own is called off after this.
 
-## Messages about raids that happened away from the player (shown when the player returns).
-var pending_messages: Array[String] = []
 ## Used when there is no DayNight (tests).
 var is_night_override := false
 ## Set by World: whose position triggers the cubs alarm.
@@ -73,7 +71,7 @@ func pack_aggression(members: Array) -> float:
 
 
 ## Damages the kingdom's buildings (never the seat or the flag), nearest to the den first.
-## Returns the names of destroyed buildings and queues a message for the player.
+## Returns the names of destroyed buildings and writes the raid to the ADM chronicle.
 func resolve_offscreen_raid(pack: Dictionary, kingdom: Dictionary) -> Array[String]:
 	var strength := 0.0
 	for m in _state.pack_members(pack.id):
@@ -99,17 +97,11 @@ func resolve_offscreen_raid(pack: Dictionary, kingdom: Dictionary) -> Array[Stri
 			destroyed.append(GameConstants.BUILD_NAMES[b.type])
 	var plural := PackMotives.species_plural(pack.species)
 	if destroyed.is_empty():
-		pending_messages.append(GameConstants.OFFSCREEN_RAID_NOTHING_MSG % [plural, kingdom.name])
+		_state.chronicle_add(now_hours(), GameConstants.OFFSCREEN_RAID_NOTHING_MSG % [plural, kingdom.name], kingdom.id)
 	else:
-		pending_messages.append(GameConstants.OFFSCREEN_RAID_MSG % [plural, _join(destroyed), kingdom.name])
+		_state.chronicle_add(now_hours(), GameConstants.OFFSCREEN_RAID_MSG % [plural, _join(destroyed), kingdom.name], kingdom.id)
 	PackMotives.after_raid(pack, now_hours())
 	return destroyed
-
-
-func take_messages() -> Array[String]:
-	var out := pending_messages
-	pending_messages = []
-	return out
 
 
 func _maybe_raid(pack: Dictionary, members: Array) -> void:

@@ -34,36 +34,45 @@ func test_health_and_weapon_labels() -> void:
 	assert_true(hint.contains("Espaço ataca") and hint.contains("H come"), hint)
 
 
-func test_raid_message_with_motive() -> void:
+func test_raid_goes_to_adm_log_not_hud() -> void:
 	var w: World = await _world()
 	var hud := w.get_hud()
-	var pack := w.get_state().add_pack("lobo", w.get_player().global_position)
+	var s := w.get_state()
+	var k := s.add_kingdom("Valdemar", Color.RED, w.get_player().global_position, -1)
+	var pack := s.add_pack("lobo", w.get_player().global_position)
 	pack.hunger = 1.0
-	w.get_creature_manager().message.emit(PackMotives.message(pack, "Valdemar"))
+	w.get_creature_manager()._on_raid_started(pack, k, "hunger")
 	await wait_frames(2)
 	var text := (hud.get_node("Messages") as Label).text
-	assert_true(text.contains("famintos") and text.contains("Valdemar"), text)
+	assert_true(not text.contains("Valdemar"), "kingdom events stay off the HUD: %s" % text)
+	var entries_log := s.chronicle(k.id, 10)
+	assert_true(entries_log.size() == 1 and (entries_log[0].text as String).contains("famintos"), "the raid and its motive are in the ADM log: %s" % [entries_log])
 	for i in 5:
 		hud.add_message("m%d" % i)
 	assert_eq(hud.messages_text().split("\n").size(), 4, "keeps the last 4 messages")
 	assert_true(not hud.messages_text().contains("famintos"), "oldest message should drop")
 
 
-func test_offscreen_raid_message_on_return() -> void:
+func test_village_news_never_on_hud() -> void:
 	var w: World = await _world()
 	var hud := w.get_hud()
-	var sim := w.get_pack_sim()
-	sim.pending_messages.append("Enquanto você estava fora, os lobos destruíram Cerca no Reino de Valdemar")
-	await wait_frames(5)
-	assert_true(not hud.messages_text().contains("Enquanto"), "shown while the player is away from any kingdom")
 	var p := w.get_player()
-	w.get_state().add_kingdom("Valdemar", Color.RED, p.global_position, -1)
-	for i in 120:
+	var k := w.get_state().add_kingdom("Valdemar", Color.RED, p.global_position, -1)
+	w.get_village_sim()._say(k, "Ana casou com Bento")
+	for i in 30:
 		await get_tree().process_frame
-		if hud.messages_text().contains("Enquanto"):
-			break
-	assert_true(hud.messages_text().contains("Enquanto você estava fora"), "offscreen raid not reported on return")
-	assert_true(sim.pending_messages.is_empty())
+	assert_true(not hud.messages_text().contains("Ana"), "the player does not hear every kingdom event")
+	assert_true(w.get_state().chronicle(k.id, 5).any(func(e: Dictionary) -> bool: return e.text == "Ana casou com Bento"))
+
+
+func test_player_own_kill_still_shown() -> void:
+	var w: World = await _world()
+	var hud := w.get_hud()
+	var rng := RandomNumberGenerator.new()
+	var rec := {genome = Genome.random("lobo", rng), pos = Vector3(9000, 0, 9000)}
+	w.get_creature_manager().creature_killed.emit(rec, true)
+	await wait_frames(2)
+	assert_true(hud.messages_text().begins_with("Você abateu"), "the player's own deeds stay: %s" % hud.messages_text())
 
 
 func test_creature_manager_wired() -> void:

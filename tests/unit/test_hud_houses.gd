@@ -86,6 +86,7 @@ func test_chronicle_lines() -> void:
 	s.chronicle_add(24.0 * 3 + 9.0, "Martim fugiu da Casa Ferreira durante a noite", k.id)
 	s.chronicle_add(10.0, "segredo", k.id, false)
 	var lines := Hud.chronicle_lines(s, k, 10)
-	assert_eq(lines.size(), 2)
+	assert_eq(lines.size(), 3, "the ADM sees secrets too")
 	assert_eq(lines[0], "Dia 3, 9h — Martim fugiu da Casa Ferreira durante a noite", "newest first (game hours already count from day 1)")
 	assert_eq(lines[1], "Dia 2, 14h — A Casa Vale tomou posse de um lote")
+	assert_eq(lines[2], "Dia 0, 10h — [segredo] segredo")

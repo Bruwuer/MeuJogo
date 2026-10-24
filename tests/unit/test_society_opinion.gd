@@ -186,16 +186,16 @@ func test_donation_scaled() -> void:
 	assert_near(PeopleManager.donation_opinion(30), GameConstants.DONATE_OPINION, 0.0001)
 
 
-func test_news_capped() -> void:
+func test_news_go_to_the_chronicle() -> void:
 	var a := _setup(false)
+	var s: WorldState = a[0]
 	var k: Dictionary = a[1]
 	var sim: VillageSim = a[2]
-	for i in GameConstants.VILLAGE_NEWS_MAX + 10:
+	for i in GameConstants.CHRONICLE_MAX + 10:
 		sim._say(k, "notícia %d" % i)
-	assert_eq(sim.pending_messages.size(), GameConstants.VILLAGE_NEWS_MAX)
-	assert_eq(sim.pending_messages[-1], "notícia %d" % (GameConstants.VILLAGE_NEWS_MAX + 9), "keeps the latest")
-	assert_eq(sim.take_dropped(), 10)
-	assert_eq(sim.take_dropped(), 0)
+	var entries_log := s.chronicle_all(k.id, 1000)
+	assert_eq(entries_log.size(), GameConstants.CHRONICLE_MAX)
+	assert_eq(entries_log[-1].text, "notícia %d" % (GameConstants.CHRONICLE_MAX + 9), "keeps the latest")
 
 
 func test_traveler_approach_message() -> void:

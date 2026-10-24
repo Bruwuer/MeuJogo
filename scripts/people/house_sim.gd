@@ -162,7 +162,7 @@ func depart(k: Dictionary, f: Dictionary, p: Dictionary, style: Dictionary, hour
 	else:
 		var text: String = {"friendly": GameConstants.HOUSE_MSG_BLESSED, "hostile": GameConstants.HOUSE_MSG_HOSTILE}.get(
 				style.tone, GameConstants.HOUSE_MSG_NEUTRAL)
-		_log(k, text % [old_name, f.surname, surname], true)
+		_log(k, text % [old_name, f.surname, surname])
 	return nf
 
 
@@ -177,7 +177,7 @@ func _discoveries(k: Dictionary) -> void:
 		var f := _state.family(int(sec.from))
 		if not f.is_empty():
 			_state.add_relation(p.id, int(f.head_id), GameConstants.RUNAWAY_HIT)
-			_log(k, GameConstants.HOUSE_MSG_RUNAWAY % [sec.name, f.surname], true)
+			_log(k, GameConstants.HOUSE_MSG_RUNAWAY % [sec.name, f.surname])
 		p.secret = {}
 
 
@@ -204,7 +204,7 @@ func _adoptions(k: Dictionary) -> void:
 		c.surname = fam.surname
 		c.home_id = int(adopters[0].home_id)
 		_state.note_ancestry(c)
-		_log(k, GameConstants.HOUSE_MSG_ADOPTED % [PersonGen.full_name(c), fam.surname], true)
+		_log(k, GameConstants.HOUSE_MSG_ADOPTED % [PersonGen.full_name(c), fam.surname])
 
 
 func _adopters(people: Array[Dictionary], child: Dictionary) -> Array:
@@ -230,11 +230,9 @@ func _is_daily(at_hour: float) -> bool:
 	return h >= at_hour and h < at_hour + 1.0
 
 
-## Chronicle entry; `announce` also shows it in the HUD.
-func _log(k: Dictionary, text: String, announce := false) -> void:
+## ADM chronicle entry (the player never sees it).
+func _log(k: Dictionary, text: String) -> void:
 	_state.chronicle_add(_hour, text, k.id)
-	if announce:
-		_say.call(k, text)
 
 
 # --- Land -----------------------------------------------------------------------------------
@@ -359,7 +357,7 @@ func upgrade(k: Dictionary, f: Dictionary) -> bool:
 	f.wealth = float(f.wealth) - price
 	home.house_level = level + 1
 	buildings_changed.emit([home])
-	_log(k, GameConstants.HOUSE_MSG_UPGRADE % [f.surname, GameConstants.HOUSE_LEVEL_NAMES[level + 1]], true)
+	_log(k, GameConstants.HOUSE_MSG_UPGRADE % [f.surname, GameConstants.HOUSE_LEVEL_NAMES[level + 1]])
 	return true
 
 
@@ -558,7 +556,7 @@ func arranged_marriage(k: Dictionary, f: Dictionary, person: Dictionary, partner
 			if not (f.goal as Dictionary).is_empty():
 				f.goal.done = true
 			_log(k, GameConstants.HOUSE_MSG_ARRANGED % [f.surname, PersonGen.full_name(person), PersonGen.full_name(partner),
-					other.get("surname", "?")], true)
+					other.get("surname", "?")])
 		"resist":
 			person.resentment = clampf(float(person.resentment) + GameConstants.RESIST_RESENTMENT, 0.0, 1.0)
 			_state.add_relation(person.id, int(f.head_id), GameConstants.RESIST_RELATION_HIT)
@@ -588,7 +586,7 @@ func _unhappy_day(k: Dictionary, a: Dictionary, b: Dictionary) -> void:
 	b.home_id = -1 # one of them moves out
 	if not f.is_empty():
 		f.dishonor = float(f.get("dishonor", 0.0)) + GameConstants.SEPARATION_DISHONOR
-	_log(k, GameConstants.HOUSE_MSG_SEPARATED % [PersonGen.full_name(a), PersonGen.full_name(b), f.get("surname", "?")], true)
+	_log(k, GameConstants.HOUSE_MSG_SEPARATED % [PersonGen.full_name(a), PersonGen.full_name(b), f.get("surname", "?")])
 
 
 ## `small` joins `big`: members, land, stakes and wealth.
@@ -612,7 +610,7 @@ func unite(k: Dictionary, small: Dictionary, big: Dictionary) -> void:
 	_state.remove_family(small.id)
 	if not (big.goal as Dictionary).is_empty() and int(big.goal.get("target_id", -1)) == small.id:
 		big.goal.done = true
-	_log(k, GameConstants.HOUSE_MSG_UNION % [small.surname, big.surname], true)
+	_log(k, GameConstants.HOUSE_MSG_UNION % [small.surname, big.surname])
 
 
 ## A greedy House takes some of the most plentiful resource of the kingdom stock (a secret).
@@ -635,7 +633,7 @@ func expose(k: Dictionary, f: Dictionary, secret: Dictionary) -> void:
 	for other in _state.families_of(k.id):
 		if other.id != f.id:
 			_state.add_relation(int(f.head_id), int(other.head_id), GameConstants.SCANDAL_RELATION_HIT)
-	_log(k, GameConstants.HOUSE_MSG_SKIM % [f.surname, SocietySim._res_name(int(secret.get("res", 0)))], true)
+	_log(k, GameConstants.HOUSE_MSG_SKIM % [f.surname, SocietySim._res_name(int(secret.get("res", 0)))])
 
 
 ## Plants a member of `f` in the rival House as a household member (cover: "went to serve").
@@ -677,7 +675,7 @@ func expose_spy(k: Dictionary, spy: Dictionary) -> void:
 	rival.rival_id = own.id
 	_state.add_relation(int(own.head_id), int(rival.head_id), GameConstants.FEUD_RELATION_HIT)
 	_state.add_relation(spy.id, int(rival.head_id), GameConstants.FEUD_RELATION_HIT)
-	_log(k, GameConstants.HOUSE_MSG_SPY % [PersonGen.full_name(spy), rival.surname, own.surname], true)
+	_log(k, GameConstants.HOUSE_MSG_SPY % [PersonGen.full_name(spy), rival.surname, own.surname])
 
 
 func take_revenge(k: Dictionary, f: Dictionary, target: Dictionary) -> void:
@@ -688,7 +686,7 @@ func take_revenge(k: Dictionary, f: Dictionary, target: Dictionary) -> void:
 	f.insulted_by = -1
 	if not (f.goal as Dictionary).is_empty():
 		f.goal.done = true
-	_log(k, GameConstants.HOUSE_MSG_REVENGE % [f.surname, target.surname], true)
+	_log(k, GameConstants.HOUSE_MSG_REVENGE % [f.surname, target.surname])
 
 
 ## Two adults of the same sex in love meet in secret (frowned upon: never marriage or children).
@@ -711,7 +709,7 @@ func expose_romance(k: Dictionary, a: Dictionary) -> void:
 		b.secret = {}
 	var fa := _state.family(int(a.get("family_id", -1)))
 	_log(k, GameConstants.HOUSE_MSG_ROMANCE % [fa.get("surname", "?"), PersonGen.full_name(a),
-			PersonGen.full_name(b) if not b.is_empty() else "?"], true)
+			PersonGen.full_name(b) if not b.is_empty() else "?"])
 	for p in [a, b]:
 		if p.is_empty():
 			continue

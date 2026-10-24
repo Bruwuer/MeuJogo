@@ -139,10 +139,13 @@ func test_village_line_has_families() -> void:
 	assert_true(hud.village_line(kingdom).contains("Famílias: 3"), hud.village_line(kingdom))
 
 
-func test_family_key_action_exists() -> void:
-	assert_true(InputMap.has_action("families"), "families action")
-	var keys := InputMap.action_get_events("families").map(func(e: InputEvent) -> int: return (e as InputEventKey).physical_keycode)
-	assert_true(keys.has(KEY_C), "on C")
+func test_adm_panels_on_dev_keys_only() -> void:
+	assert_true(not InputMap.has_action("families"), "no families panel for the player")
+	assert_true(not InputMap.has_action("chronicle"), "no chronicle for the player")
+	for pair in [["adm_log", KEY_F9], ["adm_houses", KEY_F10]]:
+		assert_true(InputMap.has_action(pair[0]), pair[0])
+		var keys := InputMap.action_get_events(pair[0]).map(func(e: InputEvent) -> int: return (e as InputEventKey).physical_keycode)
+		assert_true(keys.has(pair[1]), "%s on its dev key" % pair[0])
 
 
 func test_card_fits_on_screen() -> void:
@@ -191,11 +194,11 @@ func test_messages_hidden_under_panels() -> void:
 	var p := _person(70, "Ana", "Ferreira")
 	_family(p, 71)
 	hud.toggle_families()
-	await wait_frames(2)
+	await wait_physics_frames(3)
 	assert_true(not hud.messages_visible(), "messages would print over the families panel")
 	hud.toggle_families()
-	await wait_frames(2)
+	await wait_physics_frames(3)
 	assert_true(hud.messages_visible())
 	hud.toggle_chronicle()
-	await wait_frames(2)
+	await wait_physics_frames(3)
 	assert_true(not hud.messages_visible(), "nor over the chronicle")

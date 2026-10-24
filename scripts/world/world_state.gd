@@ -14,6 +14,8 @@ const _FALLBACK_SUFFIXES := ["", ".bak", ".tmp"]
 signal resources_changed
 ## Any building that leaves the world (demolished, destroyed, abandoned site), after cleanup.
 signal building_removed(rec: Dictionary)
+## Every chronicle entry as it is written (the ADM log file listens).
+signal chronicled(entry: Dictionary)
 
 var seed := 0
 var time_of_day := GameConstants.START_TIME_OF_DAY
@@ -770,7 +772,9 @@ func ancestry(id: int) -> Dictionary:
 
 
 func chronicle_add(hour: float, text: String, kingdom_id: int, public := true) -> void:
-	_chronicle.append({hour = hour, text = text, kingdom_id = kingdom_id, public = public})
+	var entry := {hour = hour, text = text, kingdom_id = kingdom_id, public = public}
+	_chronicle.append(entry)
+	chronicled.emit(entry)
 	var count := 0
 	for e: Dictionary in _chronicle:
 		if e.kingdom_id == kingdom_id:
@@ -785,4 +789,10 @@ func chronicle_add(hour: float, text: String, kingdom_id: int, public := true) -
 ## The last `n` public entries of a kingdom, oldest first.
 func chronicle(kingdom_id: int, n: int) -> Array:
 	var out := _chronicle.filter(func(e: Dictionary) -> bool: return e.kingdom_id == kingdom_id and e.public)
+	return out.slice(maxi(0, out.size() - n))
+
+
+## The last `n` entries of a kingdom, secrets included (the ADM view), oldest first. -2: every kingdom.
+func chronicle_all(kingdom_id: int, n: int) -> Array:
+	var out := _chronicle.filter(func(e: Dictionary) -> bool: return kingdom_id == -2 or e.kingdom_id == kingdom_id)
 	return out.slice(maxi(0, out.size() - n))

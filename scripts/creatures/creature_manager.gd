@@ -341,7 +341,7 @@ func damage_building(id: int, amount: float, attacker: Creature) -> void:
 	if _state.damage_building(id, amount):
 		_remove_from_chunk(rec)
 		var who := PackMotives.species_plural(pack.species) if not pack.is_empty() else "animais"
-		message.emit(GameConstants.BUILD_DESTROYED_MSG[rec.type] % who)
+		_chronicle(GameConstants.BUILD_DESTROYED_MSG[rec.type] % who, _state.kingdom_at(rec.pos).get("id", -1))
 		if not pack.is_empty():
 			_end_raid(pack)
 		return
@@ -360,7 +360,13 @@ func _end_raid(pack: Dictionary) -> void:
 
 func _on_raid_started(pack: Dictionary, kingdom: Dictionary, _motive: String) -> void:
 	if is_kingdom_loaded(kingdom):
-		message.emit(PackMotives.message(pack, kingdom.name))
+		_chronicle(PackMotives.message(pack, kingdom.name), kingdom.id)
+
+
+## Kingdom events go to the ADM chronicle, not to the player; `message` repeats them for listeners.
+func _chronicle(text: String, kingdom_id: int) -> void:
+	_state.chronicle_add(now_hours(), text, kingdom_id)
+	message.emit(text)
 
 
 ## Pairs ready adults, and makes a cub for each pair that is close enough. Returns new records.

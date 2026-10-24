@@ -374,8 +374,8 @@ const RAID_MESSAGES := {
 	grudge = "Os %s querem vingança contra o Reino de %s pelos seus mortos",
 	cubs = "Os %s furiosos protegem os filhotes perto do Reino de %s",
 }
-const OFFSCREEN_RAID_MSG := "Enquanto você estava fora, os %s destruíram %s no Reino de %s"
-const OFFSCREEN_RAID_NOTHING_MSG := "Enquanto você estava fora, os %s atacaram o Reino de %s, mas nada caiu"
+const OFFSCREEN_RAID_MSG := "Os %s destruíram %s no Reino de %s"
+const OFFSCREEN_RAID_NOTHING_MSG := "Os %s atacaram o Reino de %s, mas nada caiu"
 ## Creature population and breeding.
 const CREATURE_PACK_CHANCE := 0.3 ## Chance that a chunk starts with a pack on its first visit.
 const CREATURE_SPAWN_SPREAD := 4.0 ## Pack members start this far around the den.
@@ -669,8 +669,6 @@ const JOB_TEXTS := {
 const STATUS_TEXTS := { "traveler": "chegando ao reino", "leaving": "indo embora", "inside": "em casa" }
 const NEED_TEXTS := { "food": "comida", "home": "uma casa", "mood": "ânimo", "none": "nada por enquanto" }
 const VILLAGE_LINE := "Moradores: %d · Famílias: %d · Estoque: %s"
-const VILLAGE_NEWS_SHOWN := 3 ## Village messages shown when the player comes back.
-const VILLAGE_NEWS_MORE := "Enquanto você estava fora, aconteceram mais %d coisas nos povoados"
 const PERSON_STUCK_CHECK_SEC := 1.0 ## How often a walking person checks it is getting anywhere.
 const PERSON_STUCK_MOVE := 0.3 ## Less than this in a check counts as stuck.
 const PERSON_DETOUR_SEC := 0.8 ## Sidestep when stuck.
@@ -771,7 +769,6 @@ const SOCIETY_MSG_FAMILY_ENEMY := "A Casa %s agora é sua inimiga"
 const SOCIETY_MSG_GIFT := "A Casa %s lhe deu %d de %s"
 const SOCIETY_MSG_THEFT := "%s roubou %d de %s de você"
 const DONATE_FULL_AT := 10 ## Resources given at once for the full opinion gain.
-const VILLAGE_NEWS_MAX := 40 ## News kept for the player's return (the oldest go first).
 const VILLAGE_MSG_APPROACH := "Um viajante se aproxima do Reino de %s"
 const CREST_BANNER_SCENE := "res://assets/models/crest_banner.glb"
 ## Banner beside a house: local offset from the footprint corner on the door (+Z) side, outward.

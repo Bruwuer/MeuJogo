@@ -136,7 +136,8 @@ func test_secret_discovered_next_day() -> void:
 	house.tick_hour(k, _work_hour(1) - 3.0) # next morning
 	assert_true(s.chronicle(k.id, 50).any(func(e: Dictionary) -> bool: return (e.text as String).contains("fugiu")),
 			"the family finds out the next day")
-	assert_true(said.any(func(t: String) -> bool: return t.contains("fugiu") and t.contains(f.surname)))
+	assert_true(s.chronicle(k.id, 50).any(func(e: Dictionary) -> bool: return (e.text as String).contains(f.surname)))
+	assert_true(said.is_empty(), "nothing is announced to the player")
 
 
 func test_orphan_adopted() -> void:

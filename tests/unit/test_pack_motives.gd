@@ -110,9 +110,10 @@ func test_offscreen_raid_damages_non_seat() -> void:
 	assert_eq(destroyed, ["Cerca"])
 	assert_eq(s.building(fence.id), {})
 	assert_true(not s.building(cabin.id).is_empty(), "the seat survived")
-	assert_eq(sim.pending_messages.size(), 1)
-	if sim.pending_messages.size() == 1:
-		assert_true((sim.pending_messages[0] as String).contains("Enquanto você estava fora"), sim.pending_messages[0])
+	var entries_log := s.chronicle(k.id, 10)
+	assert_eq(entries_log.size(), 1, "the raid goes to the ADM log")
+	if entries_log.size() == 1:
+		assert_true((entries_log[0].text as String).contains("Cerca"), entries_log[0].text)
 	assert_true(p.hunger < 1.0, "raiding feeds them a little")
 
 

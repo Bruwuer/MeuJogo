@@ -105,6 +105,11 @@ func _ready() -> void:
 	_build.setup(_state, _gen, scatter, _streamer, library, _player, _camera)
 
 	_hud.setup(_state, _harvest, _day_night, _player, _build)
+	# Kingdom events go to the ADM log, never to the player's HUD (tests run without a save).
+	var admin := AdminLog.new()
+	admin.name = "AdminLog"
+	admin.setup(_state, AdminLog.DEFAULT_PATH if save_path != "" else "")
+	add_child(admin)
 
 	_add_creatures(scatter, library, new_world)
 	_add_people(scatter, library)
@@ -122,7 +127,6 @@ func _process(delta: float) -> void:
 	var globals := shader_globals()
 	for param in globals:
 		RenderingServer.global_shader_parameter_set(param, globals[param])
-	_flush_offscreen_messages()
 	if not _is_ready or save_path == "":
 		return
 	_autosave_left -= delta
@@ -184,31 +188,12 @@ func _add_creatures(scatter: PropScatter, library: ModelLibrary, new_world: bool
 	_creatures.name = "Creatures"
 	add_child(_creatures)
 	_creatures.setup(_state, _gen, scatter, _streamer, library, _day_night, _pack_sim, _player)
-	_creatures.message.connect(_hud.add_message)
 	_creatures.creature_killed.connect(func(rec: Dictionary, by_player: bool) -> void:
 		if by_player:
 			_hud.add_message(GameConstants.KILL_MSG % Genome.display_name(rec.genome)))
 	_player.creature_source = _creatures.active_creatures
 	if new_world:
 		_creatures.ensure_first_wolves(_spawn)
-
-
-## Raids that happened while the player was away are told once the player is back in a kingdom.
-func _flush_offscreen_messages() -> void:
-	if _state.kingdom_at(_player.global_position).is_empty():
-		return
-	for text in _pack_sim.take_messages():
-		_hud.add_message(text)
-	if _village.pending_messages.is_empty():
-		return
-	# Village news are many: the latest few, and how many more happened.
-	var news := _village.take_messages()
-	var shown := mini(news.size(), GameConstants.VILLAGE_NEWS_SHOWN)
-	var more := news.size() - shown + _village.take_dropped()
-	if more > 0:
-		_hud.add_message(GameConstants.VILLAGE_NEWS_MORE % more)
-	for text in news.slice(news.size() - shown):
-		_hud.add_message(text)
 
 
 ## Death never costs buildings or resources: the player wakes up in front of the seat cabin of
@@ -354,7 +339,6 @@ func _add_people(scatter: PropScatter, library: ModelLibrary) -> void:
 	_people.name = "People"
 	add_child(_people)
 	_people.setup(_state, _gen, scatter, _streamer, library, _day_night, _village, _player)
-	_people.message.connect(_hud.add_message)
 	_creatures.creature_killed.connect(_people.on_creature_killed)
 	_player.talk_target = _people.nearest_person
 	_player.talked.connect(func(n: Node3D) -> void: _people.talked_to((n as Person).record))

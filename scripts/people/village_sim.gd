@@ -3,8 +3,8 @@ extends Node
 ## Hourly simulation of every kingdom's people, loaded or not: travelers coming and deciding,
 ## meals, contentment and leaving, homes, the player's fame, planning sites and, for people that
 ## have no node this hour, a summary of their work (real props are removed, sites progress).
-## People with a node work for real through PeopleManager. Messages of kingdoms that are not
-## loaded wait in `pending_messages` until the player is back.
+## People with a node work for real through PeopleManager. Every kingdom event goes to the ADM
+## chronicle (never to the player's HUD); `message` repeats it for listeners.
 
 signal message(text: String)
 signal site_opened(rec: Dictionary)
@@ -23,8 +23,6 @@ signal families_changed
 const B := GameConstants.Building
 const R := GameConstants.Res
 
-## Messages from kingdoms that were not loaded (shown when the player returns).
-var pending_messages: Array[String] = []
 ## person id -> whether the person has a node right now (set by PeopleManager).
 var has_node: Callable = func(_id: int) -> bool: return false
 ## kingdom -> whether its area is loaded (messages go straight to the HUD).
@@ -46,7 +44,6 @@ var _props_near: Dictionary = {} # Vector3 center -> props around it (the scatte
 ## Families, couples, children and opinions (one tick per kingdom per hour).
 var society := SocietySim.new()
 var houses := HouseSim.new()
-var _dropped_news := 0
 
 
 func setup(state: WorldState, gen: TerrainGenerator, scatter: PropScatter, day_night: DayNight) -> void:
@@ -90,11 +87,6 @@ func is_sleep_time() -> bool:
 	var h := hour_of_day()
 	return h >= GameConstants.SLEEP_START_HOUR or h < GameConstants.SLEEP_END_HOUR
 
-
-func take_messages() -> Array[String]:
-	var out := pending_messages
-	pending_messages = []
-	return out
 
 
 func tick_hours(hours: float) -> void:
@@ -172,8 +164,7 @@ func _spawn_traveler(k: Dictionary, snap: Dictionary) -> void:
 	pos.y = _gen.height_at(pos.x, pos.z)
 	var rec := _state.add_person(p, pos, k.id, now_hours())
 	traveler_spawned.emit(rec)
-	if is_kingdom_loaded.call(k):
-		message.emit(GameConstants.VILLAGE_MSG_APPROACH % k.name)
+	_say(k, GameConstants.VILLAGE_MSG_APPROACH % k.name)
 
 
 ## A free spot in front of the seat, where travelers stop to look at the kingdom.
@@ -460,21 +451,10 @@ func nearest_prop(from: Vector3, types: Array, exclude: Dictionary = {}) -> Dict
 	return best
 
 
+## A kingdom event: written to the ADM chronicle, never shown to the player.
 func _say(k: Dictionary, text: String) -> void:
-	if is_kingdom_loaded.call(k):
-		message.emit(text)
-		return
-	pending_messages.append(text)
-	while pending_messages.size() > GameConstants.VILLAGE_NEWS_MAX:
-		pending_messages.pop_front()
-		_dropped_news += 1
-
-
-## How many news were dropped from the full queue since the last call (they still count as news).
-func take_dropped() -> int:
-	var n := _dropped_news
-	_dropped_news = 0
-	return n
+	_state.chronicle_add(now_hours(), text, k.id)
+	message.emit(text)
 
 
 ## Every prop (standing or not) within VILLAGE_HARVEST_RADIUS of a kingdom center, cached
