@@ -306,3 +306,28 @@ func test_masons_build_when_rocks_are_gone() -> void:
 	for i in 3:
 		sim.tick_hours(1.0)
 	assert_true(float(s.building(id).get("progress", 1.0)) > 0.0, "the mason helps instead of looking for rocks")
+
+
+func test_site_not_opened_on_the_player() -> void:
+	var a := _setup()
+	var s: WorldState = a[0]
+	var k: Dictionary = a[1]
+	var sim: VillageSim = a[2]
+	k.next_traveler_hour = 1e9
+	k.stock = { R.WOOD: 100, R.STONE: 50, R.FOOD: 50 }
+	_resident(s, k, P.BUILDER)
+	sim.has_node = func(_id: int) -> bool: return true
+	sim.tick_hours(1.0)
+	var first := s.building(k.site_id)
+	assert_true(not first.is_empty())
+	var where: Vector3 = first.pos
+	s.remove_building(first.id) # same hour again, with the player standing there
+	sim.clock_hours -= 1.0
+	sim.player_pos = func() -> Variant: return where
+	sim.tick_hours(1.0)
+	var second := s.building(k.site_id)
+	assert_true(not second.is_empty(), "opened elsewhere")
+	if not second.is_empty():
+		var rect := BuildRules.footprint_rect(second.type, second.pos, second.rot)
+		assert_true(not BuildRules.circle_hits_rect(Vector2(where.x, where.z), GameConstants.BUILD_PLAYER_RADIUS, rect),
+				"not on top of the player")

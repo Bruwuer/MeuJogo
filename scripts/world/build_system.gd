@@ -14,6 +14,8 @@ var type: int = GameConstants.Building.CABIN
 var rot := 0
 ## Tests turn this off so the ghost follows the player instead of the (absent) mouse.
 var use_mouse := true
+## func() -> Array of positions that also block a footprint (World: villagers with a node).
+var extra_blockers: Callable = func() -> Array: return []
 
 var _state: WorldState
 var _gen: TerrainGenerator
@@ -66,13 +68,13 @@ func ghost_position() -> Vector3:
 
 
 func preview() -> Dictionary:
-	return BuildRules.check(type, ghost_position(), rot, _gen, _scatter, _state, [_player.global_position])
+	return BuildRules.check(type, ghost_position(), rot, _gen, _scatter, _state, _blockers())
 
 
 ## Validates, spends and builds at the ghost. Nothing is spent unless the building is placed.
 func try_place() -> bool:
 	var pos := ghost_position()
-	var check := BuildRules.check(type, pos, rot, _gen, _scatter, _state, [_player.global_position])
+	var check := BuildRules.check(type, pos, rot, _gen, _scatter, _state, _blockers())
 	if not check.ok:
 		message.emit(check.reason)
 		return false
@@ -239,3 +241,11 @@ func _refusal(b: Dictionary) -> String:
 		var p := _state.person(owner)
 		return GameConstants.BUILD_MSG_NOT_YOURS % (PersonGen.full_name(p) if not p.is_empty() else "um morador")
 	return ""
+
+
+## Characters a new footprint must not cover: the player and whoever `extra_blockers` lists
+## (World: the villagers with a node).
+func _blockers() -> Array:
+	var out: Array = [_player.global_position]
+	out.append_array(extra_blockers.call())
+	return out

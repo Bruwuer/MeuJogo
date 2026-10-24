@@ -302,3 +302,23 @@ func test_person_gets_around_seat_corner() -> void:
 	var ok: bool = await _run_until(func() -> bool: return _flat(p.global_position, goal) < GameConstants.PERSON_ARRIVE, 1200)
 	assert_true(ok, "stuck at %s" % str(p.global_position - seat.pos))
 	p.queue_free()
+
+
+func test_finished_site_pushes_people_out() -> void:
+	var spot := _make()
+	kingdom.stock = { R.WOOD: 100, R.STONE: 50, R.FOOD: 50 }
+	var place := VillageRules.pick_site(B.HOUSE, kingdom, state, gen, scatter, [], RandomNumberGenerator.new())
+	var site := state.add_site(B.HOUSE, place.pos, place.rot, kingdom, 0.0)
+	var p := _resident(P.MERCHANT, place.pos + Vector3(0.5, 0.6, 0.5))
+	await _load_around(spot)
+	var n := mgr.node_for(p.id)
+	assert_true(n != null)
+	if n == null:
+		return
+	n.walk_to(n.global_position)
+	await wait_physics_frames(5)
+	sim.work_on_site(site.id, 100.0)
+	await wait_physics_frames(3)
+	var rect := BuildRules.footprint_rect(B.HOUSE, site.pos, site.rot)
+	assert_true(not BuildRules.circle_hits_rect(Vector2(n.global_position.x, n.global_position.z), GameConstants.PERSON_RADIUS, rect),
+			"stepped out of the finished house (%s)" % str(n.global_position))

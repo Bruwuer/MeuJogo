@@ -260,3 +260,20 @@ func test_cannot_demolish_village_buildings() -> void:
 	assert_eq(msgs[-1], GameConstants.BUILD_MSG_NOT_YOURS % PersonGen.full_name(owner))
 	assert_eq(_state.get_resource(R.STONE), 0, "no refund")
 	assert_true(not _state.building(house.id).is_empty())
+
+
+func test_villager_blocks_player_build() -> void:
+	var spot := _spot()
+	await _setup(spot)
+	_rich()
+	_build.toggle()
+	_build.select(B.CABIN)
+	_move_player(spot)
+	await get_tree().process_frame
+	assert_true(_build.preview().ok, "free spot")
+	var someone: Vector3 = _build.ghost_position() + Vector3(0.5, 0, 0.5)
+	_build.extra_blockers = func() -> Array: return [someone]
+	var check := _build.preview()
+	assert_true(not check.ok, "a villager stands there")
+	assert_eq(check.reason, GameConstants.BUILD_MSG_PLAYER)
+	assert_true(not _build.try_place(), "not built over the villager")

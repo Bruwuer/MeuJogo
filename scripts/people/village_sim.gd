@@ -26,6 +26,8 @@ var has_node: Callable = func(_id: int) -> bool: return false
 var is_kingdom_loaded: Callable = func(_k: Dictionary) -> bool: return false
 ## kingdom -> whether the player is inside it (opinions drift toward neutral while away).
 var is_player_in: Callable = func(_k: Dictionary) -> bool: return false
+## The player's position (or null): a new site never covers it.
+var player_pos: Callable = func() -> Variant: return null
 ## Own clock when there is no DayNight (tests), in total hours.
 var clock_hours := 0.0
 
@@ -250,6 +252,9 @@ func _plan(k: Dictionary) -> void:
 	for p in _state.all_people():
 		if p.kingdom_id == k.id:
 			blockers.append(p.pos)
+	var player: Variant = player_pos.call()
+	if player != null:
+		blockers.append(player)
 	var site_rng := RandomNumberGenerator.new()
 	site_rng.seed = hash([_state.seed, k.id, int(now_hours())])
 	var spot := VillageRules.pick_site(type, k, _state, _gen, _scatter, blockers, site_rng)

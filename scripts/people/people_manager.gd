@@ -511,7 +511,25 @@ func _refresh_building(rec: Dictionary) -> void:
 	var chunk := _chunk_of(rec.pos)
 	if chunk:
 		chunk.update_site(rec)
+	if not rec.get("site", false):
+		_clear_footprint(rec)
 
+
+## A finished site gets its full collision: whoever stands on it steps out to the door first.
+func _clear_footprint(rec: Dictionary) -> void:
+	if rec.type in GameConstants.BUILD_FLAT:
+		return
+	var rect := BuildRules.footprint_rect(rec.type, rec.pos, rec.rot)
+	var door := door_of(rec)
+	var bodies: Array[Node3D] = []
+	bodies.append_array(active_people())
+	if is_instance_valid(_player):
+		bodies.append(_player)
+	for b in bodies:
+		var p := b.global_position
+		if BuildRules.circle_hits_rect(Vector2(p.x, p.z), GameConstants.PERSON_RADIUS, rect):
+			b.global_position = Vector3(door.x, _gen.height_at(door.x, door.z) + _REGROUND, door.z)
+			b.reset_physics_interpolation()
 
 func _hide_building(rec: Dictionary) -> void:
 	var chunk := _chunk_of(rec.pos)

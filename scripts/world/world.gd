@@ -358,3 +358,7 @@ func _add_people(scatter: PropScatter, library: ModelLibrary) -> void:
 	_player.talk_target = _people.nearest_person
 	_player.donate_handler = _people.donate
 	_hud.set_people(_people)
+	_village.player_pos = func() -> Variant: return _player.global_position
+	_build.extra_blockers = func() -> Array:
+		return _people.active_people().filter(func(n: Person) -> bool: return n.visible).map(
+				func(n: Person) -> Vector3: return n.global_position)
