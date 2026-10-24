@@ -288,6 +288,8 @@ static func _profession_job(profession: int, snap: Dictionary) -> String:
 			return "build" if snap.site >= 0 else ""
 		P.MERCHANT:
 			return "market" if snap.has_market else ""
+		P.GUARD:
+			return "guard"
 	return ""
 
 
@@ -327,3 +329,8 @@ static func needed_profession(snap: Dictionary) -> int:
 		if count.call(p) < count.call(best):
 			best = p
 	return best
+
+
+## Guards watch day and night and rest in the afternoon.
+static func guard_on_duty(hour: float) -> bool:
+	return hour < GameConstants.GUARD_REST_HOURS.x or hour >= GameConstants.GUARD_REST_HOURS.y

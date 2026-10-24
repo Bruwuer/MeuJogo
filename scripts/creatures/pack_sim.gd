@@ -78,10 +78,13 @@ func resolve_offscreen_raid(pack: Dictionary, kingdom: Dictionary) -> Array[Stri
 	var strength := 0.0
 	for m in _state.pack_members(pack.id):
 		strength += float(m.genome.damage) * GameConstants.OFFSCREEN_RAID_HITS
+	var guards := _state.residents(kingdom.id).filter(func(p: Dictionary) -> bool:
+		return int(p.profession) == GameConstants.Profession.GUARD and SocietyRules.is_adult(p)).size()
+	strength = raid_strength(strength, guards)
 	var center: Vector3 = kingdom.center
 	var targets := _state.all_buildings().filter(func(b: Dictionary) -> bool:
-		return b.id != kingdom.seat_id and b.type != GameConstants.Building.FLAG and not b.get("site", false) \
-				and _flat_dist(b.pos, center) <= kingdom.radius)
+		return b.id != kingdom.seat_id and b.type != GameConstants.Building.FLAG and b.type != GameConstants.Building.STAKE \
+				and not b.get("site", false) and _flat_dist(b.pos, center) <= kingdom.radius)
 	var den: Vector3 = pack.den
 	targets.sort_custom(func(a: Dictionary, b: Dictionary) -> bool: return _flat_dist(a.pos, den) < _flat_dist(b.pos, den))
 	var destroyed: Array[String] = []
@@ -175,3 +178,8 @@ static func _join(names: Array[String]) -> String:
 	if names.size() == 1:
 		return names[0]
 	return ", ".join(names.slice(0, names.size() - 1)) + " e " + names[-1]
+
+
+## Strength of a summarized raid after the kingdom's guards fight back.
+static func raid_strength(base: float, guards: int) -> float:
+	return base * maxf(GameConstants.GUARD_RAID_FLOOR, 1.0 - guards * GameConstants.GUARD_RAID_REDUCTION)

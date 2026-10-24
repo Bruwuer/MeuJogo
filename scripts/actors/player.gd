@@ -260,25 +260,7 @@ func _shoot(data: Dictionary) -> void:
 ## A BoneAttachment3D on the right hand with a holder turned so that a weapon's +Y axis points
 ## to the character's front (and +Z up) in the rest pose.
 func _add_weapon_holder() -> void:
-	var skels := _model.find_children("*", "Skeleton3D", true, false)
-	if skels.is_empty():
-		return
-	var skel: Skeleton3D = skels[0]
-	var bone := skel.find_bone(_HAND_BONE)
-	if bone < 0:
-		return
-	var attach := BoneAttachment3D.new()
-	attach.name = "RightHand"
-	attach.bone_name = _HAND_BONE
-	skel.add_child(attach)
-	_holder = Node3D.new()
-	_holder.name = "Weapon"
-	attach.add_child(_holder)
-	var to_skel := skel.global_basis.orthonormalized().inverse()
-	var fwd := (to_skel * _model.global_basis.z).normalized()
-	var up := (to_skel * Vector3.UP).normalized()
-	var wanted := Basis(fwd.cross(up), fwd, up)
-	_holder.basis = skel.get_bone_global_rest(bone).basis.orthonormalized().inverse() * wanted
+	_holder = WeaponHolder.add(_model)
 
 
 func _show_weapon() -> void:

@@ -65,6 +65,11 @@ func setup(rec: Dictionary, library: ModelLibrary, mgr: Node) -> void:
 		_model.scale = Vector3.ONE * body_scale(rec)
 		add_child(_model)
 		_recolor()
+		if int(rec.profession) == GameConstants.Profession.GUARD:
+			var holder := WeaponHolder.add(_model)
+			var spear := library.weapon_scene(GameConstants.Weapon.SPEAR)
+			if holder and spear:
+				holder.add_child(spear.instantiate())
 		var players := _model.find_children("*", "AnimationPlayer", true, false)
 		if not players.is_empty():
 			_anim = players[0]

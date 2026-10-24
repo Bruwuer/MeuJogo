@@ -213,6 +213,13 @@ func person_context(n: Person) -> Dictionary:
 			ctx.seat_pos = me.door_pos # children play by their front door
 	me.raid = _state.all_packs().any(func(p: Dictionary) -> bool: return p.raid_kingdom == k.id)
 	me.threat_pos = _threat(n)
+	var guard: bool = rec.status == "resident" and int(rec.profession) == GameConstants.Profession.GUARD \
+			and SocietyRules.is_adult(rec)
+	if guard: # guards stand their ground, keep watch at night and through raids
+		me.threat_pos = null
+		me.raid = false
+		me.is_work_time = VillageRules.guard_on_duty(_sim.hour_of_day())
+		me.is_sleep_time = not me.is_work_time
 	if rec.status == "resident" and me.is_work_time and not me.raid:
 		var job := VillageRules.choose_job(rec, _snapshot(k))
 		rec.job = job
@@ -301,8 +308,44 @@ func _work_target(n: Person, k: Dictionary, job: String) -> Dictionary:
 				return {}
 			return {kind = "market", id = market.id, pos = door_of(market), duration = GameConstants.PERSON_FARM_SEC,
 					reach = GameConstants.PERSON_ARRIVE}
+		"guard":
+			return guard_target(k, id, n.global_position, Time.get_ticks_msec() / 1000.0, _hostiles())
 	_claims.erase(id)
 	return {}
+
+
+## A guard's next move: strike the nearest hostile in (or near) the territory, else walk the patrol
+## ring. `hostiles`: [{id, pos}]; `time_sec` moves the patrol point along.
+static func guard_target(k: Dictionary, guard_id: int, guard_pos: Vector3, time_sec: float, hostiles: Array) -> Dictionary:
+	var best := {}
+	var best_d := INF
+	for h: Dictionary in hostiles:
+		if _flat(h.pos, k.center) > float(k.radius) + GameConstants.GUARD_ALERT_MARGIN:
+			continue
+		var d := _flat(h.pos, guard_pos)
+		if d < best_d:
+			best_d = d
+			best = h
+	if not best.is_empty():
+		return {kind = "guard_attack", id = best.id, pos = best.pos, duration = GameConstants.GUARD_STRIKE_SEC,
+				reach = GameConstants.GUARD_REACH}
+	var angle := time_sec * GameConstants.GUARD_PATROL_SPEED + guard_id * 1.7
+	var r := float(k.radius) * GameConstants.GUARD_PATROL_SHARE
+	var pos: Vector3 = k.center + Vector3(sin(angle), 0.0, cos(angle)) * r
+	return {kind = "patrol", pos = pos, duration = 2.0, reach = 2.0}
+
+
+## Living carnivores and raiders (what guards fight): [{id, pos}].
+func _hostiles() -> Array:
+	var out := []
+	for c in get_tree().get_nodes_in_group("creatures"):
+		var cr := c as Creature
+		if cr == null or cr.is_dead() or cr.record.is_empty():
+			continue
+		var pack := _state.pack(cr.record.pack_id)
+		if cr.genome.diet == GameConstants.Diet.CARNIVORE or (not pack.is_empty() and pack.raid_kingdom != -1):
+			out.append({id = cr.record.id, pos = cr.global_position})
+	return out
 
 
 ## The prop this person is working on, or the free one nearest to the kingdom center.
@@ -374,6 +417,12 @@ func finish_work(n: Person) -> void:
 			var y: Array = GameConstants.HARVEST_YIELD[prop.type]
 			var carrying: Dictionary = rec.carrying
 			carrying[y[0]] = int(carrying.get(y[0], 0)) + int(y[1])
+		"guard_attack":
+			for c in get_tree().get_nodes_in_group("creatures"):
+				var cr := c as Creature
+				if cr and not cr.is_dead() and not cr.record.is_empty() and int(cr.record.id) == int(t.id) \
+						and _flat(cr.global_position, n.global_position) <= GameConstants.GUARD_REACH + 1.0:
+					cr.health.damage(GameConstants.GUARD_DAMAGE, n)
 		"farm":
 			_sim.add_fraction(k, "food", R.FOOD, GameConstants.FARM_FOOD_PER_HOUR * float(t.duration) / _sec_per_hour())
 		"site":

@@ -923,3 +923,12 @@ const HOUSE_MSG_REVENGE := "A Casa %s vingou-se da Casa %s"
 const HOUSE_MSG_ROMANCE := "A Casa %s descobriu o romance secreto de %s e %s"
 const HOUSE_LEVEL_SCENES := ["res://assets/models/house.glb", "res://assets/models/house_stone.glb",
 		"res://assets/models/manor.glb"]
+const GUARD_REACH := 2.6 ## Spear reach of a guard.
+const GUARD_DAMAGE := 18.0
+const GUARD_STRIKE_SEC := 0.9
+const GUARD_PATROL_SHARE := 0.6 ## Patrol ring radius, as a share of the territory radius.
+const GUARD_PATROL_SPEED := 0.02 ## Radians per second along the ring.
+const GUARD_ALERT_MARGIN := 10.0 ## Hostiles this far outside the territory still draw guards.
+const GUARD_REST_HOURS := Vector2(13.0, 18.0) ## Guards sleep in the afternoon and watch at night.
+const GUARD_RAID_REDUCTION := 0.2 ## Each guard weakens a summarized raid by this share.
+const GUARD_RAID_FLOOR := 0.2
