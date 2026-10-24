@@ -10,6 +10,11 @@ const P := GameConstants.Profession
 
 ## Buildings created or changed (plot stakes, upgraded homes) so nodes can be refreshed.
 signal buildings_changed(recs: Array)
+## A deed was carried out (`seen`: ids of the witnesses).
+signal deed_completed(rec: Dictionary, deed: Dictionary, seen: Array)
+
+## person id -> whether the person has a node (then deeds are done for real, not summarized).
+var has_node: Callable = func(_id: int) -> bool: return false
 
 var _state: WorldState
 var _say: Callable # (k: Dictionary, text: String)
@@ -34,6 +39,7 @@ func tick_hour(k: Dictionary, hour: float) -> void:
 		_init_house(f, rng)
 	_work(k)
 	_vocations(k, rng)
+	_deeds(k)
 	_discoveries(k)
 	if _is_daily(GameConstants.DEED_HOUR):
 		_adoptions(k)
@@ -179,6 +185,59 @@ func _discoveries(k: Dictionary) -> void:
 			_state.add_relation(p.id, int(f.head_id), GameConstants.RUNAWAY_HIT)
 			_log(k, GameConstants.HOUSE_MSG_RUNAWAY % [sec.name, f.surname])
 		p.secret = {}
+
+
+# --- Deeds ----------------------------------------------------------------------------------
+
+## Deeds of people without a node are settled at their start hour (a summary); deeds past their
+## window are settled anyway, unseen.
+func _deeds(k: Dictionary) -> void:
+	for p in _state.residents(k.id):
+		var deed: Dictionary = p.get("deed", {})
+		if deed.is_empty():
+			continue
+		if Deeds.expired(deed, _hour):
+			complete_deed(k, p, [])
+		elif Deeds.is_due(deed, _hour) and not has_node.call(p.id):
+			complete_deed(k, p, _offscreen_seen(k, p, deed))
+
+
+## Gives `p` a deed (replacing any other).
+func plan_deed(p: Dictionary, deed: Dictionary) -> void:
+	p.deed = deed
+
+
+## The deed of `p` is done: its effect happens now. `seen`: ids of the people who saw it.
+func complete_deed(k: Dictionary, p: Dictionary, seen: Array, hour := -1.0) -> void:
+	if hour >= 0.0:
+		_hour = hour
+	var deed: Dictionary = p.get("deed", {})
+	if deed.is_empty():
+		return
+	p.deed = {}
+	deed_completed.emit(p, deed, seen)
+
+
+## Offscreen, a secret deed is seen by chance by the outsiders awake at that hour (guards on watch
+## at night). Returns the witness ids (at most one).
+func _offscreen_seen(k: Dictionary, p: Dictionary, deed: Dictionary) -> Array:
+	if not (deed.data as Dictionary).get("secret", false):
+		return []
+	var party: Array = deed.data.get("party", [])
+	var h := fmod(_hour, 24.0)
+	var asleep := h >= GameConstants.SLEEP_START_HOUR or h < GameConstants.SLEEP_END_HOUR
+	var awake := _state.residents(k.id).filter(func(o: Dictionary) -> bool:
+		if o.id == p.id or party.has(o.id) or not SocietyRules.is_adult(o):
+			return false
+		if int(p.get("family_id", -1)) >= 0 and int(o.get("family_id", -1)) == int(p.family_id):
+			return false
+		var guard := int(o.profession) == GameConstants.Profession.GUARD and VillageRules.guard_on_duty(h)
+		return guard or not asleep)
+	var rng := RandomNumberGenerator.new()
+	rng.seed = hash([_state.seed, "seen", p.id, int(_hour)])
+	if awake.is_empty() or rng.randf() >= Deeds.seen_chance(awake.size()):
+		return []
+	return [awake[rng.randi() % awake.size()].id]
 
 
 # --- Adoption -------------------------------------------------------------------------------

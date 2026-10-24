@@ -5,10 +5,11 @@ extends RefCounted
 ##
 ## me: {pos, status ("traveler" | "resident" | "leaving"), job, carrying, home_pos, door_pos
 ##      (Vector3 or null), is_work_time, is_sleep_time, raid, threat_pos (Vector3 or null),
-##      idle_offset (optional Vector3, spreads people around the seat)}
+##      idle_offset (optional Vector3, spreads people around the seat), deed ({pos, reach} or null:
+##      a House errand due now, see Deeds)}
 ## ctx: {work_target ({pos, reach} or {}), deposit_pos, seat_pos, campfire_pos (or null), exit_pos}
 
-enum Act { IDLE, WALK, WORK, SLEEP, FLEE, ENTER, DEPOSIT, EVALUATE, LEAVE }
+enum Act { IDLE, WALK, WORK, SLEEP, FLEE, ENTER, DEPOSIT, EVALUATE, LEAVE, DEED }
 
 
 static func decide(me: Dictionary, ctx: Dictionary) -> Dictionary:
@@ -25,6 +26,9 @@ static func decide(me: Dictionary, ctx: Dictionary) -> Dictionary:
 			return _go(pos, Act.EVALUATE, ctx.seat_pos, GameConstants.PERSON_SEAT_RADIUS)
 		"leaving":
 			return _go(pos, Act.LEAVE, ctx.exit_pos, GameConstants.PERSON_ARRIVE * 3.0)
+	var deed: Variant = me.get("deed")
+	if deed != null:
+		return _go(pos, Act.DEED, deed.pos, float(deed.reach))
 	if me.raid:
 		if me.door_pos != null:
 			return _go(pos, Act.ENTER, me.door_pos, GameConstants.PERSON_ARRIVE)

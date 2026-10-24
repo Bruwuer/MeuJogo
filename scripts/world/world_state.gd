@@ -529,7 +529,7 @@ static func person_defaults(p: Dictionary) -> void:
 	var defaults := {family_id = -1, spouse_id = -1, parents = [], stance = "", last_birth_hour = -1e9,
 			talk_day = -1, deed_day = -1, widowed = false,
 			vocation = -1, desire = {kind = GameConstants.Desire.NONE, target_id = -1}, resentment = 0.0,
-			secret = {}, adopted_by = []}
+			secret = {}, adopted_by = [], deed = {}}
 	for key in defaults:
 		if not p.has(key):
 			p[key] = defaults[key]

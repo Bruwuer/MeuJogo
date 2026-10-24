@@ -322,3 +322,23 @@ func test_finished_site_pushes_people_out() -> void:
 	var rect := BuildRules.footprint_rect(B.HOUSE, site.pos, site.rot)
 	assert_true(not BuildRules.circle_hits_rect(Vector2(n.global_position.x, n.global_position.z), GameConstants.PERSON_RADIUS, rect),
 			"stepped out of the finished house (%s)" % str(n.global_position))
+
+
+func test_deed_is_walked_and_done_for_real() -> void:
+	var spot := _make()
+	kingdom.stock = { R.FOOD: 50 }
+	var p := _resident(P.FARMER, spot + Vector3(3, 0.3, 5))
+	await _load_around(spot)
+	var target := spot + Vector3(14, 0, -6)
+	target.y = gen.height_at(target.x, target.z)
+	var now := sim.now_hours()
+	p.deed = Deeds.make("visit", target, 1.5, now, now + 4.0, 2.0)
+	var where := []
+	sim.houses.deed_completed.connect(func(rec: Dictionary, _d: Dictionary, _seen: Array) -> void:
+		if rec.id == p.id:
+			where.append(mgr.node_for(p.id).global_position))
+	var ok: bool = await _run_until(func() -> bool: return not where.is_empty(), 3600)
+	assert_true(ok, "the deed was never done (act %d)" % (mgr.node_for(p.id).act if mgr.node_for(p.id) else -1))
+	if ok:
+		var d := Vector2(where[0].x - target.x, where[0].z - target.z).length()
+		assert_true(d <= 2.5, "done there, after walking (%.1f m away)" % d)

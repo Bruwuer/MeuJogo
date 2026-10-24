@@ -220,6 +220,9 @@ func person_context(n: Person) -> Dictionary:
 		me.raid = false
 		me.is_work_time = VillageRules.guard_on_duty(_sim.hour_of_day())
 		me.is_sleep_time = not me.is_work_time
+	var deed: Dictionary = rec.get("deed", {})
+	if rec.status == "resident" and Deeds.is_due(deed, _sim.now_hours()):
+		me.deed = {pos = deed.pos, reach = deed.reach, work_sec = deed.work_sec}
 	if rec.status == "resident" and me.is_work_time and not me.raid:
 		var job := VillageRules.choose_job(rec, _snapshot(k))
 		rec.job = job
@@ -433,6 +436,35 @@ func finish_work(n: Person) -> void:
 			var after := _state.building(t.id)
 			if after.get("site", false):
 				_refresh_building(after)
+
+
+## The person finished a House deed where it happens: settle it, with whoever saw it.
+func finish_deed(n: Person) -> void:
+	var rec := n.record
+	var k := _state.kingdom(rec.kingdom_id)
+	var deed: Dictionary = rec.get("deed", {})
+	if k.is_empty() or deed.is_empty():
+		return
+	var pool := []
+	for o in active_people():
+		pool.append({id = o.record.id, family_id = int(o.record.get("family_id", -1)), pos = o.global_position,
+				adult = SocietyRules.is_adult(o.record), visible = o.visible})
+	var seen := witness_ids(rec, (deed.data as Dictionary).get("party", []), n.global_position, pool)
+	_sim.houses.complete_deed(k, rec, seen, _sim.now_hours())
+
+
+## Ids of the people who see a deed done at `at`: awake (visible) adults close by, outside the
+## doer's House and the deed's party. `people`: [{id, family_id, pos, adult, visible}].
+static func witness_ids(doer: Dictionary, party: Array, at: Vector3, people: Array) -> Array:
+	var out := []
+	for o: Dictionary in people:
+		if o.id == doer.id or party.has(o.id) or not o.adult or not o.visible:
+			continue
+		if int(doer.get("family_id", -1)) >= 0 and o.family_id == int(doer.family_id):
+			continue
+		if _flat(o.pos, at) <= GameConstants.DEED_WITNESS_RADIUS:
+			out.append(o.id)
+	return out
 
 
 func deposit(n: Person) -> void:

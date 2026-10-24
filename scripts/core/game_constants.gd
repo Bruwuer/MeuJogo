@@ -929,6 +929,17 @@ const GUARD_ALERT_MARGIN := 10.0 ## Hostiles this far outside the territory stil
 const GUARD_REST_HOURS := Vector2(13.0, 18.0) ## Guards sleep in the afternoon and watch at night.
 const GUARD_RAID_REDUCTION := 0.2 ## Each guard weakens a summarized raid by this share.
 const GUARD_RAID_FLOOR := 0.2
+
+# Deeds (stage 7): House decisions carried out by people walking and acting
+const DEED_WITNESS_RADIUS := 9.0 ## Awake outsiders this close see a secret deed.
+const DEED_SEEN_PER_WATCHER := 0.12 ## Offscreen: chance each awake outsider notices a secret deed.
+const DEED_NIGHT := Vector2(23.0, 3.0) ## Window of secret deeds (hours of the day).
+const DEED_DAY := Vector2(9.0, 17.0) ## Window of open errands.
+const DEED_CEREMONY := Vector2(16.0, 19.0) ## Weddings and unions, at the seat.
+const DEED_WORK_SEC := 6.0 ## Time spent doing it once there.
+const DEED_CEREMONY_SEC := 18.0
+const DEED_TRYST_SEC := 25.0
+
 const REFERENCE_MIN_HOURS := 100.0 ## Craft hours before a House can be "the reference" in a trade.
 const CHRONICLE_LINES := 12
 const CHRONICLE_TITLE := "Crônica do Reino de %s"

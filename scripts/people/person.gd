@@ -134,6 +134,16 @@ func _physics_process(delta: float) -> void:
 					_done = true
 					if manager:
 						manager.finish_work(self)
+		A.DEED:
+			_stand(delta)
+			_face(target_pos, delta)
+			_play(GameConstants.ANIM_WORK)
+			if not _done:
+				work_left -= delta
+				if work_left <= 0.0:
+					_done = true
+					if manager:
+						manager.finish_deed(self)
 		A.EVALUATE:
 			_stand(delta)
 			_eval_left -= delta
@@ -188,13 +198,16 @@ func _think() -> void:
 	if (d.target_pos as Vector3).distance_to(target_pos) > 1.0:
 		_stuck_dist = INF # a new destination
 	target_pos = d.target_pos
-	_goal_reach = float(work_target.get("reach", 0.0)) if goal == A.WORK else 0.0
+	_goal_reach = float(work_target.get("reach", 0.0)) if goal == A.WORK else (float(me.deed.reach) if goal == A.DEED else 0.0)
 	if goal != was_goal:
 		_done = false
 		_eval_left = GameConstants.PERSON_EVALUATE_SEC
 	if act == A.WORK and (was_act != A.WORK or _done): # start (or repeat) one work action
 		_done = false
 		work_left = float(work_target.get("duration", _DEFAULT_WORK_SEC))
+	if act == A.DEED and was_act != A.DEED:
+		_done = false
+		work_left = float((me.deed as Dictionary).get("work_sec", _DEFAULT_WORK_SEC))
 	if act != A.ENTER and not visible:
 		visible = true
 		if manager:
