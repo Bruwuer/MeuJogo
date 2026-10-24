@@ -49,7 +49,7 @@ func _ready() -> void:
 	library.start_loading()
 	_streamer = ChunkStreamer.new()
 	_streamer.name = "Chunks"
-	_streamer.setup(_gen, scatter, library, _state.removed_in)
+	_streamer.setup(_gen, scatter, library, _state.removed_in, _state.buildings_in)
 	add_child(_streamer)
 	_add_environment()
 	_add_edge_walls()

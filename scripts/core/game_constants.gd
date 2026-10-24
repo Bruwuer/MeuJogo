@@ -136,6 +136,17 @@ const BUILD_MSG_PROP := "Há uma árvore ou rocha no caminho"
 const BUILD_MSG_OCCUPIED := "Ocupado por outra construção"
 const BUILD_MSG_MISSING := "Falta %s (%d/%d)" ## resource name in lower case, have, need
 
+const FOUNDATION_DEPTH := 2.0 ## Stone base below a building's floor, hides gaps on slopes.
+const FOUNDATION_STONE := Color(0.46, 0.45, 0.43)
+const FOUNDATION_WOOD := Color(0.36, 0.25, 0.15) ## Fences get a thin wooden skirt instead.
+const CAMPFIRE_LIGHT_ENERGY := 2.0
+const CAMPFIRE_LIGHT_RANGE := 9.0
+const CAMPFIRE_LIGHT_COLOR := Color(1.0, 0.62, 0.30)
+
+# Physics layers (bit values)
+const LAYER_TERRAIN := 1
+const LAYER_OBSTACLES := 2 ## Trees, rocks and buildings.
+
 # Kingdoms
 const KINGDOM_RADIUS := 40.0
 

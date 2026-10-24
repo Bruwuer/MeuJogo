@@ -12,6 +12,7 @@ var _gen: TerrainGenerator
 var _scatter: PropScatter
 var _library: ModelLibrary
 var _removed_provider: Callable # func(c: Vector2i) -> PackedInt32Array
+var _buildings_provider: Callable
 var _material: StandardMaterial3D
 var _center := Vector2i(1 << 30, 1 << 30)
 var _desired: Dictionary[Vector2i, bool] = {}
@@ -21,7 +22,10 @@ var _results: Array = [] # [coord, arrays, props], written by worker threads
 var _results_mutex := Mutex.new()
 
 
-func setup(gen: TerrainGenerator, scatter: PropScatter, library: ModelLibrary, removed_provider: Callable) -> void:
+## `buildings_provider`: func(c: Vector2i) -> Array[Dictionary] of building records (optional).
+func setup(gen: TerrainGenerator, scatter: PropScatter, library: ModelLibrary, removed_provider: Callable,
+		buildings_provider := Callable()) -> void:
+	_buildings_provider = buildings_provider
 	_gen = gen
 	_scatter = scatter
 	_library = library
@@ -91,7 +95,10 @@ func _process(_delta: float) -> void:
 
 func _apply(coord: Vector2i, arrays: Array, props: Array[Dictionary]) -> void:
 	var chunk := Chunk.new()
-	chunk.build(coord, arrays, props, _removed_provider.call(coord), _library, _material)
+	var buildings: Array[Dictionary] = []
+	if _buildings_provider.is_valid():
+		buildings = _buildings_provider.call(coord)
+	chunk.build(coord, arrays, props, _removed_provider.call(coord), _library, _material, buildings)
 	add_child(chunk)
 	_loaded[coord] = chunk
 	chunk_loaded.emit(coord)
