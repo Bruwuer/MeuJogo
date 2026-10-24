@@ -25,7 +25,7 @@ primeiro e atualizá-lo ao concluir cada tarefa** (seção "Estado atual").
   - Design escrito e commitado: `docs/superpowers/specs/2026-10-24-etapa-4-criaturas-combate-design.md`
     (ainda sem revisão do design).
   - Design revisado (seção 7), plano em `docs/superpowers/plans/2026-10-24-etapa-4-criaturas-combate.md`.
-  - Tarefas 1-5 prontas (genoma, peças, corpo montado + galeria `tests/visual/gallery.gd`, vida/cérebro/criatura, bandos/motivos/PackSim). Próxima: Tarefa 6 (CreatureManager).
+  - Tarefas 1-5 prontas (genoma, peças, corpo montado + galeria `tests/visual/gallery.gd`, vida/cérebro/criatura, bandos/motivos/PackSim, CreatureManager). Próxima: Tarefa 7 (armas e combate do jogador).
   - Execução: ver ledger `.superpowers/sdd/2026-10-24-etapa-4-criaturas-combate/progress.md` (linhas `Task N: complete`).
 - Etapas 5 a 9: não iniciadas (ver roadmap no `CLAUDE.md`).
 
