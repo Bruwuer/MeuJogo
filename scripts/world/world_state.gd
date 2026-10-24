@@ -406,7 +406,8 @@ func move_creature(id: int, pos: Vector3) -> void:
 
 func add_pack(species: String, den: Vector3) -> Dictionary:
 	var p := {id = _next_pack_id, species = species, den = den, hunger = 0.0, territory = 0.0, grudge = 0.0,
-			cubs_alarm = 0.0, leader_id = -1, raid_kingdom = -1, next_raid_hour = 0.0}
+			cubs_alarm = 0.0, leader_id = -1, raid_kingdom = -1, next_raid_hour = 0.0,
+			territory_buildings = 0, territory_accepted = 0}
 	_next_pack_id += 1
 	_packs[p.id] = p
 	return p

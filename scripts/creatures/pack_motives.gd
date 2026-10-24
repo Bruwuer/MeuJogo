@@ -11,7 +11,10 @@ const MOTIVES := ["hunger", "territory", "grudge", "cubs"]
 static func update(pack: Dictionary, ctx: Dictionary, hours: float) -> void:
 	var prey_share := clampf(float(ctx.get("prey_count", 0)) / GameConstants.PREY_ENOUGH, 0.0, 1.0)
 	pack.hunger = clampf(pack.hunger + (GameConstants.HUNGER_RATE - GameConstants.PACK_FEED_RATE * prey_share) * hours, 0.0, 1.0)
-	pack.territory = clampf(ctx.get("buildings_in_territory", 0) * GameConstants.TERRITORY_PER_BUILDING, 0.0, 1.0)
+	# Only buildings raised since the last raid count: what still stands after one is accepted.
+	pack.territory_buildings = int(ctx.get("buildings_in_territory", 0))
+	var unaccepted: int = pack.territory_buildings - int(pack.get("territory_accepted", 0))
+	pack.territory = clampf(unaccepted * GameConstants.TERRITORY_PER_BUILDING, 0.0, 1.0)
 	pack.grudge = maxf(0.0, pack.grudge - GameConstants.GRUDGE_DECAY_PER_DAY / 24.0 * hours)
 	if ctx.get("player_near_den", false) and ctx.get("cubs", 0) > 0:
 		pack.cubs_alarm = 1.0
@@ -68,8 +71,10 @@ static func message(pack: Dictionary, kingdom_name: String) -> String:
 	return GameConstants.RAID_MESSAGES[dominant(pack)] % [species_plural(pack.species), kingdom_name]
 
 
-## Motives calm down after a raid; the pack goes home.
+## Motives calm down after a raid; the pack goes home and gives up contesting the buildings it saw.
 static func after_raid(pack: Dictionary, now_hours: float) -> void:
+	pack.territory_accepted = int(pack.get("territory_buildings", 0))
+	pack.territory = 0.0
 	pack.hunger = maxf(0.0, pack.hunger - GameConstants.RAID_SATED_HUNGER)
 	pack.grudge *= GameConstants.RAID_GRUDGE_KEEP
 	pack.cubs_alarm = 0.0

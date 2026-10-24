@@ -53,6 +53,19 @@ func test_territory_from_buildings() -> void:
 	assert_eq(p.territory, 1.0)
 
 
+func test_territory_fades_after_a_raid() -> void:
+	var p := _pack()
+	PackMotives.update(p, _ctx({ buildings_in_territory = 6 }), 1.0)
+	assert_eq(p.territory, 1.0)
+	PackMotives.after_raid(p, 0.0)
+	PackMotives.update(p, _ctx({ buildings_in_territory = 6 }), 1.0)
+	assert_eq(p.territory, 0.0, "a contested village that still stands is accepted")
+	PackMotives.update(p, _ctx({ buildings_in_territory = 8 }), 1.0)
+	assert_eq(p.territory, 2 * GameConstants.TERRITORY_PER_BUILDING, "only new buildings anger the pack again")
+	PackMotives.update(p, _ctx({ buildings_in_territory = 3 }), 1.0)
+	assert_eq(p.territory, 0.0, "fewer buildings than accepted is no motive")
+
+
 func test_cubs_alarm() -> void:
 	var p := _pack("javali")
 	PackMotives.update(p, _ctx({ player_near_den = true, cubs = 0 }), 1.0)
@@ -143,6 +156,28 @@ func test_sim_starts_raid_from_motive_only() -> void:
 	for i in 24:
 		sim.tick_hours(1.0)
 	assert_true(raids.size() >= 1 and raids[0] == "hunger", "starving pack never raided: %s" % [raids])
+
+
+func test_village_near_a_den_is_not_raided_every_day() -> void:
+	var s := WorldState.new()
+	var cabin := s.add_building(GameConstants.Building.CABIN, Vector3(100, 0, 100), 0)
+	s.add_kingdom("Valdemar", Color.RED, cabin.pos, cabin.id)
+	for i in 6:
+		s.add_building(GameConstants.Building.HOUSE, Vector3(120 + i * 3, 0, 100), 0)
+	var p := s.add_pack("lobo", Vector3(130, 0, 100))
+	for i in 3:
+		s.add_creature(_genome("lobo", i), Vector3(130 + i, 0, 100), p.id)
+	var sim := PackSim.new()
+	add_child(sim)
+	sim.setup(s, null)
+	sim.is_night_override = true
+	var raids := []
+	sim.raid_started.connect(func(_a: Dictionary, _b: Dictionary, m: String) -> void: raids.append(m))
+	for i in 24 * 10:
+		sim.tick_hours(1.0)
+	assert_true(raids.size() >= 1 and raids[0] == "territory", "the pack never contested its land: %s" % [raids])
+	assert_true(raids.size() <= 2, "a village near a den was raided %d times in 10 days" % raids.size())
+	sim.queue_free()
 
 
 func test_unvisited_land_counts_as_prey() -> void:
