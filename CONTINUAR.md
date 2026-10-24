@@ -20,7 +20,7 @@ primeiro e atualizá-lo ao concluir cada tarefa** (seção "Estado atual").
 ## Estado atual
 
 - Etapas 1, 2 e 3: concluídas e no `main` (176 testes passando).
-- **Etapa 4 (criaturas e combate): EM ANDAMENTO.** Autor pediu: combate SÓ por teclado (Espaço ataca para onde o personagem olha, 1/2/3 ou Q troca arma, sem mira automática, sem mouse); construção também por teclado (mouse opcional).
+- **Etapa 4 (criaturas e combate): EM ANDAMENTO.** Autor pediu: combate SÓ por teclado (Espaço ataca para onde o personagem olha, 1/2/3 ou Q troca arma, sem mira automática, sem mouse); construção também por teclado (mouse opcional). Ataques ao reino só com MOTIVO (fome, território, rancor, filhotes) — ver seção 6 do design.
   - Branch `etapa-4` criado a partir do `main`.
   - Design escrito e commitado: `docs/superpowers/specs/2026-10-24-etapa-4-criaturas-combate-design.md`
     (ainda sem revisão do design).

@@ -105,3 +105,27 @@ ser uma ameaça ao reino.
   automática nem uso do mouse no combate.
 - **Construção também funciona só com teclado:** o fantasma fica à frente do personagem; o mouse
   passa a ser opcional (só segue o cursor se ele se mexer sobre a janela) — ajuste em `BuildSystem`.
+
+## 6. Ameaça ao reino com motivos (pedido do autor, 2026-10-24)
+
+"À noite não atacam o reino assim simples, deve ter motivos." Substitui o item 7 da seção 2:
+
+- Cada **bando** (grupo da mesma espécie com um líder) tem uma **toca** (centro de território,
+  raio `TERRITORY_RADIUS`) e quatro **motivos** de 0 a 1, guardados no save:
+  - **Fome:** sobe com o tempo e desce ao comer. Desce devagar se a região tem pouca caça (poucos
+    herbívoros vivos num raio). Bando faminto se arrisca perto de pessoas e é atraído por comida
+    guardada (frutas do jogador, depósitos do reino).
+  - **Território:** o quanto o reino invade a área da toca (construções dentro do raio).
+  - **Rancor:** sobe quando o jogador mata ou fere membros do bando (mais com filhotes); cai devagar
+    com os dias.
+  - **Defesa dos filhotes:** dispara forte quando o jogador chega perto da toca com filhotes.
+- **Decisão de atacar:** combinação ponderada dos motivos × agressividade da espécie, só para
+  carnívoros ou espécies territoriais. A noite e o sono só mudam *quando* agem (predadores noturnos
+  e a maioria dos carnívoros saem à noite). Sem motivo acima do limiar, não há ataque.
+- O HUD anuncia o **motivo dominante**: "Lobos famintos rondam o Reino de X: a caça acabou na
+  região", "Os ursos defendem seu território: o reino foi erguido perto da toca", "A alcateia quer
+  vingança pelos lobos mortos", "Javalis furiosos protegem os filhotes".
+- O jogador pode **evitar** ataques: preservar a caça, não construir perto de tocas, não provocar
+  bandos, alimentar a fome deles longe do reino (caçando para eles não é necessário nesta etapa).
+- Construções têm vida; a cabana-sede não cai abaixo de 1 nesta etapa. Bandos que satisfazem o
+  motivo (comeram, afastaram o invasor, mataram o alvo do rancor) voltam para a toca.
