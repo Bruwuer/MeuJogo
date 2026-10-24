@@ -61,6 +61,7 @@ func test_arranged_marriage_dowry_and_alliance() -> void:
 	var bride := _join(_person("Inês", true), b)
 	a.goal = {kind = G.ALLIANCE, target_id = b.id, deadline_hour = 1000.0}
 	house.arranged_marriage(k, a, groom, bride, "accept")
+	house.complete_deed(k, groom, []) # the wedding at the seat
 	assert_eq(groom.spouse_id, bride.id)
 	assert_near(a.wealth, 100.0 - GameConstants.DOWRY, 0.001)
 	assert_near(b.wealth, 100.0 + GameConstants.DOWRY, 0.001)

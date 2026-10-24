@@ -271,6 +271,15 @@ func complete_deed(k: Dictionary, p: Dictionary, seen: Array, hour := -1.0) -> v
 				_staked(k, f, data.rect)
 		"build_home":
 			_built(k, int(data.home_id), int(data.family_id))
+		"wedding":
+			var f := _state.family(int(data.get("family_id", -1)))
+			if not f.is_empty():
+				_wed(k, f, p, _state.person(int(data.partner_id)))
+		"union":
+			var small := _state.family(int(data.get("small_id", -1)))
+			var big := _state.family(int(data.get("big_id", -1)))
+			if not small.is_empty() and not big.is_empty() and small.id != big.id:
+				unite(k, small, big)
 	deed_completed.emit(p, deed, seen)
 
 
@@ -620,8 +629,11 @@ func _pursue(k: Dictionary, f: Dictionary) -> void:
 			_try_alliance(k, f)
 		G.UNION:
 			var big := _state.family(int(f.goal.target_id))
-			if not big.is_empty() and big.id != f.id:
-				unite(k, f, big)
+			var heads: Array[Dictionary] = [_state.person(int(f.head_id)), _state.person(int(big.get("head_id", -1)))]
+			if big.is_empty() or big.id == f.id or heads.any(func(h: Dictionary) -> bool:
+					return h.is_empty() or not (h.get("deed", {}) as Dictionary).is_empty()):
+				return
+			_ceremony(k, "union", heads, {small_id = f.id, big_id = big.id, party = [heads[0].id, heads[1].id]})
 		G.REVENGE:
 			var target := _state.family(int(f.goal.target_id))
 			if not target.is_empty() and _roll(f.id, "revenge") < GameConstants.REVENGE_PER_DAY:
@@ -755,8 +767,9 @@ func _intrigue(k: Dictionary, rng: RandomNumberGenerator) -> void:
 ## Marries one of `f`'s unmarried adults into the House it wants an alliance with.
 func _try_alliance(k: Dictionary, f: Dictionary) -> void:
 	var target := _state.family(int(f.goal.target_id))
-	if target.is_empty():
-		return
+	if target.is_empty() or _state.family_members(f.id).any(func(m: Dictionary) -> bool:
+			return (m.get("deed", {}) as Dictionary).get("kind", "") == "wedding"):
+		return # a wedding is already set
 	var single := func(m: Dictionary) -> bool: return SocietyRules.is_adult(m) and int(m.get("spouse_id", -1)) < 0
 	var own := _state.family_members(f.id).filter(single)
 	var theirs := _state.family_members(target.id).filter(single)
@@ -777,19 +790,13 @@ func arranged_marriage(k: Dictionary, f: Dictionary, person: Dictionary, partner
 	var other := _state.family(int(partner.family_id))
 	match response:
 		"accept":
-			var dowry := minf(float(GameConstants.DOWRY), maxf(0.0, float(f.wealth)))
-			f.wealth = float(f.wealth) - dowry
-			if not other.is_empty():
-				other.wealth = float(other.wealth) + dowry
-				_state.add_relation(int(f.head_id), int(other.head_id), GameConstants.ALLIANCE_RELATION_GAIN)
-			var unhappy := _state.relation(person.id, partner.id) < GameConstants.UNHAPPY_AT
-			_society._marry(k, person, partner)
-			person.unhappy_marriage = unhappy
-			partner.unhappy_marriage = unhappy
-			if not (f.goal as Dictionary).is_empty():
-				f.goal.done = true
-			_log(k, GameConstants.HOUSE_MSG_ARRANGED % [f.surname, PersonGen.full_name(person), PersonGen.full_name(partner),
-					other.get("surname", "?")])
+			var heads := [_state.person(int(f.head_id)), _state.person(int(other.get("head_id", -1)))]
+			var party: Array[Dictionary] = [person, partner]
+			for h: Dictionary in heads:
+				if not h.is_empty() and not party.has(h):
+					party.append(h)
+			var ids := party.map(func(x: Dictionary) -> int: return x.id)
+			_ceremony(k, "wedding", party, {family_id = f.id, partner_id = partner.id, party = ids})
 		"resist":
 			person.resentment = clampf(float(person.resentment) + GameConstants.RESIST_RESENTMENT, 0.0, 1.0)
 			_state.add_relation(person.id, int(f.head_id), GameConstants.RESIST_RELATION_HIT)
@@ -802,6 +809,39 @@ func arranged_marriage(k: Dictionary, f: Dictionary, person: Dictionary, partner
 				var deed: Dictionary = (person.deed as Dictionary).duplicate(true)
 				deed.data = {follow = person.id, secret = true, party = [person.id]}
 				plan_deed(lover, deed)
+
+
+## Everyone in `party` goes to the seat for a ceremony in the next ceremony window, side by side;
+## the first one leads (its deed carries `data` and the effect).
+func _ceremony(k: Dictionary, kind: String, party: Array[Dictionary], data: Dictionary) -> void:
+	var seat := _state.building(int(k.get("seat_id", -1)))
+	var at: Vector3 = PeopleManager.door_of(seat) if not seat.is_empty() else k.center
+	var w := Deeds.next_window(_hour, GameConstants.DEED_CEREMONY.x, GameConstants.DEED_CEREMONY.y)
+	for i in party.size():
+		var spot := at + Vector3((i - (party.size() - 1) * 0.5) * 1.2, 0.0, 1.5)
+		var d := data if i == 0 else {follow = party[0].id, party = data.get("party", [])}
+		plan_deed(party[i], Deeds.make(kind, spot, GameConstants.PERSON_ARRIVE, w.x, w.y, GameConstants.DEED_CEREMONY_SEC, d))
+
+
+## The wedding took place: dowry, alliance, the marriage (maybe an unhappy one).
+func _wed(k: Dictionary, f: Dictionary, person: Dictionary, partner: Dictionary) -> void:
+	if partner.is_empty() or partner.status != "resident" or int(person.get("spouse_id", -1)) >= 0 \
+			or int(partner.get("spouse_id", -1)) >= 0:
+		return
+	var other := _state.family(int(partner.get("family_id", -1)))
+	var dowry := minf(float(GameConstants.DOWRY), maxf(0.0, float(f.wealth)))
+	f.wealth = float(f.wealth) - dowry
+	if not other.is_empty():
+		other.wealth = float(other.wealth) + dowry
+		_state.add_relation(int(f.head_id), int(other.head_id), GameConstants.ALLIANCE_RELATION_GAIN)
+	var unhappy := _state.relation(person.id, partner.id) < GameConstants.UNHAPPY_AT
+	_society._marry(k, person, partner)
+	person.unhappy_marriage = unhappy
+	partner.unhappy_marriage = unhappy
+	if not (f.goal as Dictionary).is_empty():
+		f.goal.done = true
+	_log(k, GameConstants.HOUSE_MSG_ARRANGED % [f.surname, PersonGen.full_name(person), PersonGen.full_name(partner),
+			other.get("surname", "?")])
 
 
 ## The lover of a runaway leaves too, and they marry away from their Houses.

@@ -213,3 +213,59 @@ func test_upgrade_goal_waits_for_the_work() -> void:
 	house.start_upgrade(k, f)
 	house.tick_hour(k, 24.0 + GameConstants.DEED_HOUR)
 	assert_true(not (f.goal as Dictionary).is_empty(), "no failure while the House is building")
+
+
+# --- Ceremonies ---
+
+func _seat() -> Vector3:
+	if int(k.seat_id) < 0:
+		k.seat_id = s.add_building(B.CABIN, k.center + Vector3(0, 0, -20), 0).id
+	return PeopleManager.door_of(s.building(int(k.seat_id)))
+
+
+func test_arranged_marriage_is_a_wedding_at_the_seat() -> void:
+	var seat := _seat()
+	var a := _house("Noivo", 100.0, 13.0)
+	var b := _house("Noiva", 100.0, -13.0)
+	a.goal = {kind = G.ALLIANCE, target_id = b.id, deadline_hour = 1000.0}
+	var groom := _join(_person("Afonso", false, 22.0), a)
+	var bride := _join(_person("Beatriz", true, 21.0), b)
+	house._hour = 10.0
+	house.arranged_marriage(k, a, groom, bride, "accept")
+	assert_eq(groom.spouse_id, -1, "married at the ceremony, not before")
+	for p in [groom, bride, s.person(int(a.head_id)), s.person(int(b.head_id))]:
+		assert_eq(p.deed.get("kind", ""), "wedding", "%s goes to the wedding" % p.name)
+		assert_true(Vector2(p.deed.pos.x - seat.x, p.deed.pos.z - seat.z).length() < 4.0, "at the seat")
+	assert_eq(groom.deed.start_hour, GameConstants.DEED_CEREMONY.x)
+	house.complete_deed(k, groom, [])
+	assert_eq(groom.spouse_id, bride.id)
+	assert_true(a.goal.get("done", false), "the alliance is sealed")
+
+
+func test_no_second_wedding_while_one_is_set() -> void:
+	_seat()
+	var a := _house("Paz", 100.0, 17.0)
+	var b := _house("Guerra", 100.0, -17.0)
+	a.goal = {kind = G.ALLIANCE, target_id = b.id, deadline_hour = 1000.0}
+	var groom := _join(_person("Gaspar", false, 22.0), a)
+	var bride := _join(_person("Helena", true, 21.0), b)
+	s.set_relation(groom.id, bride.id, 0.5)
+	house._hour = 10.0
+	house.arranged_marriage(k, a, groom, bride, "accept")
+	var deed: Dictionary = groom.deed
+	house._try_alliance(k, a)
+	assert_eq(groom.deed, deed, "the wedding stands")
+
+
+func test_union_is_a_ceremony_of_the_heads() -> void:
+	_seat()
+	var small := _house("Pequena", 10.0, 19.0)
+	var big := _house("Grande", 300.0, -19.0)
+	small.goal = {kind = G.UNION, target_id = big.id, deadline_hour = 1000.0}
+	house._hour = 10.0
+	house._pursue(k, small)
+	assert_eq(s.person(int(small.head_id)).deed.get("kind", ""), "union")
+	assert_eq(s.person(int(big.head_id)).deed.get("kind", ""), "union")
+	assert_true(not s.family(small.id).is_empty(), "still two Houses")
+	house.complete_deed(k, s.person(int(small.head_id)), [])
+	assert_true(s.family(small.id).is_empty(), "one House after the ceremony")
