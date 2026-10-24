@@ -21,7 +21,7 @@ primeiro e atualizá-lo ao concluir cada tarefa** (seção "Estado atual").
 
 - Etapas 1 a 5: concluídas e no `main` (342 testes passando). Resumo em `docs/ENTREGAS.md`.
 - **Próxima: Etapa 6 (sociedade)** — famílias e brasões, relações, opinião sobre o jogador, aliados e inimigos
-  internos. Começar pelo design curto em `docs/superpowers/specs/` (fluxo completo acima), num branch `etapa-6`.
+  internos. Branch `etapa-6` JÁ CRIADO (vazio, a partir do main). Começar pelo design curto em `docs/superpowers/specs/`.
   Pedidos do autor continuam valendo: combate e construção só por teclado; ataques ao reino só com motivo.
   Pendências menores da etapa 5 estão em `docs/ENTREGAS.md` (podem entrar na etapa 6 se tocarem o mesmo código).
 - Etapas 6 a 9: não iniciadas (ver roadmap no `CLAUDE.md`).
