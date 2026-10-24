@@ -11,6 +11,8 @@ const _FLOOR_SNAP := 0.5
 var frozen := true
 ## Set by World; E (interact) harvests through it.
 var harvest: HarvestSystem
+## False while build mode owns E.
+var harvest_enabled := true
 
 var _work_left := 0.0
 var _anim: AnimationPlayer
@@ -35,7 +37,7 @@ func _physics_process(delta: float) -> void:
 	if frozen:
 		return
 	_work_left = maxf(0.0, _work_left - delta)
-	if _work_left == 0.0 and harvest and Input.is_action_just_pressed("interact"):
+	if _work_left == 0.0 and harvest and harvest_enabled and Input.is_action_just_pressed("interact"):
 		_try_harvest()
 	var input := Input.get_vector("move_left", "move_right", "move_up", "move_down")
 	var dir := IsoInput.to_world(input, GameConstants.CAM_YAW_DEG)
@@ -84,6 +86,12 @@ func current_anim() -> String:
 
 func is_working() -> bool:
 	return _work_left > 0.0
+
+
+## Horizontal direction the character model faces.
+func facing() -> Vector3:
+	var f := _model.global_transform.basis.z
+	return Vector3(f.x, 0.0, f.z).normalized()
 
 
 func _try_harvest() -> void:

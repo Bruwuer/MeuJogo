@@ -135,6 +135,15 @@ const BUILD_MSG_SLOPE := "Terreno muito inclinado"
 const BUILD_MSG_PROP := "Há uma árvore ou rocha no caminho"
 const BUILD_MSG_OCCUPIED := "Ocupado por outra construção"
 const BUILD_MSG_MISSING := "Falta %s (%d/%d)" ## resource name in lower case, have, need
+const BUILD_MSG_SEAT := "A sede do reino não pode ser demolida"
+const BUILD_GHOST_DISTANCE := 3.0 ## Ghost distance in front of the player when the mouse is not used.
+const BUILD_DEMOLISH_RANGE := 3.0 ## Max distance from the player to a building's footprint edge.
+const BUILD_RAY_LENGTH := 500.0
+const FLAG_OFFSET := Vector3(1.6, 0.0, 2.3) ## Flag position in the seat cabin's local frame (front corner).
+const GHOST_OK_COLOR := Color(0.35, 0.95, 0.45, 0.45)
+const GHOST_BAD_COLOR := Color(0.95, 0.30, 0.25, 0.45)
+const KINGDOM_COLOR_SAT := 0.65
+const KINGDOM_COLOR_VAL := 0.75
 
 const FOUNDATION_DEPTH := 2.0 ## Stone base below a building's floor, hides gaps on slopes.
 const FOUNDATION_STONE := Color(0.46, 0.45, 0.43)
