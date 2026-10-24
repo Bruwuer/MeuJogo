@@ -331,3 +331,15 @@ func test_site_not_opened_on_the_player() -> void:
 		var rect := BuildRules.footprint_rect(second.type, second.pos, second.rot)
 		assert_true(not BuildRules.circle_hits_rect(Vector2(where.x, where.z), GameConstants.BUILD_PLAYER_RADIUS, rect),
 				"not on top of the player")
+
+
+func test_live_farm_food_before_any_offscreen_hour() -> void:
+	var a := _setup()
+	var k: Dictionary = a[1]
+	var sim: VillageSim = a[2]
+	k.erase("work_frac")
+	k.stock = {}
+	sim.add_fraction(k, "food", R.FOOD, 1.5)
+	assert_eq((a[0] as WorldState).stock_of(k, R.FOOD), 1, "whole units go to the stock")
+	sim.add_fraction(k, "food", R.FOOD, 0.5)
+	assert_eq((a[0] as WorldState).stock_of(k, R.FOOD), 2, "fractions add up")

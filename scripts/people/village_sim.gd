@@ -311,8 +311,6 @@ func _offscreen_work(k: Dictionary) -> void:
 		return
 	var snap := snapshot(k)
 	var farmers := 0
-	if not k.has("work_frac"):
-		k.work_frac = {}
 	for p in _state.residents(k.id):
 		if has_node.call(p.id):
 			continue
@@ -335,7 +333,7 @@ func _offscreen_work(k: Dictionary) -> void:
 ## Accumulates `amount` of a job's yield; every whole prop's worth removes the prop nearest to
 ## the kingdom center from the world (no props left = no yield).
 func _harvest(k: Dictionary, job: String, amount: float) -> void:
-	var frac: Dictionary = k.work_frac
+	var frac := _fractions(k)
 	frac[job] = float(frac.get(job, 0.0)) + amount
 	var types: Array = _job_props(job)
 	while true:
@@ -354,7 +352,7 @@ func _harvest(k: Dictionary, job: String, amount: float) -> void:
 
 
 func add_fraction(k: Dictionary, key: String, res: int, amount: float) -> void:
-	var frac: Dictionary = k.work_frac
+	var frac := _fractions(k)
 	frac[key] = float(frac.get(key, 0.0)) + amount
 	var whole := floori(float(frac[key]))
 	if whole > 0:
@@ -413,3 +411,10 @@ func snapshot(k: Dictionary) -> Dictionary:
 		left[job] = not nearest_prop(k.center, _job_props(job)).is_empty()
 	snap.props_left = left
 	return snap
+
+
+## Partial yields of a kingdom (saved with it); live and summarized work share it.
+static func _fractions(k: Dictionary) -> Dictionary:
+	if not k.has("work_frac"):
+		k.work_frac = {}
+	return k.work_frac
