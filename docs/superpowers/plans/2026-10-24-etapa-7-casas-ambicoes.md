@@ -77,5 +77,31 @@
 - Card: kinship to nearby residents (head/spouse/parents), vocation, desire, public secret, House goal; panel C: tradition, wealth, plots, house level, specialty, prestige, goal; panel K: last 12 chronicle lines of the kingdom.
 - Commit `feat: interface das Casas e crônica`.
 
-### Task 10: Captures, docs, review, merge
-- Captures: chronicle panel, families panel with wealth/land, marked plots, stone house and manor, guards fighting wolves, card with kinship; inspect. Docs: CLAUDE.md, ENTREGAS.md, CONTINUAR.md (next: stage 8). Final review (subagent opus), fixes with failing tests, merge to main.
+### Task 10: ADM log — kingdom events leave the HUD (done in bd86ed8)
+- Chronicle signal + `chronicle_all`, `AdminLog` file writer, all sources → chronicle, F9/F10 dev panels, hint without C/K.
+
+### Task 11: Deed core
+- `Deeds` (pure): `make(kind, at, reach, start_hour, end_hour, work_sec, data) -> Dictionary`, `is_due(deed, hour)`, `next_window(hour, from_h, to_h) -> Vector2` (start/end total hours of the next window, wrapping midnight), `seen_chance(awake_outsiders) -> float`.
+- `PersonBrain.Act.DEED` (appended). `me.deed` ({pos, reach} or null) wins over raid, sleep, carrying and work; only FLEE beats it.
+- `Person`: DEED act stands, plays work, counts `deed.work_sec`, calls `manager.finish_deed(self)`.
+- `PeopleManager.person_context` passes a due deed; `finish_deed` → `HouseSim.complete_deed(k, rec, witnesses)`; `witnesses_of(n)` = visible adult Person nodes within `DEED_WITNESS_RADIUS`, outside the doer's family and the deed's party.
+- `HouseSim`: `has_node` callable; hourly `_deeds(k)`: nodeless doers with a due deed resolve (offscreen witnesses rolled with `seen_chance`), expired deeds resolve without witnesses; `complete_deed` dispatches by kind.
+- Tests: deed due/window math, brain priority, offscreen resolution, expiry, witness filter (unit on the static filter).
+
+### Task 12: Departures as deeds
+- Open departure → `farewell` deed (day window, at the head's door). Secret → `runaway` deed (night window, kingdom edge away from home). `depart` runs on completion; a seen runaway is discovered at once.
+- Arranged "flee" and romance "leave" use the same deeds.
+
+### Task 13: Land and building work
+- LAND goal → `stake` deed for the head at the reserved plot (`f.claim`), paid and staked on completion (plot rechecked).
+- UPGRADE → `home.upgrade = {level, done_hours}` paid at start; daily `build_home` deeds for House adults (work window, at the home); each completion adds `UPGRADE_DEED_HOURS`; level applied at `UPGRADE_WORK_HOURS[level]`. The goal does not fail while the work goes on.
+
+### Task 14: Ceremonies
+- Arranged "accept" → `wedding` deeds (next ceremony window, at the seat) for both partners (lead = person) and both heads; marriage effects on the lead's completion.
+- UNION → `union` deeds for both heads; `unite` on completion.
+
+### Task 15: Night deeds and witnesses
+- `skim` deed to the storage; `spy_move` (day, rival home) then nightly `spy_report` (own home); `tryst` (both lovers, remote spot); `revenge` (target home). Effects on completion; real witnesses expose (skim → `expose`, report → `expose_spy`, tryst → `expose_romance`, revenge → seen dishonor). Remove the daily chance discoveries.
+
+### Task 16: Captures, docs, review, merge
+- Organic captures: the world runs on its own (no staged events); shots found by watching the ADM log for deeds in progress. Docs: CLAUDE.md, ENTREGAS.md, CONTINUAR.md (next: stage 8). Final review (subagent opus), fixes with failing tests, merge to main.

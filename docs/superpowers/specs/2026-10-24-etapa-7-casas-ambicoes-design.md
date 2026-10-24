@@ -116,3 +116,35 @@ riqueza e preços, lotes (validade e compra), especialização, melhoria de casa
 corrupção e escândalo, infiltração e descoberta, guarda patrulhando e atacando, persistência e
 compatibilidade com saves da etapa 6; capturas da crônica, do painel com riqueza e terras, de lotes
 marcados, de uma casa de pedra e um solar, de guardas enfrentando lobos e do cartão com parentesco.
+
+## 5. Adendo (pedido do autor, 2026-10-24): nada na tela, tudo acontece de verdade
+
+**O jogador não sabe de tudo.** Nenhum evento do reino aparece no HUD (viajantes, nascimentos,
+casamentos, mortes, ataques, intrigas das Casas — inclusive das etapas anteriores). O HUD mostra só
+o que é do jogador (recursos, vida, arma, relógio, avisos, construção, a própria morte e as próprias
+caças, o cartão de quem ele fala). Todo evento vai para o **log do ADM**: a crônica no save e o
+arquivo `user://adm_log.txt` (uma linha por evento, segredos marcados `[segredo]`). Painéis de
+desenvolvedor: F9 crônica (com segredos), F10 Casas. Não aparecem na dica de teclas.
+
+**Feitos encarnados.** Decisão das Casas não muda mais o mundo de imediato: vira um **feito**
+(`person.deed`) que uma pessoa executa andando até um lugar, numa janela de horas, e trabalhando ali
+por um tempo. O efeito só acontece quando o feito termina. Sem nó carregado, o feito se resolve
+como resumo na hora em que começa (mesmo efeito). Feitos:
+
+| Decisão | Feito |
+|---|---|
+| Sair da Casa às claras | despedida: vai à porta do chefe de dia, conversa, sai |
+| Fugir (segredo) | sai de casa de madrugada e anda até a borda do território |
+| Lote | o chefe vai ao lote e finca as estacas; só então o lote é da Casa |
+| Melhoria de casa | obra: paga no início; os adultos da Casa trabalham na casa nas horas de trabalho até completar as horas da obra |
+| Casamento arranjado aceito | cerimônia à tarde na sede com noivos e chefes; casa ao fim (e a mudança é a caminhada para a casa nova) |
+| União de Casas | cerimônia dos dois chefes na sede |
+| Desvio (corrupção) | ida de madrugada ao armazém |
+| Infiltrado | muda-se de dia para a casa da rival; à noite vai às escondidas à casa da própria Casa (relato) |
+| Romance secreto | encontro de madrugada num ponto afastado do território |
+| Vingança | ida de madrugada à casa da Casa alvo (sabotagem) |
+
+**Testemunhas de verdade.** Segredos só vêm à tona por quem vê: com nós carregados, adultos
+acordados e visíveis de fora da Casa, a até `DEED_WITNESS_RADIUS`, no fim do feito secreto; no
+resumo, chance por pessoa acordada naquela hora (guardas de vigia à noite). Acabou a descoberta
+diária por sorte. Fugitivos ainda são notados pela família na manhã seguinte.
