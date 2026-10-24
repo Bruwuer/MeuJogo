@@ -45,8 +45,9 @@ ser uma ameaça ao reino.
    | Espada | golpe em arco curto na frente, rápido |
    | Lança | alcance maior, mais lenta |
    | Arco | flechas com gravidade; **F** fabrica 5 flechas com 1 madeira |
-   - **Controles:** fora do modo construção, **1/2/3** escolhem a arma e **clique esquerdo** ou
-     **Espaço** ataca na direção do mouse (ou para a frente).
+   - **Controles (só teclado, pedido do autor):** fora do modo construção, **1/2/3** escolhem a arma e
+     **Q** troca para a próxima; **Espaço** ataca na direção em que o personagem está virado. Sem mira
+     automática e sem mouse: quem mira é o jogador, virando o personagem com WASD.
    - **Vida:** o jogador tem 100 de vida, que regenera devagar; **H** come 1 fruta e recupera 15.
    - **Morte:** ele renasce na cabana-sede (ou no ponto inicial) sem perder recursos e com aviso no HUD.
 7. **Ameaça ao reino:**
@@ -96,3 +97,11 @@ ser uma ameaça ao reino.
   - teto de população e orçamento de frame com 40 criaturas.
 - **Capturas com janela:** um lobo, a galeria das 8 espécies, um híbrido com o pai e a mãe, o jogador
   lutando de espada e de arco, e um ataque noturno ao povoado.
+
+## 5. Decisões após pedido do autor (2026-10-24)
+
+- **Combate só por tecla:** Espaço ataca, 1/2/3 ou Q trocam a arma, F faz flechas, H come. O ataque
+  vai sempre na direção para onde o personagem olha (a última direção de movimento). Não há mira
+  automática nem uso do mouse no combate.
+- **Construção também funciona só com teclado:** o fantasma fica à frente do personagem; o mouse
+  passa a ser opcional (só segue o cursor se ele se mexer sobre a janela) — ajuste em `BuildSystem`.
