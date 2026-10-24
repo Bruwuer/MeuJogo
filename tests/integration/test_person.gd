@@ -103,3 +103,29 @@ func test_person_colors_applied() -> void:
 	assert_near(a.model_scale(), a.record.looks.height, 0.001)
 	a.queue_free()
 	b.queue_free()
+
+
+func test_person_walks_around_low_foundation() -> void:
+	# A site has only its stone base as collision: a low step the chest-high rays would miss.
+	_floor()
+	var base := StaticBody3D.new()
+	base.collision_layer = GameConstants.LAYER_OBSTACLES
+	var shape := CollisionShape3D.new()
+	var box := BoxShape3D.new()
+	box.size = Vector3(1.5, 0.5, 5.0)
+	shape.shape = box
+	base.add_child(shape)
+	base.position = Vector3(5, 0.25, 0)
+	add_child(base)
+	var p: Person = await _spawn(Vector3(0, 0.2, 0.3), 5)
+	p.walk_to(Vector3(10, 0, 0))
+	Engine.time_scale = 4.0
+	for i in 900:
+		await get_tree().physics_frame
+		if _flat(p.global_position).distance_to(Vector3(10, 0, 0)) < GameConstants.PERSON_ARRIVE:
+			break
+	Engine.time_scale = 1.0
+	assert_true(_flat(p.global_position).distance_to(Vector3(10, 0, 0)) < GameConstants.PERSON_ARRIVE + 0.3,
+			"got around the low base (%s)" % str(p.global_position))
+	p.queue_free()
+	base.queue_free()

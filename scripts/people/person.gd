@@ -11,7 +11,7 @@ extends CharacterBody3D
 const A := PersonBrain.Act
 const _AVOID_ANGLES := [0.0, 45.0, -45.0, 90.0, -90.0, 135.0, -135.0]
 const _ANIM_BLEND := 0.2
-const _CHEST := 1.0
+const _RAY_HEIGHTS := [0.3, 1.0] ## Knee (stone bases of sites, low steps) and chest.
 const _LOOK_KEYS := ["skin", "hair", "tunic", "trousers"]
 const _DEFAULT_WORK_SEC := 3.0
 
@@ -196,7 +196,8 @@ func _move(delta: float, speed: float) -> void:
 	var dir := Vector3.ZERO
 	var stop := GameConstants.PERSON_ARRIVE * 0.5
 	if dist > stop:
-		dir = _avoid(to / dist)
+		# The last stretch goes straight: rays would see the door wall or the trunk being worked.
+		dir = to / dist if dist < GameConstants.PERSON_AVOID_RAY else _avoid(to / dist)
 	velocity.x = dir.x * speed
 	velocity.z = dir.z * speed
 	_apply_gravity(delta)
@@ -215,14 +216,20 @@ func _face(pos: Vector3, delta: float) -> void:
 		rotation.y = lerp_angle(rotation.y, atan2(to.x, to.z), clampf(GameConstants.TURN_SPEED * delta, 0.0, 1.0))
 
 
-## First clear direction around the wanted one (keeps turning the same way while blocked).
+## First clear direction around the wanted one (keeps turning the same way while blocked). Rays at
+## knee and chest height: a site only has its low stone base as collision.
 func _avoid(want: Vector3) -> Vector3:
 	var space := get_world_3d().direct_space_state
-	var from := global_position + Vector3.UP * _CHEST
 	for a: float in _AVOID_ANGLES:
 		var d := want.rotated(Vector3.UP, deg_to_rad(a) * _avoid_sign)
-		var q := PhysicsRayQueryParameters3D.create(from, from + d * GameConstants.PERSON_AVOID_RAY, GameConstants.LAYER_OBSTACLES)
-		if space.intersect_ray(q).is_empty():
+		var clear := true
+		for h: float in _RAY_HEIGHTS:
+			var from := global_position + Vector3.UP * h
+			var q := PhysicsRayQueryParameters3D.create(from, from + d * GameConstants.PERSON_AVOID_RAY, GameConstants.LAYER_OBSTACLES)
+			if not space.intersect_ray(q).is_empty():
+				clear = false
+				break
+		if clear:
 			if a != 0.0:
 				_avoid_sign = signf(a) * _avoid_sign
 			return d

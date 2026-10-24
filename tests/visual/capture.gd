@@ -70,6 +70,7 @@ func _run() -> void:
 	await _shot("08_dusk")
 
 	await _village(scatter)
+	await _people()
 	await _creatures(scatter)
 	print("WORST_FRAME_MS %.1f" % _worst_ms)
 	print("WOOD %d" % _world.get_state().get_resource(GameConstants.Res.WOOD))
@@ -324,3 +325,115 @@ func _shot(shot_name: String) -> void:
 	print("CAPTURED ", path, "  worst_since_last=%.1f ms" % _segment_ms)
 	_segment_ms = 0.0
 	_last_usec = Time.get_ticks_usec() # exclude readback + PNG encode from frame timing
+
+
+## Stage 5: a traveler walking in, villagers at work, a site rising, a person's card and the
+## village at night (people at home and by the campfire). Packs are kept from raiding meanwhile.
+func _people() -> void:
+	const B := GameConstants.Building
+	const P := GameConstants.Profession
+	if _village_spot.x < 0.0 or _world.get_state().kingdoms().is_empty():
+		print("SKIPPED people: no village")
+		return
+	var state := _world.get_state()
+	var gen := _world.get_generator()
+	var sim := _world.get_village_sim()
+	var mgr := _world.get_people_manager()
+	var scatter := PropScatter.new(gen, state.seed)
+	var k: Dictionary = state.kingdoms()[0]
+	k.next_traveler_hour = 1e9 # this script brings its own people
+	var raid_hours := {}
+	for pk in state.all_packs():
+		raid_hours[pk.id] = pk.next_raid_hour
+		pk.next_raid_hour = 1e9
+	_set_time(DAY_TIME)
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 11
+	var seat := state.building(k.seat_id)
+	var front := PeopleManager.door_of(seat)
+	await _teleport(front + Vector3(1.5, 0, 6.0))
+	var traveler := state.add_person(PersonGen.generate(rng, 0.0, P.FARMER), _ground(gen, front + Vector3(1, 0, 17)), k.id,
+			sim.now_hours() + 100.0)
+	await _physics(170)
+	await _shot("18_traveler_arrives")
+
+	# Residents with trades, a house for three of them, a farm and a site.
+	state.add_stock(k, GameConstants.Res.WOOD, 30)
+	state.add_stock(k, GameConstants.Res.STONE, 20)
+	state.add_stock(k, GameConstants.Res.FOOD, 40)
+	var trades := [P.WOODCUTTER, P.MASON, P.BUILDER, P.BUILDER, P.GATHERER, P.FARMER, P.BUILDER]
+	var people: Array[Dictionary] = []
+	for i in trades.size():
+		var rec := state.add_person(PersonGen.generate(rng, 0.2, trades[i]), _ground(gen, front + Vector3(i - 3.0, 0, 2.5)), k.id)
+		rec.status = "resident"
+		k.people_ever += 1
+		people.append(rec)
+	var house_spot := VillageRules.pick_site(B.HOUSE, k, state, gen, scatter, [], rng)
+	if house_spot.ok:
+		var house := state.add_building(B.HOUSE, house_spot.pos, house_spot.rot, Color.WHITE, people[0].id)
+		for i in 3:
+			people[i].home_id = house.id
+		_show(house)
+	var farm_spot := VillageRules.pick_site(B.FARM, k, state, gen, scatter, [], rng)
+	if farm_spot.ok:
+		_show(state.add_building(B.FARM, farm_spot.pos, farm_spot.rot, Color.WHITE, GameConstants.OWNER_KINGDOM))
+	var site: Dictionary = state.building(k.site_id)
+	if site.is_empty():
+		var site_spot := VillageRules.pick_site(B.HOUSE, k, state, gen, scatter, [], rng)
+		if site_spot.ok:
+			state.add_stock(k, GameConstants.Res.WOOD, 40)
+			state.add_stock(k, GameConstants.Res.STONE, 10)
+			site = state.add_site(B.HOUSE, site_spot.pos, site_spot.rot, k, sim.now_hours())
+	print("PEOPLE house=%s farm=%s site=%s" % [house_spot.ok, farm_spot.ok, not site.is_empty()])
+	if not site.is_empty():
+		site.progress = maxf(float(site.get("progress", 0.0)), 0.35)
+		_show(site)
+		_world.get_streamer().get_chunk(ChunkMath.world_to_chunk(site.pos)).update_site(site)
+	await _physics(600)
+	var look: Vector3 = (front + (site.pos if not site.is_empty() else front)) * 0.5
+	await _teleport(look + Vector3(1.5, 0, 6.0))
+	await _physics(240)
+	await _shot("19_village_working")
+	if not site.is_empty():
+		await _teleport(site.pos + Vector3(1.5, 0, 7.5))
+		await _physics(120)
+		await _shot("20_site_rising")
+	else:
+		print("SKIPPED 20_site_rising: no place for a site")
+
+	# Talk to someone.
+	var p := _world.get_player()
+	var who := mgr.node_for(people[4].id)
+	if who:
+		await _teleport(who.global_position + Vector3(1.2, 0, 1.2))
+		who.walk_to(who.global_position)
+		p.face(who.global_position - p.global_position)
+		p.interact()
+		await _frames(10)
+		await _shot("21_person_card")
+	else:
+		print("SKIPPED 21_person_card: no node")
+
+	# Night: the house owners sleep inside, the others by the campfire.
+	_set_time(0.92)
+	var fire := front
+	for b in VillageRules.kingdom_buildings(state, k):
+		if b.type == B.CAMPFIRE:
+			fire = b.pos
+	await _teleport(fire + Vector3(1.5, 0, 6.0))
+	await _physics(900)
+	await _shot("22_village_night")
+	_set_time(DAY_TIME)
+	print("PEOPLE traveler=%s inside=%d" % [traveler.status, people.filter(func(r: Dictionary) -> bool: return int(r.inside) >= 0).size()])
+	for i in 3:
+		var n := mgr.node_for(people[i].id)
+		var h := state.building(people[i].home_id)
+		print("PEOPLE owner %d home=%d node=%s pos=%s door=%s act=%s goal=%s target=%s" % [i, people[i].home_id, n != null, n.global_position if n else Vector3.ZERO, PeopleManager.door_of(h) if not h.is_empty() else Vector3.ZERO, n.act if n else -1, n.goal if n else -1, n.target_pos if n else Vector3.ZERO])
+	for pk in state.all_packs():
+		pk.next_raid_hour = raid_hours.get(pk.id, 0.0)
+
+
+func _show(rec: Dictionary) -> void:
+	var chunk := _world.get_streamer().get_chunk(ChunkMath.world_to_chunk(rec.pos))
+	if chunk:
+		chunk.add_building(rec)
