@@ -73,7 +73,7 @@ func test_input_actions_drive_mode() -> void:
 	await get_tree().process_frame
 	assert_true(_build.active, "B did not enter build mode")
 	var sel := InputEventAction.new()
-	sel.action = &"build_5"
+	sel.action = &"slot_5"
 	sel.pressed = true
 	Input.parse_input_event(sel)
 	await get_tree().process_frame

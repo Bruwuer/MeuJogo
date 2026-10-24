@@ -14,7 +14,9 @@ const _DEFAULT_ROUGHNESS := 0.9
 var _meshes: Dictionary[int, Mesh] = {} # Prop type -> mesh
 var _scenes: Dictionary[int, PackedScene] = {} # Building type -> scene
 var _parts: Dictionary[String, PackedScene] = {} # creature part name -> scene
-var _queue: Array[Array] = [] # [kind ("prop" | "building" | "part"), key, path] not requested yet
+var _weapons: Dictionary[int, PackedScene] = {} # Weapon -> scene (own materials: never faded)
+var _arrow: PackedScene
+var _queue: Array[Array] = [] # [kind ("prop" | "building" | "part" | "weapon" | "arrow"), key, path] not requested yet
 var _current: Array = [] # entry being loaded, [] = none
 var _started := false
 
@@ -27,6 +29,9 @@ func start_loading() -> void:
 		_queue.append(["building", type, GameConstants.BUILD_SCENES[type]])
 	for part in GameConstants.CREATURE_PARTS:
 		_queue.append(["part", part, GameConstants.CREATURE_PART_PATH % part])
+	for w in GameConstants.WEAPONS:
+		_queue.append(["weapon", w, GameConstants.WEAPONS[w].scene])
+	_queue.append(["arrow", 0, GameConstants.ARROW_SCENE])
 	_request_next()
 
 
@@ -40,6 +45,14 @@ func mesh_for(type: int) -> Mesh:
 
 func scene_for(building: int) -> PackedScene:
 	return _scenes.get(building)
+
+
+func weapon_scene(weapon: int) -> PackedScene:
+	return _weapons.get(weapon)
+
+
+func arrow_scene() -> PackedScene:
+	return _arrow
 
 
 func part_scene(part: String) -> PackedScene:
@@ -65,11 +78,16 @@ func _process(_delta: float) -> void:
 		var scene: PackedScene = ResourceLoader.load_threaded_get(path)
 		var root := scene.instantiate()
 		var meshes := root.find_children("*", "MeshInstance3D", true, false)
-		for mi: MeshInstance3D in meshes:
-			_use_occlusion_shader(mi.mesh)
+		if not (_current[0] in ["weapon", "arrow"]): # held items keep their own materials
+			for mi: MeshInstance3D in meshes:
+				_use_occlusion_shader(mi.mesh)
 		if _current[0] == "prop":
 			if not meshes.is_empty():
 				_meshes[_current[1]] = (meshes[0] as MeshInstance3D).mesh
+		elif _current[0] == "weapon":
+			_weapons[_current[1]] = scene
+		elif _current[0] == "arrow":
+			_arrow = scene
 		elif _current[0] == "building":
 			_scenes[_current[1]] = scene
 		else:

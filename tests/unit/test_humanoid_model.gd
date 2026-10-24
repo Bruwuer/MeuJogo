@@ -80,3 +80,17 @@ func test_humanoid_has_work_animation() -> void:
 	if ap.has_animation(GameConstants.ANIM_WORK):
 		var length := ap.get_animation(GameConstants.ANIM_WORK).length
 		assert_true(length >= 0.3 and length <= 0.6, "work length %f" % length)
+
+
+func test_humanoid_has_attack_clips_and_hand() -> void:
+	var m := _instance()
+	if m == null:
+		return
+	var skel: Skeleton3D = m.find_children("*", "Skeleton3D", true, false)[0]
+	assert_true(skel.find_bone("hand.R") >= 0, "no hand.R bone")
+	var ap: AnimationPlayer = m.find_children("*", "AnimationPlayer", true, false)[0]
+	for w in GameConstants.WEAPONS:
+		var clip: String = GameConstants.WEAPONS[w].clip
+		assert_true(ap.has_animation(clip), "missing clip " + clip)
+		if ap.has_animation(clip):
+			assert_true(ap.get_animation(clip).length > GameConstants.WEAPONS[w].hit_time, "%s shorter than its hit" % clip)

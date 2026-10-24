@@ -5,9 +5,11 @@ extends Node3D
 ## The player stays frozen whenever the chunk under it has no collision yet.
 
 signal world_ready
+signal respawned(text: String)
 
 const PLAYER_SCENE := preload("res://scenes/player.tscn")
 const _SPAWN_DROP := 0.5
+const _RESPAWN_GAP := 1.5 ## Distance in front of the seat cabin door.
 const _RESTORE_DROP := 0.2
 const _WALL_THICKNESS := 1.0
 const _SHADOW_DISTANCE := 90.0
@@ -30,6 +32,7 @@ var _harvest: HarvestSystem
 var _hud: Hud
 var _build: BuildSystem
 var _spawn: Vector3
+var _scatter: PropScatter
 var _is_ready := false
 var _autosave_left := GameConstants.AUTOSAVE_SEC
 
@@ -44,6 +47,7 @@ func _ready() -> void:
 
 	_gen = TerrainGenerator.new(_state.seed)
 	var scatter := PropScatter.new(_gen, _state.seed)
+	_scatter = scatter
 	var library := ModelLibrary.new()
 	library.name = "ModelLibrary"
 	add_child(library)
@@ -73,6 +77,9 @@ func _ready() -> void:
 
 	_player = PLAYER_SCENE.instantiate()
 	_player.harvest = _harvest
+	_player.state = _state
+	_player.library = library
+	_player.died.connect(_respawn)
 	add_child(_player)
 	_player.global_position = _spawn + Vector3.UP * _SPAWN_DROP
 	_player.reset_physics_interpolation()
@@ -152,6 +159,24 @@ func save_now() -> Error:
 	_state.time_of_day = _day_night.time_of_day
 	_state.day = _day_night.day
 	return _state.save_to(save_path)
+
+
+## Death never costs buildings or resources: the player wakes up in front of the seat cabin of
+## its first kingdom (or at the spawn point) with full health.
+func _respawn() -> void:
+	var pos := _spawn
+	var text := GameConstants.RESPAWN_MSG_SPAWN
+	if not _state.kingdoms().is_empty():
+		var seat := _state.building(_state.kingdoms()[0].seat_id)
+		if not seat.is_empty():
+			var depth: float = GameConstants.BUILD_FOOTPRINT[GameConstants.Building.CABIN].y
+			var front := Vector3(0, 0, depth * 0.5 + _RESPAWN_GAP).rotated(Vector3.UP, seat.rot * PI * 0.5)
+			pos = SpawnPicker.nearest_clear(_gen, _scatter, seat.pos + front)
+			text = GameConstants.RESPAWN_MSG_SEAT
+	_player.global_position = pos + Vector3.UP * _SPAWN_DROP
+	_player.reset_physics_interpolation()
+	_player.revive()
+	respawned.emit(text)
 
 
 func _on_chunk_loaded(c: Vector2i) -> void:

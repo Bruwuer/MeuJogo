@@ -42,6 +42,7 @@ func setup(state: WorldState, gen: TerrainGenerator, scatter: PropScatter, strea
 func toggle() -> void:
 	active = not active
 	_player.harvest_enabled = not active
+	_player.combat_enabled = not active
 	if not active and _ghost:
 		_ghost.visible = false
 
@@ -139,7 +140,7 @@ func _unhandled_input(event: InputEvent) -> void:
 		toggle()
 	elif active:
 		for i in GameConstants.BUILDABLE.size():
-			if event.is_action_pressed("build_%d" % (i + 1)):
+			if event.is_action_pressed("slot_%d" % (i + 1)):
 				select(GameConstants.BUILDABLE[i])
 		if event.is_action_pressed("build_rotate"):
 			rotate_ghost()

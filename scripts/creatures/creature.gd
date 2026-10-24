@@ -37,6 +37,7 @@ var _wander_pos := Vector3.ZERO
 var _avoid_sign := 1.0
 var _dead := false
 var _raid_radius := 0.0 ## Footprint radius of the building being raided.
+var _push := Vector3.ZERO ## Knockback velocity, decays quickly.
 var _rng := RandomNumberGenerator.new()
 
 
@@ -49,6 +50,8 @@ func setup(rec: Dictionary, library: ModelLibrary, mgr: Node) -> void:
 	genome = (record.genome as Dictionary).duplicate()
 	genome.size = float(genome.size) * growth_factor()
 	name = "Creature%d" % record.id
+	global_position = record.pos # before the collision shape exists: never spawn inside others
+	reset_physics_interpolation()
 	body = CreatureBody.new()
 	body.name = "CreatureBody"
 	add_child(body)
@@ -57,12 +60,11 @@ func setup(rec: Dictionary, library: ModelLibrary, mgr: Node) -> void:
 	collision_layer = GameConstants.LAYER_CREATURES
 	collision_mask = GameConstants.LAYER_TERRAIN | GameConstants.LAYER_OBSTACLES | GameConstants.LAYER_CREATURES
 	floor_snap_length = _FLOOR_SNAP
+	platform_floor_layers = GameConstants.LAYER_TERRAIN | GameConstants.LAYER_OBSTACLES
 	health = Health.new(float(genome.max_hp), float(record.get("hp", genome.max_hp)))
 	health.damaged.connect(_on_damaged)
 	health.died.connect(_on_died)
 	add_to_group("creatures")
-	global_position = record.pos
-	reset_physics_interpolation()
 	_wander_pos = record.pos
 	_brain_left = _rng.randf() * GameConstants.BRAIN_TICK
 
@@ -74,6 +76,15 @@ func growth_factor() -> float:
 
 func is_cub() -> bool:
 	return float(record.get("age", 1.0)) < 1.0
+
+
+## Rough horizontal body radius, for melee reach.
+func body_radius() -> float:
+	return float(genome.size) * 0.45
+
+
+func knockback(v: Vector3) -> void:
+	_push += v
 
 
 func is_dead() -> bool:
@@ -208,8 +219,9 @@ func _move(delta: float) -> void:
 		dir = to / dist if at_target else _avoid(to / dist)
 		if state == S.RAID and dist <= _raid_radius + CreatureBrain.attack_reach(genome) * 0.6:
 			dir = Vector3.ZERO
-	velocity.x = dir.x * top * share
-	velocity.z = dir.z * top * share
+	velocity.x = dir.x * top * share + _push.x
+	velocity.z = dir.z * top * share + _push.z
+	_push = _push.move_toward(Vector3.ZERO, GameConstants.KNOCKBACK_DECAY * _push.length() * delta + 0.01)
 	_apply_gravity(delta)
 	move_and_slide()
 

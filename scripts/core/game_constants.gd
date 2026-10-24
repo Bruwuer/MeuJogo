@@ -31,7 +31,7 @@ const FOREST_RELIEF := 0.7
 
 # Props and resources
 enum Prop { OAK, PINE, ROCK, BUSH }
-enum Res { WOOD, STONE, BERRIES }
+enum Res { WOOD, STONE, BERRIES, ARROWS }
 const PROP_CELL := 4.0 ## Scatter grid cell (m); at most one prop per cell.
 const PROP_MAX_SLOPE_DEG := 30.0
 const PROP_SINK := 0.05 ## Props are sunk this much (x scale) so they never float.
@@ -63,13 +63,42 @@ const HARVEST_PROMPTS := {
 	Prop.ROCK: "[E] Quebrar rocha",
 	Prop.BUSH: "[E] Colher frutas",
 }
-const RES_NAMES := { Res.WOOD: "Madeira", Res.STONE: "Pedra", Res.BERRIES: "Frutas" }
+const RES_NAMES := { Res.WOOD: "Madeira", Res.STONE: "Pedra", Res.BERRIES: "Frutas", Res.ARROWS: "Flechas" }
 
 # Player
 const WALK_SPEED := 4.0
 const RUN_SPEED := 7.5
 const TURN_SPEED := 10.0
 const GRAVITY := 20.0
+
+# Player combat (keyboard only: Space attacks where the character faces)
+const PLAYER_HP := 100.0
+const PLAYER_REGEN_DELAY := 6.0 ## Seconds without damage before health regenerates.
+const PLAYER_REGEN_PER_SEC := 2.0
+const EAT_HEAL := 15.0
+const EAT_COST := { Res.BERRIES: 1 }
+const ARROW_CRAFT_COST := { Res.WOOD: 1 }
+const ARROWS_PER_CRAFT := 5
+enum Weapon { SWORD, SPEAR, BOW }
+## range: reach (m) from the player to a target's body edge; arc: full melee angle (degrees).
+const WEAPONS := {
+	Weapon.SWORD: { name = "Espada", damage = 22.0, range = 1.8, arc = 110.0, cooldown = 0.55,
+		hit_time = 0.29, clip = "attack_sword", scene = "res://assets/models/sword.glb", knockback = 3.0 },
+	Weapon.SPEAR: { name = "Lança", damage = 30.0, range = 3.2, arc = 40.0, cooldown = 0.85,
+		hit_time = 0.33, clip = "attack_spear", scene = "res://assets/models/spear.glb", knockback = 4.5 },
+	Weapon.BOW: { name = "Arco", damage = 25.0, range = 0.0, arc = 0.0, cooldown = 0.9,
+		hit_time = 0.5, clip = "shoot_bow", scene = "res://assets/models/bow.glb", knockback = 1.5 },
+}
+const ARROW_SCENE := "res://assets/models/arrow.glb"
+const ARROW_SPEED := 26.0
+const ARROW_GRAVITY := 9.8
+const ARROW_SPAWN_HEIGHT := 1.35 ## Above the player's feet.
+const ARROW_LIFETIME := 5.0
+const ARROW_STICK_SEC := 4.0 ## A stuck arrow stays this long.
+const KNOCKBACK_DECAY := 8.0 ## Per second.
+const RESPAWN_MSG_SEAT := "Você caiu e despertou na sede do reino"
+const RESPAWN_MSG_SPAWN := "Você caiu e despertou onde tudo começou"
+const NO_ARROWS_MSG := "Sem flechas · F faz 5 com 1 madeira"
 
 # Camera
 const CAM_YAW_DEG := 45.0

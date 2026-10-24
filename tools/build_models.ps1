@@ -20,7 +20,11 @@ $jobs = @(
     @{ Script = "buildings.py"; Args = @("storage"); Out = "assets/models/storage.glb" },
     @{ Script = "buildings.py"; Args = @("fence"); Out = "assets/models/fence.glb" },
     @{ Script = "buildings.py"; Args = @("well"); Out = "assets/models/well.glb" },
-    @{ Script = "buildings.py"; Args = @("flag"); Out = "assets/models/flag.glb" }
+    @{ Script = "buildings.py"; Args = @("flag"); Out = "assets/models/flag.glb" },
+    @{ Script = "weapons.py"; Args = @("sword"); Out = "assets/models/sword.glb" },
+    @{ Script = "weapons.py"; Args = @("spear"); Out = "assets/models/spear.glb" },
+    @{ Script = "weapons.py"; Args = @("bow"); Out = "assets/models/bow.glb" },
+    @{ Script = "weapons.py"; Args = @("arrow"); Out = "assets/models/arrow.glb" }
 )
 $parts = @("body_canine", "body_bulky", "body_lizard", "body_deer",
     "head_wolf", "head_bear", "head_boar", "head_deer", "head_lizard", "head_horned",

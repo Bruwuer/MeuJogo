@@ -28,6 +28,7 @@ arm = common.build_armature("Humanoid", [
     ("forearm.L", (0.25, 0, 1.16), (0.25, 0, 0.88), "upper_arm.L"),
     ("upper_arm.R", (-0.25, 0, 1.45), (-0.25, 0, 1.16), "spine"),
     ("forearm.R", (-0.25, 0, 1.16), (-0.25, 0, 0.88), "upper_arm.R"),
+    ("hand.R", (-0.25, 0, 0.88), (-0.25, 0, 0.8), "forearm.R"),
     ("thigh.L", (0.1, 0, 0.94), (0.1, 0, 0.5), "hips"),
     ("shin.L", (0.1, 0, 0.5), (0.1, 0, 0.06), "thigh.L"),
     ("thigh.R", (-0.1, 0, 0.94), (-0.1, 0, 0.5), "hips"),
@@ -99,6 +100,26 @@ common.make_action(arm, "work", {
     ("forearm.R", "rot_x"): [(0, -8.0), (4, -40.0), (7, -5.0), (11, -8.0)],
     ("spine", "rot_x"): [(0, 0.0), (4, -6.0), (7, 12.0), (11, 0.0)],
 }, 11)
+
+# Combat clips (right hand holds the weapon). The hit lands at GameConstants.WEAPONS[...].hit_time.
+common.make_action(arm, "attack_sword", {  # overhead slash, hit at frame 7
+    ("upper_arm.R", "rot_x"): [(0, 0.0), (4, -150.0), (7, -40.0), (12, 0.0)],
+    ("forearm.R", "rot_x"): [(0, -8.0), (4, -30.0), (7, -5.0), (12, -8.0)],
+    ("spine", "rot_z"): [(0, 0.0), (4, 10.0), (7, -15.0), (12, 0.0)],
+    ("spine", "rot_x"): [(0, 0.0), (4, -4.0), (7, 10.0), (12, 0.0)],
+}, 12)
+common.make_action(arm, "attack_spear", {  # pull back and thrust, hit at frame 8
+    ("upper_arm.R", "rot_x"): [(0, 0.0), (4, 30.0), (8, -35.0), (14, 0.0)],
+    ("forearm.R", "rot_x"): [(0, -8.0), (4, -20.0), (8, 0.0), (14, -8.0)],
+    ("spine", "rot_x"): [(0, 0.0), (4, -5.0), (8, 12.0), (14, 0.0)],
+    ("thigh.L", "rot_x"): [(0, 0.0), (8, -25.0), (14, 0.0)],
+}, 14)
+common.make_action(arm, "shoot_bow", {  # raise, draw with the left hand, release at frame 12
+    ("upper_arm.R", "rot_x"): [(0, 0.0), (5, -20.0), (15, -20.0), (18, 0.0)],
+    ("upper_arm.L", "rot_x"): [(0, 0.0), (5, -80.0), (12, -80.0), (18, 0.0)],
+    ("forearm.L", "rot_x"): [(0, -8.0), (5, -100.0), (12, -110.0), (14, -20.0), (18, -8.0)],
+    ("spine", "rot_z"): [(0, 0.0), (5, -12.0), (15, -12.0), (18, 0.0)],
+}, 18)
 
 common.export_glb(common.output_path())
 print("EXPORTED", common.output_path())
