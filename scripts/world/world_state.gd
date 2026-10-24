@@ -10,6 +10,8 @@ const MAGIC := "MJSV"
 const _MD5_SIZE := 16
 const _FALLBACK_SUFFIXES := ["", ".bak", ".tmp"]
 
+signal resources_changed
+
 var seed := 0
 var time_of_day := GameConstants.START_TIME_OF_DAY
 var day := 1
@@ -37,6 +39,7 @@ func removed_in(c: Vector2i) -> PackedInt32Array:
 
 func add_resource(res: int, amount: int) -> void:
 	_resources[res] = get_resource(res) + amount
+	resources_changed.emit()
 
 
 func get_resource(res: int) -> int:
@@ -56,6 +59,7 @@ func spend(cost: Dictionary) -> bool:
 		return false
 	for res in cost:
 		_resources[res] = get_resource(res) - cost[res]
+	resources_changed.emit()
 	return true
 
 

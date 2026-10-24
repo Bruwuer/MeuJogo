@@ -48,7 +48,12 @@ func biome_at(x: float, z: float) -> int:
 func height_at(x: float, z: float) -> float:
 	var n := clampf(_noise.get_noise_2d(x, z), -1.0, 1.0)
 	var base := (n + 1.0) * 0.5 * GameConstants.TERRAIN_HEIGHT
-	return base * (1.0 + GameConstants.ROCKY_HEIGHT_BOOST * _rockiness(biome_value(x, z)))
+	var b := biome_value(x, z)
+	# Plains and forest flatten hills around the mid level; rocky land rises above it.
+	var mid := GameConstants.TERRAIN_HEIGHT * 0.5
+	var relief := lerpf(GameConstants.PLAINS_RELIEF, GameConstants.FOREST_RELIEF, _forestness(b))
+	var gentle := mid + (base - mid) * relief
+	return lerpf(gentle, base * (1.0 + GameConstants.ROCKY_HEIGHT_BOOST), _rockiness(b))
 
 
 func slope_deg_at(x: float, z: float) -> float:
@@ -90,12 +95,13 @@ func build_chunk_arrays(c: Vector2i) -> Array:
 	return arrays
 
 
+## Blends ramp up INSIDE the rocky/forest biomes, so plains stay gentle right to their edge.
 func _rockiness(b: float) -> float:
-	return smoothstep(GameConstants.BIOME_ROCKY_MAX + _BIOME_BLEND, GameConstants.BIOME_ROCKY_MAX, b)
+	return smoothstep(GameConstants.BIOME_ROCKY_MAX, GameConstants.BIOME_ROCKY_MAX - _BIOME_BLEND, b)
 
 
 func _forestness(b: float) -> float:
-	return smoothstep(GameConstants.BIOME_FOREST_MIN - _BIOME_BLEND, GameConstants.BIOME_FOREST_MIN, b)
+	return smoothstep(GameConstants.BIOME_FOREST_MIN, GameConstants.BIOME_FOREST_MIN + _BIOME_BLEND, b)
 
 
 func _add_triangle(verts: PackedVector3Array, normals: PackedVector3Array, colors: PackedColorArray,

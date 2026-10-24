@@ -5,7 +5,7 @@ extends RefCounted
 # World generation
 const WORLD_SEED := 1337
 const SPAWN_SEED := -1 ## -1 = random spawn every run.
-const WORLDGEN_VERSION := 1 ## Bump whenever terrain or prop generation changes (invalidates saved removals).
+const WORLDGEN_VERSION := 2 ## Bump whenever terrain or prop generation changes (invalidates saved removals).
 
 # Chunks (meters)
 const CHUNK_SIZE := 32.0
@@ -26,6 +26,8 @@ const BIOME_NOISE_FREQ := 0.006
 const BIOME_FOREST_MIN := 0.2 ## Biome value above this is forest.
 const BIOME_ROCKY_MAX := -0.3 ## Biome value below this is rocky.
 const ROCKY_HEIGHT_BOOST := 1.2 ## Extra height multiplier fully inside rocky land.
+const PLAINS_RELIEF := 0.25 ## Hill amplitude in plains (1 = full TERRAIN_HEIGHT); flat enough to build.
+const FOREST_RELIEF := 0.7
 
 # Props and resources
 enum Prop { OAK, PINE, ROCK, BUSH }
@@ -158,6 +160,7 @@ const LAYER_OBSTACLES := 2 ## Trees, rocks and buildings.
 
 # Kingdoms
 const KINGDOM_RADIUS := 40.0
+const FOUNDING_TOAST_SEC := 5.0
 
 # Day / night
 const DAY_LENGTH_SEC := 480.0 ## One full day-night cycle.

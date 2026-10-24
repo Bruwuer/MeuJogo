@@ -113,3 +113,40 @@ func test_shader_globals_follow_player_and_camera() -> void:
 	assert_true(g[&"player_world_pos"].distance_to(w.get_player().global_position) < 1.5, "player_world_pos wrong")
 	for param in g:
 		assert_true(RenderingServer.global_shader_parameter_get_list().has(param), "%s not registered" % param)
+
+
+func test_buildings_persist_across_save_and_reload() -> void:
+	var a: World = await _make_world(1337, _path)
+	var gen := a.get_generator()
+	var scatter := PropScatter.new(gen, 1337)
+	var spot := TestSpots.flat_clear(gen, scatter, GameConstants.Building.CABIN, 8.0)
+	var p := a.get_player()
+	p.global_position = Vector3(spot.x, gen.height_at(spot.x, spot.z) + 0.3, spot.z - GameConstants.BUILD_GHOST_DISTANCE)
+	p.reset_physics_interpolation()
+	for i in 600:
+		await get_tree().physics_frame
+		if a.get_streamer().pending_count() == 0 and a.get_streamer().is_loaded(ChunkMath.world_to_chunk(spot)):
+			break
+	a.get_state().add_resource(GameConstants.Res.WOOD, 100)
+	a.get_state().add_resource(GameConstants.Res.STONE, 100)
+	var build := a.get_build()
+	build.use_mouse = false
+	build.select(GameConstants.Building.CABIN)
+	assert_true(build.try_place(), "cabin: %s" % build.preview().reason)
+	assert_eq(a.save_now(), OK)
+	var ids := a.get_state().all_buildings().map(func(b: Dictionary) -> int: return b.id)
+	a.free()
+
+	var b: World = await _make_world(-1, _path)
+	assert_eq(b.get_state().all_buildings().map(func(r: Dictionary) -> int: return r.id), ids)
+	assert_eq(b.get_state().kingdoms().size(), 1)
+	for i in 600:
+		if b.get_streamer().is_loaded(ChunkMath.world_to_chunk(spot)):
+			break
+		await get_tree().process_frame
+	var chunk := b.get_streamer().get_chunk(ChunkMath.world_to_chunk(spot))
+	for id in ids:
+		var rec := b.get_state().building(id)
+		var c := b.get_streamer().get_chunk(ChunkMath.world_to_chunk(rec.pos))
+		assert_true(c != null and c.has_building(id), "building %d missing after reload" % id)
+	assert_true(chunk != null)

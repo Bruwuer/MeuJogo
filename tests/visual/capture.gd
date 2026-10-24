@@ -67,9 +67,90 @@ func _run() -> void:
 	_set_time(0.735)
 	await _frames(20)
 	await _shot("08_dusk")
+
+	await _village(scatter)
 	print("WORST_FRAME_MS %.1f" % _worst_ms)
 	print("WOOD %d" % _world.get_state().get_resource(GameConstants.Res.WOOD))
 	quit(0)
+
+
+## Stage 3: ghost previews, founding a kingdom and a small village by day and night.
+func _village(scatter: PropScatter) -> void:
+	const B := GameConstants.Building
+	var gen := _world.get_generator()
+	var state := _world.get_state()
+	var build := _world.get_build()
+	build.use_mouse = false
+	state.add_resource(GameConstants.Res.WOOD, 400)
+	state.add_resource(GameConstants.Res.STONE, 400)
+	var spot := _flat_area(gen, 9.0)
+	if spot.x < 0.0:
+		print("SKIPPED village: no flat area")
+		return
+	_set_time(DAY_TIME)
+	await _teleport(spot + Vector3(0, 0, -3))
+	_clear_area(scatter, spot, 13.0) # the player cleared the land first
+	await _ghost_at(spot)
+	build.select(B.CABIN)
+	await _frames(10)
+	await _shot("09_ghost_ok")
+	build.try_place()
+	await _frames(10)
+	await _shot("10_ghost_blocked")
+	var layout := [
+		[B.STORAGE, Vector3(7.0, 0, 0.5), 0],
+		[B.WELL, Vector3(-5.5, 0, 3.5), 0],
+		[B.CAMPFIRE, Vector3(0.0, 0, 6.0), 0],
+		[B.FENCE, Vector3(-7.5, 0, -2.0), 1],
+		[B.FENCE, Vector3(-7.5, 0, -5.0), 1],
+		[B.FENCE, Vector3(-6.0, 0, -6.5), 0],
+		[B.FENCE, Vector3(-3.0, 0, -6.5), 0],
+	]
+	for item in layout:
+		build.select(item[0])
+		build.rot = item[2]
+		await _ghost_at(spot + item[1])
+		if not build.try_place():
+			print("SKIPPED %s: %s" % [GameConstants.BUILD_NAMES[item[0]], build.preview().reason])
+	build.rot = 0
+	build.toggle()
+	await _teleport(spot + Vector3(2.5, 0, 9.0))
+	await _frames(20)
+	await _shot("11_village_day")
+	_set_time(0.03)
+	await _frames(20)
+	await _shot("12_village_night")
+	_set_time(DAY_TIME)
+
+
+## Center of a square of half-size `half` whose ground varies less than 1 m, or (-1,-1,-1).
+func _flat_area(gen: TerrainGenerator, half: float) -> Vector3:
+	for z in range(60, 700, 8):
+		for x in range(60, 700, 8):
+			var lo := INF
+			var hi := -INF
+			for dz in [-half, -half * 0.5, 0.0, half * 0.5, half]:
+				for dx in [-half, -half * 0.5, 0.0, half * 0.5, half]:
+					var h := gen.height_at(x + dx, z + dz)
+					lo = minf(lo, h)
+					hi = maxf(hi, h)
+			if hi - lo < 1.0 and gen.biome_at(x, z) == GameConstants.Biome.PLAINS:
+				return Vector3(x, gen.height_at(x, z), z)
+	return Vector3(-1, -1, -1)
+
+
+func _clear_area(scatter: PropScatter, center: Vector3, radius: float) -> void:
+	for p in scatter.props_near(center, radius):
+		var c := ChunkMath.world_to_chunk(p.pos)
+		_world.get_state().mark_removed(c, p.id)
+		var chunk := _world.get_streamer().get_chunk(c)
+		if chunk:
+			chunk.remove_prop(p.id)
+
+
+func _ghost_at(target: Vector3) -> void:
+	var p := _world.get_player()
+	await _teleport(target - p.facing() * GameConstants.BUILD_GHOST_DISTANCE)
 
 
 func _set_time(t: float) -> void:

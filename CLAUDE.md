@@ -69,6 +69,9 @@ docs/superpowers/     specs/ e plans/
 9. **Mexeu na geração do mundo** (terreno, biomas, densidades, `PROP_CELL`, inclinação)? Suba
    `GameConstants.WORLDGEN_VERSION`. Isso invalida só a lista de objetos removidos dos saves antigos.
 10. Testes e capturas nunca usam o save real: `World.save_path = ""` e `world_seed` fixo.
+11. Camadas de física: `LAYER_TERRAIN` (chão) e `LAYER_OBSTACLES` (árvores, rochas, construções). Raios de
+    posicionamento usam só o chão; o jogador colide com as duas.
+12. Só existe UM carregador de modelos (`ModelLibrary`, sequencial): cargas paralelas causam corrida no renderizador.
 
 ## Comandos
 
@@ -78,6 +81,8 @@ docs/superpowers/     specs/ e plans/
 - Abrir o editor: `powershell -ExecutionPolicy Bypass -File tools/godot.ps1 -e`
 - Começar um mundo novo (apaga o save): `powershell -ExecutionPolicy Bypass -File tools/new_world.ps1`
 - Controles: WASD anda, Shift corre, E coleta (árvore 4 golpes = 3 madeira, rocha 5 = 2 pedra, arbusto 1 = 2 frutas)
+- Construção: B liga/desliga, 1–5 escolhe (Cabana, Fogueira, Depósito, Cerca, Poço), R gira, clique ou E constrói,
+  Esc ou clique direito sai; X demole (devolve 50 %). A primeira Cabana funda o reino.
 
 ## Roadmap
 
@@ -85,7 +90,7 @@ docs/superpowers/     specs/ e plans/
    correr, câmera isométrica seguindo, testes.
 2. ✅ **Mundo com conteúdo:** biomas, árvores, pedras e arbustos (MultiMesh), recursos coletáveis,
    dia e noite, mapa maior, persistência delta por chunk.
-3. **Construção:** inventário, coleta, construções pré-feitas com custo realista, fundação do reino.
+3. ✅ **Construção:** inventário, coleta, construções pré-feitas com custo realista, fundação do reino.
 4. **Criaturas e combate:** genoma de peças (animais reais + inventadas), comportamento, cruzamento
    com herança, brigas entre espécies, armas medievais, ataques ao reino.
 5. **Pessoas:** gerador de pessoas (nome, traços, opinião), chegada e decisão de ficar,

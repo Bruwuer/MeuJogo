@@ -28,6 +28,7 @@ var _camera: IsoCamera
 var _day_night: DayNight
 var _harvest: HarvestSystem
 var _hud: Hud
+var _build: BuildSystem
 var _spawn: Vector3
 var _is_ready := false
 var _autosave_left := GameConstants.AUTOSAVE_SEC
@@ -85,7 +86,12 @@ func _ready() -> void:
 	_hud = Hud.new()
 	_hud.name = "Hud"
 	add_child(_hud)
-	_hud.setup(_state, _harvest, _day_night, _player)
+	_build = BuildSystem.new()
+	_build.name = "Build"
+	add_child(_build)
+	_build.setup(_state, _gen, scatter, _streamer, library, _player, _camera)
+
+	_hud.setup(_state, _harvest, _day_night, _player, _build)
 
 	_streamer.chunk_loaded.connect(_on_chunk_loaded)
 	_streamer.update_center(_spawn)
@@ -188,6 +194,10 @@ func get_day_night() -> DayNight:
 
 func get_hud() -> Hud:
 	return _hud
+
+
+func get_build() -> BuildSystem:
+	return _build
 
 
 func _add_environment() -> void:

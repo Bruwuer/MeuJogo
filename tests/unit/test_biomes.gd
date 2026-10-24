@@ -57,3 +57,41 @@ func test_rocky_is_higher_on_average() -> void:
 	var rocky: float = sums[GameConstants.Biome.ROCKY] / maxi(1, counts[GameConstants.Biome.ROCKY])
 	var plains: float = sums[GameConstants.Biome.PLAINS] / maxi(1, counts[GameConstants.Biome.PLAINS])
 	assert_true(rocky > plains, "rocky %.2f vs plains %.2f" % [rocky, plains])
+
+
+func _mean_slope(gen: TerrainGenerator, biome: int) -> float:
+	var sum := 0.0
+	var n := 0
+	for p: Vector2 in _samples(gen):
+		if gen.biome_at(p.x, p.y) == biome:
+			sum += gen.slope_deg_at(p.x, p.y)
+			n += 1
+	return sum / maxi(1, n)
+
+
+func test_plains_are_flatter_than_forest() -> void:
+	var gen := TerrainGenerator.new(GameConstants.WORLD_SEED)
+	var plains := _mean_slope(gen, GameConstants.Biome.PLAINS)
+	var forest := _mean_slope(gen, GameConstants.Biome.FOREST)
+	assert_true(plains < forest * 0.7, "plains %.1f° vs forest %.1f°" % [plains, forest])
+	assert_true(plains < 12.0, "plains too hilly to build: %.1f°" % plains)
+
+
+func test_village_sites_exist_in_plains() -> void:
+	# An 18 x 18 m patch with < 1 m of height variation: room for a cabin and neighbors.
+	var gen := TerrainGenerator.new(GameConstants.WORLD_SEED)
+	var sites := 0
+	for z in range(60, 700, 24):
+		for x in range(60, 700, 24):
+			if gen.biome_at(x, z) != GameConstants.Biome.PLAINS:
+				continue
+			var lo := INF
+			var hi := -INF
+			for dz in [-9.0, -4.5, 0.0, 4.5, 9.0]:
+				for dx in [-9.0, -4.5, 0.0, 4.5, 9.0]:
+					var h := gen.height_at(x + dx, z + dz)
+					lo = minf(lo, h)
+					hi = maxf(hi, h)
+			if hi - lo < 1.0:
+				sites += 1
+	assert_true(sites >= 10, "only %d village sites" % sites)
