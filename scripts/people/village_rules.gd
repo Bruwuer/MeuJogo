@@ -189,7 +189,7 @@ static func next_project(snap: Dictionary) -> int:
 
 
 ## A valid place for `type`: a golden-angle spiral from the kingdom center (at most
-## SITE_CANDIDATES tries), inside the kingdom, outside every den's territory, with a free
+## SITE_CANDIDATES tries), inside the kingdom, outside every den's territory when possible, with a free
 ## corridor around it. The door (+Z) turns to the center. {ok, pos, rot}.
 static func pick_site(type: int, k: Dictionary, state: WorldState, gen: TerrainGenerator, scatter: PropScatter,
 		blockers: Array, rng: RandomNumberGenerator) -> Dictionary:
@@ -198,6 +198,7 @@ static func pick_site(type: int, k: Dictionary, state: WorldState, gen: TerrainG
 	var dens: Array[Vector3] = []
 	for pk in state.all_packs():
 		dens.append(pk.den)
+	var fallback := {ok = false, pos = Vector3.ZERO, rot = 0, bushes = []}
 	for i in GameConstants.SITE_CANDIDATES:
 		var angle := start + i * golden
 		var radius := GameConstants.SITE_MIN_RADIUS + i * GameConstants.SITE_SPIRAL_STEP
@@ -212,12 +213,16 @@ static func pick_site(type: int, k: Dictionary, state: WorldState, gen: TerrainG
 			if Vector2(pos.x - d.x, pos.z - d.z).length() <= GameConstants.TERRITORY_RADIUS:
 				in_den = true
 				break
-		if in_den or _crowded(rect.grow(GameConstants.SITE_GAP), state):
+		if (in_den and fallback.ok) or _crowded(rect.grow(GameConstants.SITE_GAP), state):
 			continue
 		var check := BuildRules.check_site(type, pos, rot, gen, scatter, state, blockers)
-		if check.ok:
-			return {ok = true, pos = Vector3(pos.x, check.y, pos.z), rot = rot, bushes = check.bushes}
-	return {ok = false, pos = Vector3.ZERO, rot = 0, bushes = []}
+		if not check.ok:
+			continue
+		var found := {ok = true, pos = Vector3(pos.x, check.y, pos.z), rot = rot, bushes = check.bushes}
+		if not in_den:
+			return found
+		fallback = found # a kingdom founded inside a territory still grows
+	return fallback
 
 
 ## Quarter turn whose front (+Z rotated by rot * 90 degrees) is closest to `dir`.

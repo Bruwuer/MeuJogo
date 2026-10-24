@@ -208,3 +208,12 @@ func test_choose_job_by_profession_and_stock() -> void:
 	snap = VillageRules.snapshot(s, k, 10.0)
 	assert_eq(VillageRules.choose_job(_person([T.WORKER, T.BRAVE], P.GATHERER), snap), "berries")
 	assert_eq(VillageRules.needed_profession(snap), P.FARMER, "a farm without a farmer and little food")
+
+
+func test_pick_site_inside_territory_when_nothing_else() -> void:
+	var s := WorldState.new()
+	var center := TestSpots.flat_clear(_gen, _scatter, B.CABIN, 8.0)
+	var k := _kingdom(s, center)
+	s.add_pack("lobo", center + Vector3(5, 0, 5)) # the whole kingdom is wolf land
+	var r := VillageRules.pick_site(B.HOUSE, k, s, _gen, _scatter, [], _rng())
+	assert_true(r.ok, "a kingdom built by a den still grows (closest to the den is avoided only when possible)")
