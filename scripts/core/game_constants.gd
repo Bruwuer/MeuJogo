@@ -416,3 +416,65 @@ const PROP_SCENES := {
 	Prop.ROCK: "res://assets/models/rock.glb",
 	Prop.BUSH: "res://assets/models/bush.glb",
 }
+
+# People: generator (names, traits, professions, looks)
+enum Trait { WORKER, LAZY, BRAVE, FEARFUL, GENEROUS, GREEDY, SOCIABLE, LONER, DEVOUT, SKEPTIC }
+## Opposite traits; a person gets two traits from two different pairs.
+const TRAIT_PAIRS := [
+	[Trait.WORKER, Trait.LAZY], [Trait.BRAVE, Trait.FEARFUL], [Trait.GENEROUS, Trait.GREEDY],
+	[Trait.SOCIABLE, Trait.LONER], [Trait.DEVOUT, Trait.SKEPTIC],
+]
+## [male form, female form], in lower case (they go inside sentences).
+const TRAIT_NAMES := {
+	Trait.WORKER: ["trabalhador", "trabalhadora"], Trait.LAZY: ["preguiçoso", "preguiçosa"],
+	Trait.BRAVE: ["corajoso", "corajosa"], Trait.FEARFUL: ["medroso", "medrosa"],
+	Trait.GENEROUS: ["generoso", "generosa"], Trait.GREEDY: ["ganancioso", "gananciosa"],
+	Trait.SOCIABLE: ["sociável", "sociável"], Trait.LONER: ["solitário", "solitária"],
+	Trait.DEVOUT: ["devoto", "devota"], Trait.SKEPTIC: ["cético", "cética"],
+}
+## Initial opinion of the player pushed by each trait.
+const TRAIT_OPINION := {
+	Trait.WORKER: 0.0, Trait.LAZY: 0.0, Trait.BRAVE: 0.0, Trait.FEARFUL: 0.0,
+	Trait.GENEROUS: 0.1, Trait.GREEDY: -0.1, Trait.SOCIABLE: 0.05, Trait.LONER: -0.05,
+	Trait.DEVOUT: 0.1, Trait.SKEPTIC: -0.05,
+}
+const OPINION_JITTER := 0.2 ## Initial opinion spread (+-).
+const FAME_OPINION_SHARE := 0.5 ## Share of the player's fame a newcomer already believes.
+enum Profession { WOODCUTTER, MASON, FARMER, GATHERER, BUILDER, MERCHANT }
+const PROFESSION_NAMES := {
+	Profession.WOODCUTTER: ["lenhador", "lenhadora"], Profession.MASON: ["pedreiro", "pedreira"],
+	Profession.FARMER: ["agricultor", "agricultora"], Profession.GATHERER: ["coletor", "coletora"],
+	Profession.BUILDER: ["construtor", "construtora"], Profession.MERCHANT: ["comerciante", "comerciante"],
+}
+const MALE_NAMES := [
+	"Afonso", "Álvaro", "Bento", "Bartolomeu", "Martim", "Gonçalo", "Vasco", "Rodrigo", "Nuno", "Fernão",
+	"Lourenço", "Estêvão", "Diogo", "Sancho", "Garcia", "Mendo", "Pero", "Gil", "Tomé", "Simão",
+	"João", "Mateus", "Henrique", "Duarte", "Rui",
+]
+const FEMALE_NAMES := [
+	"Ana", "Beatriz", "Leonor", "Inês", "Constança", "Teresa", "Urraca", "Mécia", "Catarina", "Isabel",
+	"Margarida", "Brites", "Guiomar", "Violante", "Joana", "Maria", "Clara", "Filipa", "Aldonça", "Sancha",
+	"Branca", "Marta", "Helena", "Luzia", "Carla",
+]
+const SURNAMES := [
+	"Ferreira", "Moleiro", "Carpinteiro", "Pastor", "Pescador", "Tecelão", "Oleiro", "Ferrador",
+	"do Vale", "da Serra", "do Rio", "da Ponte", "do Monte", "da Fonte", "do Souto", "da Lagoa",
+	"Pinheiro", "Carvalho", "Silva", "Rocha", "Barros", "Couto", "Pereira", "Seixas",
+]
+const SKIN_COLORS := [
+	Color(0.96, 0.80, 0.66), Color(0.90, 0.70, 0.55), Color(0.80, 0.60, 0.45), Color(0.66, 0.47, 0.33),
+	Color(0.50, 0.34, 0.24), Color(0.38, 0.26, 0.18),
+]
+const HAIR_COLORS := [
+	Color(0.10, 0.08, 0.06), Color(0.28, 0.18, 0.10), Color(0.45, 0.30, 0.16), Color(0.72, 0.55, 0.30),
+	Color(0.60, 0.25, 0.10), Color(0.62, 0.60, 0.58),
+]
+const TUNIC_COLORS := [
+	Color(0.55, 0.20, 0.16), Color(0.25, 0.38, 0.22), Color(0.22, 0.30, 0.50), Color(0.62, 0.52, 0.30),
+	Color(0.45, 0.30, 0.45), Color(0.70, 0.66, 0.58), Color(0.35, 0.28, 0.20), Color(0.20, 0.45, 0.45),
+]
+const TROUSER_COLORS := [
+	Color(0.32, 0.26, 0.20), Color(0.22, 0.22, 0.25), Color(0.40, 0.36, 0.28), Color(0.25, 0.30, 0.22),
+]
+const PERSON_HEIGHT := Vector2(0.92, 1.06) ## Model scale range.
+const PERSON_AGE := Vector2i(16, 60)
