@@ -136,11 +136,14 @@ func _travelers(k: Dictionary) -> void:
 
 func _spawn_traveler(k: Dictionary, snap: Dictionary) -> void:
 	var profession := -1
-	if _rng.randf() < GameConstants.TRAVELER_NEEDED_SHARE:
+	# Seeded by kingdom and hour (not a session RNG): a reloaded game must not replay its travelers.
+	var rng := RandomNumberGenerator.new()
+	rng.seed = hash([_state.seed, "traveler", k.id, int(now_hours())])
+	if rng.randf() < GameConstants.TRAVELER_NEEDED_SHARE:
 		profession = VillageRules.needed_profession(snap)
-	var p := PersonGen.generate(_rng, _state.fame, profession)
-	var angle := _rng.randf() * TAU
-	var dist := _rng.randf_range(GameConstants.TRAVELER_DISTANCE.x, GameConstants.TRAVELER_DISTANCE.y)
+	var p := PersonGen.generate(rng, _state.fame, profession)
+	var angle := rng.randf() * TAU
+	var dist := rng.randf_range(GameConstants.TRAVELER_DISTANCE.x, GameConstants.TRAVELER_DISTANCE.y)
 	var pos: Vector3 = k.center + Vector3(sin(angle), 0.0, cos(angle)) * dist
 	var size := ChunkMath.playable_size() - GameConstants.TRAVELER_MAP_MARGIN
 	pos.x = clampf(pos.x, GameConstants.TRAVELER_MAP_MARGIN, size)
@@ -164,7 +167,9 @@ func decide(p: Dictionary) -> bool:
 	var k := _state.kingdom(p.kingdom_id)
 	if k.is_empty() or p.status != "traveler":
 		return false
-	var d := VillageRules.stay_decision(p, VillageRules.snapshot(_state, k, now_hours()), _rng)
+	var rng := RandomNumberGenerator.new()
+	rng.seed = hash([_state.seed, "decide", p.id, int(now_hours())])
+	var d := VillageRules.stay_decision(p, VillageRules.snapshot(_state, k, now_hours()), rng)
 	var who := PersonGen.full_name(p)
 	if d.stay:
 		p.status = "resident"

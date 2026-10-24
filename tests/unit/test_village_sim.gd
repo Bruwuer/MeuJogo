@@ -261,3 +261,29 @@ func test_opinion_drifts_when_away() -> void:
 		sim.tick_hours(1.0)
 	assert_near(p.opinion, 0.5 - GameConstants.AWAY_OPINION_PER_DAY, 0.001, "a day away: toward neutral")
 	assert_near(s.fame, p.opinion, 0.0001, "fame is the residents' average opinion")
+
+
+func test_travelers_differ_after_reload() -> void:
+	# A new session (fresh VillageSim on the same state) must not replay the first travelers.
+	var a := _setup()
+	var s: WorldState = a[0]
+	var k: Dictionary = a[1]
+	var sim: VillageSim = a[2]
+	sim.has_node = func(_id: int) -> bool: return true
+	var first: Array = []
+	sim.traveler_spawned.connect(func(r: Dictionary) -> void: first.append(PersonGen.full_name(r) + str(r.looks)))
+	for i in 3:
+		sim.tick_hours(1.0)
+	var again := VillageSim.new()
+	add_child(again)
+	again.setup(s, _gen, _scatter, null)
+	again.clock_hours = sim.clock_hours
+	again.has_node = sim.has_node
+	var second: Array = []
+	again.traveler_spawned.connect(func(r: Dictionary) -> void: second.append(PersonGen.full_name(r) + str(r.looks)))
+	k.next_traveler_hour = again.clock_hours + 1.0
+	again.tick_hours(1.0)
+	assert_eq(first.size(), 1)
+	assert_eq(second.size(), 1)
+	if first.size() == 1 and second.size() == 1:
+		assert_true(first[0] != second[0], "a different person: %s" % second[0])
