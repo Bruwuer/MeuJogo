@@ -45,6 +45,7 @@ var _last_hour := -1.0
 var _props_near: Dictionary = {} # Vector3 center -> props around it (the scatter is deterministic)
 ## Families, couples, children and opinions (one tick per kingdom per hour).
 var society := SocietySim.new()
+var houses := HouseSim.new()
 var _dropped_news := 0
 
 
@@ -58,6 +59,7 @@ func setup(state: WorldState, gen: TerrainGenerator, scatter: PropScatter, day_n
 	society.person_born.connect(func(r: Dictionary) -> void: person_born.emit(r))
 	society.person_died.connect(func(r: Dictionary) -> void: person_died.emit(r))
 	society.families_changed.connect(func() -> void: families_changed.emit())
+	houses.setup(state, _say, society)
 
 
 func _process(_delta: float) -> void:
@@ -112,6 +114,7 @@ func _tick_hour(hour: float) -> void:
 		_needs(k)
 		_assign_homes(k)
 		society.tick_hour(k, hour)
+		houses.tick_hour(k, hour)
 		_plan(k)
 		_offscreen_work(k)
 		_stalled_site(k)

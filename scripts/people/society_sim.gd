@@ -269,7 +269,9 @@ func _age(k: Dictionary, rng: RandomNumberGenerator) -> void:
 		var rate := GameConstants.CHILD_YEARS_PER_DAY if was_child else GameConstants.ADULT_YEARS_PER_DAY
 		p.age = float(p.age) + rate / 24.0
 		if was_child and SocietyRules.is_adult(p):
-			p.profession = VillageRules.needed_profession(_snapshot.call(k))
+			var grown := HouseRules.grown_profession(p, _state.family(int(p.family_id)), VillageRules.needed_profession(_snapshot.call(k)))
+			p.profession = grown.profession
+			p.conflict = grown.conflict
 			_say.call(k, GameConstants.SOCIETY_MSG_GREW % [PersonGen.full_name(p), PersonGen.profession_name(p)])
 		elif float(p.age) >= GameConstants.OLD_AGE \
 				and rng.randf() < SocietyRules.hourly_chance(GameConstants.DEATH_CHANCE_PER_DAY):

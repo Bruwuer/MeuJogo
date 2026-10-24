@@ -248,3 +248,15 @@ static func secret_romance_possible(a: Dictionary, b: Dictionary, rel: float, ki
 	if kin or bool(a.female) != bool(b.female) or rel < GameConstants.COUPLE_AT:
 		return false
 	return float(a.age) >= GameConstants.MARRY_MIN_AGE and float(b.age) >= GameConstants.MARRY_MIN_AGE
+
+
+## Trade of someone just grown up: the vocation when the House agrees (or there is no House), the
+## House trade while a clash is unresolved, or what the kingdom needs when there is no vocation.
+## {profession, conflict}.
+static func grown_profession(person: Dictionary, family: Dictionary, needed: int) -> Dictionary:
+	var v := int(person.get("vocation", -1))
+	if v < 0:
+		return {profession = needed, conflict = false}
+	if conflicts(person, family):
+		return {profession = expected_professions(family)[0], conflict = true}
+	return {profession = v, conflict = false}
