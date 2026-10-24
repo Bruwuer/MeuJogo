@@ -35,6 +35,12 @@ var _commanded := false
 var _avoid_sign := 1.0
 var _idle_offset := Vector3.ZERO
 var _done := false # the current goal's action already happened (work finished, deposited...)
+var _rng := RandomNumberGenerator.new()
+var _stuck_dist := INF
+var _stuck_check_left := GameConstants.PERSON_STUCK_CHECK_SEC
+var _stuck_for := 0.0
+var _detour := Vector3.ZERO
+var _detour_left := 0.0
 
 
 func setup(rec: Dictionary, library: ModelLibrary, mgr: Node) -> void:
@@ -46,11 +52,10 @@ func setup(rec: Dictionary, library: ModelLibrary, mgr: Node) -> void:
 	collision_mask = GameConstants.LAYER_TERRAIN | GameConstants.LAYER_OBSTACLES
 	global_position = rec.pos
 	reset_physics_interpolation()
-	var rng := RandomNumberGenerator.new()
-	rng.seed = hash([rec.id, "idle"])
-	var a := rng.randf() * TAU
-	_idle_offset = Vector3(sin(a), 0.0, cos(a)) * rng.randf_range(1.5, GameConstants.PERSON_IDLE_RADIUS * 0.8)
-	_brain_left = rng.randf() * GameConstants.PERSON_BRAIN_TICK
+	_rng.seed = hash([rec.id, "idle"])
+	var a := _rng.randf() * TAU
+	_idle_offset = Vector3(sin(a), 0.0, cos(a)) * _rng.randf_range(1.5, GameConstants.PERSON_IDLE_RADIUS * 0.8)
+	_brain_left = _rng.randf() * GameConstants.PERSON_BRAIN_TICK
 	var h: float = rec.looks.height
 	var scene := library.person_scene() if library else null
 	if scene:
@@ -79,6 +84,7 @@ func setup(rec: Dictionary, library: ModelLibrary, mgr: Node) -> void:
 
 ## Walks to `pos` and stays there (tests and scripted moves): the brain is not consulted.
 func walk_to(pos: Vector3) -> void:
+	_stuck_dist = INF
 	_commanded = true
 	act = A.WALK
 	goal = A.IDLE
@@ -167,6 +173,8 @@ func _think() -> void:
 	var was_act := act
 	act = d.act
 	goal = d.goal
+	if (d.target_pos as Vector3).distance_to(target_pos) > 1.0:
+		_stuck_dist = INF # a new destination
 	target_pos = d.target_pos
 	if goal != was_goal:
 		_done = false
@@ -196,8 +204,14 @@ func _move(delta: float, speed: float) -> void:
 	var dir := Vector3.ZERO
 	var stop := GameConstants.PERSON_ARRIVE * 0.5
 	if dist > stop:
-		# The last stretch goes straight: rays would see the door wall or the trunk being worked.
-		dir = to / dist if dist < GameConstants.PERSON_AVOID_RAY else _avoid(to / dist)
+		if _detour_left > 0.0:
+			_detour_left -= delta
+			dir = _detour
+		else:
+			# The last stretch goes straight: rays would see the door wall or the trunk being worked.
+			dir = to / dist if dist < GameConstants.PERSON_AVOID_RAY else _avoid(to / dist)
+		if act == A.WALK:
+			_watch_stuck(delta, to / dist)
 	velocity.x = dir.x * speed
 	velocity.z = dir.z * speed
 	_apply_gravity(delta)
@@ -207,6 +221,36 @@ func _move(delta: float, speed: float) -> void:
 		_play(GameConstants.ANIM_RUN if speed > GameConstants.PERSON_WALK_SPEED else GameConstants.ANIM_WALK)
 	else:
 		_play(GameConstants.ANIM_IDLE)
+
+
+## Failsafe for corners and steps the rays miss: no progress for a while -> a short sidestep;
+## stuck for long -> placed at the target (on the ground).
+func _watch_stuck(delta: float, want: Vector3) -> void:
+	_stuck_check_left -= delta
+	if _stuck_check_left > 0.0:
+		return
+	_stuck_check_left = GameConstants.PERSON_STUCK_CHECK_SEC
+	var left := Vector2(target_pos.x - global_position.x, target_pos.z - global_position.z).length()
+	var moved := _stuck_dist - left # progress toward the target, not wandering
+	_stuck_dist = left
+	if moved >= GameConstants.PERSON_STUCK_MOVE:
+		_stuck_for = 0.0
+		return
+	_stuck_for += GameConstants.PERSON_STUCK_CHECK_SEC
+	if _stuck_for >= GameConstants.PERSON_STUCK_TELEPORT_SEC:
+		_stuck_for = 0.0
+		_detour_left = 0.0
+		global_position = _ground_at(target_pos) + Vector3.UP * 0.3
+		reset_physics_interpolation()
+		return
+	_detour = want.rotated(Vector3.UP, PI * 0.5 * (1.0 if _rng.randf() < 0.5 else -1.0))
+	_detour_left = GameConstants.PERSON_DETOUR_SEC
+
+
+func _ground_at(pos: Vector3) -> Vector3:
+	var q := PhysicsRayQueryParameters3D.create(pos + Vector3.UP * 50.0, pos + Vector3.DOWN * 50.0, GameConstants.LAYER_TERRAIN)
+	var hit := get_world_3d().direct_space_state.intersect_ray(q)
+	return hit.position if not hit.is_empty() else pos
 
 
 func _face(pos: Vector3, delta: float) -> void:

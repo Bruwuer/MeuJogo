@@ -281,3 +281,24 @@ func test_frame_budget_people_and_creatures() -> void:
 	var avg_ms := (Time.get_ticks_usec() - t0) / 60.0 / 1000.0
 	assert_true(avg_ms < GameConstants.MAX_FRAME_MS, "%.1f ms per physics frame with %d people and %d creatures"
 			% [avg_ms, mgr.active_count(), creatures.active_count()])
+
+
+func test_person_gets_around_seat_corner() -> void:
+	# Seen in the captures: people wedged at the seat cabin's front corner, next to the flag.
+	var spot := _make()
+	var seat := state.building(kingdom.seat_id)
+	state.add_building(B.FLAG, seat.pos + GameConstants.FLAG_OFFSET, 0, Color.RED)
+	await _load_around(spot)
+	var r := RandomNumberGenerator.new()
+	r.seed = 4
+	var rec := PersonGen.generate(r)
+	rec.merge({id = 999, pos = seat.pos + Vector3(1.95, 0.3, 2.8), status = "resident", carrying = {}, home_id = -1,
+			inside = -1, job = ""}, true)
+	var p := Person.new()
+	add_child(p)
+	p.setup(rec, lib, null)
+	var goal: Vector3 = seat.pos + Vector3(4.5, 0, -8.55)
+	p.walk_to(goal)
+	var ok: bool = await _run_until(func() -> bool: return _flat(p.global_position, goal) < GameConstants.PERSON_ARRIVE, 1200)
+	assert_true(ok, "stuck at %s" % str(p.global_position - seat.pos))
+	p.queue_free()

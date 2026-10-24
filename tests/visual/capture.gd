@@ -425,6 +425,8 @@ func _people() -> void:
 	await _shot("22_village_night")
 	_set_time(DAY_TIME)
 	print("PEOPLE traveler=%s inside=%d" % [traveler.status, people.filter(func(r: Dictionary) -> bool: return int(r.inside) >= 0).size()])
+	for b in VillageRules.kingdom_buildings(state, k):
+		print("PEOPLE building %s pos=%s rot=%d site=%s rect=%s" % [GameConstants.BUILD_NAMES[b.type], b.pos, b.rot, b.get("site", false), BuildRules.footprint_rect(b.type, b.pos, b.rot)])
 	for i in 3:
 		var n := mgr.node_for(people[i].id)
 		var h := state.building(people[i].home_id)

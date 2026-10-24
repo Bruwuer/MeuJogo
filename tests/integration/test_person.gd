@@ -129,3 +129,31 @@ func test_person_walks_around_low_foundation() -> void:
 			"got around the low base (%s)" % str(p.global_position))
 	p.queue_free()
 	base.queue_free()
+
+
+func test_stuck_person_gets_free() -> void:
+	# Walled in on every side: no steering gets out, the failsafe must.
+	_floor()
+	var pen := StaticBody3D.new()
+	pen.collision_layer = GameConstants.LAYER_OBSTACLES
+	for w in [[Vector3(0, 1, 1.2), Vector3(3, 2, 0.2)], [Vector3(0, 1, -1.2), Vector3(3, 2, 0.2)],
+			[Vector3(1.2, 1, 0), Vector3(0.2, 2, 3)], [Vector3(-1.2, 1, 0), Vector3(0.2, 2, 3)]]:
+		var shape := CollisionShape3D.new()
+		var box := BoxShape3D.new()
+		box.size = w[1]
+		shape.shape = box
+		shape.position = w[0]
+		pen.add_child(shape)
+	add_child(pen)
+	var p: Person = await _spawn(Vector3(0, 0.2, 0), 6)
+	p.walk_to(Vector3(8, 0, 0))
+	Engine.time_scale = 4.0
+	for i in 1500:
+		await get_tree().physics_frame
+		if _flat(p.global_position).distance_to(Vector3(8, 0, 0)) < GameConstants.PERSON_ARRIVE:
+			break
+	Engine.time_scale = 1.0
+	assert_true(_flat(p.global_position).distance_to(Vector3(8, 0, 0)) < GameConstants.PERSON_ARRIVE + 0.3,
+			"still stuck at %s" % str(p.global_position))
+	p.queue_free()
+	pen.queue_free()

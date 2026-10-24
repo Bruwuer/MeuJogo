@@ -661,3 +661,7 @@ const NEED_TEXTS := { "food": "comida", "home": "uma casa", "mood": "ânimo", "n
 const VILLAGE_LINE := "Moradores: %d · Estoque: %s"
 const VILLAGE_NEWS_SHOWN := 3 ## Village messages shown when the player comes back.
 const VILLAGE_NEWS_MORE := "Enquanto você estava fora, aconteceram mais %d coisas nos povoados"
+const PERSON_STUCK_CHECK_SEC := 1.0 ## How often a walking person checks it is getting anywhere.
+const PERSON_STUCK_MOVE := 0.3 ## Less than this in a check counts as stuck.
+const PERSON_DETOUR_SEC := 0.8 ## Sidestep when stuck.
+const PERSON_STUCK_TELEPORT_SEC := 6.0 ## Stuck this long: placed at the target.
