@@ -85,6 +85,19 @@ const SPAWN_PROP_CLEARANCE := 2.0 ## Free space between spawn and any solid prop
 # Day / night
 const DAY_LENGTH_SEC := 480.0 ## One full day-night cycle.
 const START_TIME_OF_DAY := 0.30 ## 0 = midnight, 0.5 = noon.
+const NIGHT_MIN_AMBIENT := 0.35 ## Ambient energy floor so the player stays visible at night.
+const DAY_AMBIENT := 0.9
+const SUN_MAX_ENERGY := 1.1
+const SUN_YAW_DEG := -35.0
+const SUN_DAY_COLOR := Color(1.0, 0.97, 0.90)
+const SUN_DUSK_COLOR := Color(1.0, 0.62, 0.38)
+const SKY_DAY_TOP := Color(0.38, 0.55, 0.78)
+const SKY_DAY_HORIZON := Color(0.72, 0.78, 0.82)
+const SKY_DUSK_HORIZON := Color(0.95, 0.60, 0.42)
+const SKY_NIGHT_TOP := Color(0.03, 0.05, 0.12)
+const SKY_NIGHT_HORIZON := Color(0.10, 0.13, 0.24)
+const AMBIENT_DAY_COLOR := Color(0.70, 0.74, 0.80)
+const AMBIENT_NIGHT_COLOR := Color(0.32, 0.40, 0.62)
 
 # Save
 const SAVE_PATH := "user://save.bin"
