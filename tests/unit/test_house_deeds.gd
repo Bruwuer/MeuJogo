@@ -124,3 +124,92 @@ func test_flee_with_lover_is_a_night_escape() -> void:
 	house.complete_deed(k, groom, [], 23.5)
 	assert_eq(groom.spouse_id, lover.id, "they marry once away")
 	assert_eq(lover.family_id, groom.family_id)
+
+
+# --- Land ---
+
+func test_land_goal_sends_the_head_to_stake_the_plot() -> void:
+	var f := _house("Lavra", 200.0, 12.0)
+	f.goal = {kind = G.LAND, target_id = -1, deadline_hour = 1000.0}
+	var head := s.person(int(f.head_id))
+	house._hour = 10.0
+	house._pursue(k, f)
+	assert_eq(head.deed.get("kind", ""), "stake", "the head goes to the plot")
+	assert_eq((f.plots as Array).size(), 0, "not the House's until staked")
+	assert_near(float(f.wealth), 200.0, 0.001, "paid when staked")
+	var rect: Rect2 = head.deed.data.rect
+	assert_true(rect.has_point(Vector2(head.deed.pos.x, head.deed.pos.z)), "the deed happens on the plot")
+	house.complete_deed(k, head, [])
+	assert_eq(f.plots, [rect])
+	assert_near(float(f.wealth), 200.0 - GameConstants.PLOT_PRICE, 0.001)
+	var stakes := s.all_buildings().filter(func(b: Dictionary) -> bool: return b.type == B.STAKE and b.get("family_id", -1) == f.id)
+	assert_eq(stakes.size(), 4, "stakes at the corners")
+
+
+func test_two_houses_never_claim_the_same_plot() -> void:
+	var a := _house("Alto", 200.0, 14.0)
+	var b := _house("Baixo", 200.0, 15.0)
+	for f in [a, b]:
+		f.goal = {kind = G.LAND, target_id = -1, deadline_hour = 1000.0}
+	house._hour = 10.0
+	house._pursue(k, a)
+	house._pursue(k, b)
+	var ra: Rect2 = s.person(int(a.head_id)).deed.data.rect
+	var rb: Rect2 = s.person(int(b.head_id)).deed.data.rect
+	assert_true(not ra.grow(-0.01).intersects(rb), "a plot being staked is taken")
+
+
+func test_stake_fails_when_the_plot_was_taken_meanwhile() -> void:
+	var a := _house("Cima", 200.0, 16.0)
+	a.goal = {kind = G.LAND, target_id = -1, deadline_hour = 1000.0}
+	house._hour = 10.0
+	house._pursue(k, a)
+	var head := s.person(int(a.head_id))
+	var rect: Rect2 = head.deed.data.rect
+	var other := _house("Fundo", 200.0, -16.0)
+	(other.plots as Array).append(rect)
+	house.complete_deed(k, head, [])
+	assert_eq((a.plots as Array).size(), 0)
+	assert_near(float(a.wealth), 200.0, 0.001, "nothing paid")
+
+
+# --- Building work ---
+
+func test_upgrade_is_building_work_by_the_house() -> void:
+	var f := _house("Pedra", 500.0, 8.0)
+	var head := s.person(int(f.head_id))
+	var wife := _join(_person("Rosa", true, 40.0), f)
+	var home := s.building(int(head.home_id))
+	house._hour = 10.0
+	assert_true(house.start_upgrade(k, f))
+	assert_near(float(f.wealth), 500.0 - HouseRules.upgrade_price(0), 0.001, "paid up front")
+	assert_eq(int(home.get("house_level", 0)), 0, "still the old house while the work goes on")
+	for i in 40:
+		house.tick_hour(k, 10.0 + i * 24.0)
+		for p in [head, wife]:
+			if p.deed.get("kind", "") == "build_home":
+				house.complete_deed(k, p, [])
+		if int(home.get("house_level", 0)) == 1:
+			break
+	assert_eq(int(home.get("house_level", 0)), 1, "the House built its stone house")
+	assert_true(not home.has("upgrade"), "the work is over")
+
+
+func test_build_home_deed_happens_at_the_house() -> void:
+	var f := _house("Muro", 500.0, 9.0)
+	var head := s.person(int(f.head_id))
+	house._hour = 10.0
+	house.start_upgrade(k, f)
+	house.tick_hour(k, 10.0)
+	assert_eq(head.deed.get("kind", ""), "build_home")
+	var home := s.building(int(head.home_id))
+	assert_true(Vector2(head.deed.pos.x - home.pos.x, head.deed.pos.z - home.pos.z).length() < 0.01)
+
+
+func test_upgrade_goal_waits_for_the_work() -> void:
+	var f := _house("Torre", 500.0, 11.0)
+	f.goal = {kind = G.UPGRADE, target_id = -1, deadline_hour = 5.0, start_level = 0}
+	house._hour = 4.0
+	house.start_upgrade(k, f)
+	house.tick_hour(k, 24.0 + GameConstants.DEED_HOUR)
+	assert_true(not (f.goal as Dictionary).is_empty(), "no failure while the House is building")

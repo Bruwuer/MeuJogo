@@ -742,7 +742,7 @@ func _family_defaults(f: Dictionary) -> void:
 		f.values = (GameConstants.TRADITION_VALUES[f.tradition] as Dictionary).duplicate()
 	var defaults := {wealth = 0.0, plots = [], skill = {}, prestige = 0.0, goal = {}, rival_id = -1, secrets = [],
 			dishonor = 0.0, insulted_by = -1,
-			known_secrets = []}
+			known_secrets = [], claim = Rect2()}
 	for key in defaults:
 		if not f.has(key):
 			f[key] = defaults[key].duplicate() if defaults[key] is Array or defaults[key] is Dictionary else defaults[key]

@@ -40,6 +40,7 @@ func tick_hour(k: Dictionary, hour: float) -> void:
 	_work(k)
 	_vocations(k, rng)
 	_deeds(k)
+	_building_work(k)
 	_discoveries(k)
 	if _is_daily(GameConstants.DEED_HOUR):
 		_adoptions(k)
@@ -264,6 +265,12 @@ func complete_deed(k: Dictionary, p: Dictionary, seen: Array, hour := -1.0) -> v
 					_elope(k, p, int(data.lover_id))
 				if deed.kind == "runaway" and not seen.is_empty():
 					_runaway_seen(k, p, f, old_name, seen[0])
+		"stake":
+			var f := _state.family(int(data.get("family_id", -1)))
+			if not f.is_empty():
+				_staked(k, f, data.rect)
+		"build_home":
+			_built(k, int(data.home_id), int(data.family_id))
 	deed_completed.emit(p, deed, seen)
 
 
@@ -406,14 +413,7 @@ func _home_pos(k: Dictionary, f: Dictionary) -> Vector3:
 func _free_plot(k: Dictionary, around: Vector3) -> Rect2:
 	var size := GameConstants.PLOT_SIZE
 	var base := Vector2i(floori(around.x / size), floori(around.z / size))
-	var taken: Array[Rect2] = []
-	for other in _state.families_of(k.id):
-		for r: Rect2 in other.plots:
-			taken.append(r)
-	var footprints: Array[Rect2] = []
-	for b in VillageRules.kingdom_buildings(_state, k):
-		if b.type != GameConstants.Building.STAKE:
-			footprints.append(BuildRules.footprint_rect(b.type, b.pos, b.rot))
+	var blockers := _plot_blockers(k, -1)
 	var map := Rect2(Vector2.ZERO, Vector2.ONE * ChunkMath.playable_size())
 	for ring in GameConstants.PLOT_SEARCH_RINGS + 1:
 		for dy in range(-ring, ring + 1):
@@ -425,13 +425,65 @@ func _free_plot(k: Dictionary, around: Vector3) -> Rect2:
 				if c.distance_to(Vector2(k.center.x, k.center.z)) > float(k.radius) - size * 0.5 or not map.encloses(rect):
 					continue
 				var inner := rect.grow(-0.01)
-				if taken.any(func(r: Rect2) -> bool: return inner.intersects(r)) \
-						or footprints.any(func(r: Rect2) -> bool: return inner.intersects(r)):
+				if blockers.any(func(r: Rect2) -> bool: return inner.intersects(r)):
 					continue
 				if _gen and _height_span(rect) > GameConstants.PLOT_MAX_HEIGHT_DIFF:
 					continue
 				return rect
 	return Rect2()
+
+
+## What a new plot may not overlap: the plots (and plots being staked) of every House but
+## `except_id`, and the kingdom's buildings.
+func _plot_blockers(k: Dictionary, except_id: int) -> Array[Rect2]:
+	var out: Array[Rect2] = []
+	for other in _state.families_of(k.id):
+		if other.id == except_id:
+			continue
+		for r: Rect2 in other.plots:
+			out.append(r)
+		var claim: Rect2 = other.get("claim", Rect2())
+		if claim.size != Vector2.ZERO:
+			out.append(claim)
+	for b in VillageRules.kingdom_buildings(_state, k):
+		if b.type != GameConstants.Building.STAKE:
+			out.append(BuildRules.footprint_rect(b.type, b.pos, b.rot))
+	return out
+
+
+## The head goes to the free plot nearest home to stake it (a deed); the plot is reserved
+## meanwhile. False when the House cannot claim one now.
+func claim_plot(k: Dictionary, f: Dictionary) -> bool:
+	var head := _state.person(int(f.head_id))
+	if head.is_empty() or not (head.get("deed", {}) as Dictionary).is_empty() \
+			or (f.get("claim", Rect2()) as Rect2).size != Vector2.ZERO:
+		return false
+	if (f.plots as Array).size() >= GameConstants.PLOTS_MAX or float(f.wealth) < GameConstants.PLOT_PRICE:
+		return false
+	var rect := _free_plot(k, _home_pos(k, f))
+	if rect.size == Vector2.ZERO:
+		return false
+	f.claim = rect
+	var c := rect.get_center()
+	var at := Vector3(c.x, _gen.height_at(c.x, c.y) if _gen else k.center.y, c.y)
+	var w := Deeds.next_window(_hour, GameConstants.DEED_DAY.x, GameConstants.DEED_DAY.y)
+	plan_deed(head, Deeds.make("stake", at, GameConstants.PLOT_SIZE * 0.5, w.x, w.y, GameConstants.DEED_WORK_SEC * 2.0,
+			{rect = rect, family_id = f.id}))
+	return true
+
+
+## The stakes are in: the plot is the House's if it is still free and the House can pay.
+func _staked(k: Dictionary, f: Dictionary, rect: Rect2) -> void:
+	f.claim = Rect2()
+	var inner := rect.grow(-0.01)
+	if _plot_blockers(k, f.id).any(func(r: Rect2) -> bool: return inner.intersects(r)):
+		return
+	if (f.plots as Array).size() >= GameConstants.PLOTS_MAX or float(f.wealth) < GameConstants.PLOT_PRICE:
+		return
+	f.wealth = float(f.wealth) - GameConstants.PLOT_PRICE
+	(f.plots as Array).append(rect)
+	buildings_changed.emit(_add_stakes(f, rect))
+	_log(k, GameConstants.HOUSE_MSG_PLOT % f.surname)
 
 
 func _height_span(rect: Rect2) -> float:
@@ -477,6 +529,59 @@ func upgrade(k: Dictionary, f: Dictionary) -> bool:
 	return true
 
 
+## Starts the work on the head's home (paid now): the House adults build it hour by hour, and the
+## new level comes when the work is done. False at the top, when short or already building.
+func start_upgrade(k: Dictionary, f: Dictionary) -> bool:
+	var home := _head_home(f)
+	if home.is_empty() or home.type != GameConstants.Building.HOUSE or home.get("site", false) or home.has("upgrade"):
+		return false
+	var level := int(home.get("house_level", 0))
+	var price := HouseRules.upgrade_price(level)
+	if price < 0 or float(f.wealth) < price:
+		return false
+	f.wealth = float(f.wealth) - price
+	home.upgrade = {level = level + 1, done = 0.0}
+	_log(k, GameConstants.HOUSE_MSG_UPGRADE_START % [f.surname, GameConstants.HOUSE_LEVEL_NAMES[level + 1]])
+	return true
+
+
+func _head_home(f: Dictionary) -> Dictionary:
+	var head := _state.person(int(f.head_id))
+	return _state.building(int(head.get("home_id", -1))) if not head.is_empty() else {}
+
+
+## In work hours, the free adults of a House with building work go and work on their home.
+func _building_work(k: Dictionary) -> void:
+	var h := fmod(_hour, 24.0)
+	if h < GameConstants.WORK_START_HOUR or h >= GameConstants.WORK_END_HOUR:
+		return
+	for f in _state.families_of(k.id):
+		var home := _head_home(f)
+		if home.is_empty() or not home.has("upgrade"):
+			continue
+		var reach: float = (GameConstants.BUILD_FOOTPRINT[home.type] as Vector2).length() * 0.5 + GameConstants.PERSON_ARRIVE
+		for m in _state.family_members(f.id):
+			if m.status == "resident" and SocietyRules.is_adult(m) and (m.get("deed", {}) as Dictionary).is_empty():
+				plan_deed(m, Deeds.make("build_home", home.pos, reach, _hour, _hour + 1.0, GameConstants.PERSON_SITE_SEC * 2.0,
+						{home_id = home.id, family_id = f.id}))
+
+
+## One person's turn of building work on a home; the new level when the work is done.
+func _built(k: Dictionary, home_id: int, family_id: int) -> void:
+	var home := _state.building(home_id)
+	if home.is_empty() or not home.has("upgrade"):
+		return
+	var up: Dictionary = home.upgrade
+	up.done = float(up.done) + GameConstants.UPGRADE_DEED_HOURS
+	if float(up.done) < float(GameConstants.UPGRADE_WORK_HOURS[int(up.level) - 1]):
+		return
+	home.house_level = int(up.level)
+	home.erase("upgrade")
+	buildings_changed.emit([home])
+	var f := _state.family(family_id)
+	_log(k, GameConstants.HOUSE_MSG_UPGRADE % [f.get("surname", "?"), GameConstants.HOUSE_LEVEL_NAMES[int(up.level)]])
+
+
 # --- Goals ----------------------------------------------------------------------------------
 
 func _goals(k: Dictionary, rng: RandomNumberGenerator) -> void:
@@ -485,7 +590,7 @@ func _goals(k: Dictionary, rng: RandomNumberGenerator) -> void:
 		if not goal.is_empty():
 			if goal_reached(f, goal, goal_ctx(k, f)):
 				_goal_end(k, f, true)
-			elif _hour > float(goal.get("deadline_hour", INF)):
+			elif _hour > float(goal.get("deadline_hour", INF)) and not _still_at_it(f, goal):
 				_goal_end(k, f, false)
 		if (f.goal as Dictionary).is_empty():
 			var g := HouseRules.pick_goal(f, goal_ctx(k, f), rng)
@@ -503,12 +608,14 @@ func _pursue(k: Dictionary, f: Dictionary) -> void:
 	var G := GameConstants.Goal
 	match int((f.goal as Dictionary).get("kind", -1)):
 		G.LAND:
-			if not acquire_plot(k, f):
+			if (f.get("claim", Rect2()) as Rect2).size != Vector2.ZERO: # the head is on the way to stake it
+				return
+			if not claim_plot(k, f):
 				for other in _state.families_of(k.id):
 					if other.id != f.id and float(other.wealth) < GameConstants.WEALTH_POOR and buy_plot(k, f, other):
 						break
 		G.UPGRADE:
-			upgrade(k, f)
+			start_upgrade(k, f)
 		G.ALLIANCE:
 			_try_alliance(k, f)
 		G.UNION:
@@ -519,6 +626,16 @@ func _pursue(k: Dictionary, f: Dictionary) -> void:
 			var target := _state.family(int(f.goal.target_id))
 			if not target.is_empty() and _roll(f.id, "revenge") < GameConstants.REVENGE_PER_DAY:
 				take_revenge(k, f, target)
+
+
+## A goal past its deadline is not failed while its work is under way (building, staking).
+func _still_at_it(f: Dictionary, goal: Dictionary) -> bool:
+	match int(goal.kind):
+		GameConstants.Goal.UPGRADE:
+			return _head_home(f).has("upgrade")
+		GameConstants.Goal.LAND:
+			return (f.get("claim", Rect2()) as Rect2).size != Vector2.ZERO
+	return false
 
 
 func goal_reached(f: Dictionary, goal: Dictionary, ctx: Dictionary) -> bool:
