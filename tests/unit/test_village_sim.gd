@@ -252,14 +252,17 @@ func test_opinion_drifts_when_away() -> void:
 	k.stock = { R.FOOD: 500 }
 	var p := _resident(s, k, P.MERCHANT)
 	p.opinion = 0.5
+	var c0: float = p.contentment
 	sim.is_player_in = func(_k: Dictionary) -> bool: return true
 	for i in 24:
 		sim.tick_hours(1.0)
-	assert_near(p.opinion, 0.5, 0.0001, "the player is around: no drift")
+	var near: float = p.opinion # stage 6: contentment moves it too, the same way in both runs
+	p.opinion = 0.5
+	p.contentment = c0
 	sim.is_player_in = func(_k: Dictionary) -> bool: return false
 	for i in 24:
 		sim.tick_hours(1.0)
-	assert_near(p.opinion, 0.5 - GameConstants.AWAY_OPINION_PER_DAY, 0.001, "a day away: toward neutral")
+	assert_near(near - p.opinion, GameConstants.AWAY_OPINION_PER_DAY, 0.01, "a day away: toward neutral")
 	assert_near(s.fame, p.opinion, 0.0001, "fame is the residents' average opinion")
 
 

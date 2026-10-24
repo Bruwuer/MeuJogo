@@ -391,13 +391,85 @@ func _new_surname(k: Dictionary, leader: Dictionary, rng: RandomNumberGenerator)
 	return free[rng.randi() % free.size()]
 
 
-func _opinions(_k: Dictionary) -> void:
-	pass
+## Contentment, the family and friends/rivals move each opinion of the player; every delta is
+## computed from the opinions at the start of the hour, then applied.
+func _opinions(k: Dictionary) -> void:
+	var people := _people(k)
+	var means := {}
+	for f in _state.families_of(k.id):
+		means[f.id] = SocietyRules.adult_mean(_state.family_members(f.id))
+	var deltas: Array[float] = []
+	for p in people:
+		var mean: Variant = means.get(p.family_id)
+		var ties := []
+		var rels := _state.relations_of(p.id)
+		for other_id in rels:
+			var o := _state.person(other_id)
+			if not o.is_empty() and o.status == "resident" and o.kingdom_id == k.id:
+				ties.append([rels[other_id], float(o.opinion)])
+		deltas.append(SocietyRules.opinion_drift(p, float(p.opinion) if mean == null else mean, ties))
+	for i in people.size():
+		people[i].opinion = clampf(float(people[i].opinion) + deltas[i], -1.0, 1.0)
 
 
-func _stances(_k: Dictionary) -> void:
-	pass
+## Adults and families become allies or enemies of the player (announced once, on entering).
+func _stances(k: Dictionary) -> void:
+	for p in _people(k):
+		var now := SocietyRules.stance_for(float(p.opinion), p.stance) if SocietyRules.is_adult(p) else ""
+		if now != p.stance and now != "":
+			var forms: Array = GameConstants.SOCIETY_MSG_ALLY if now == "ally" else GameConstants.SOCIETY_MSG_ENEMY
+			_say.call(k, forms[1 if p.female else 0] % PersonGen.full_name(p))
+		p.stance = now
+	for f in _state.families_of(k.id):
+		var now := SocietyRules.family_stance(_state.family_members(f.id), f.stance)
+		if now != f.stance and now != "":
+			var text := GameConstants.SOCIETY_MSG_FAMILY_ALLY if now == "ally" else GameConstants.SOCIETY_MSG_FAMILY_ENEMY
+			_say.call(k, text % f.surname)
+		if now != f.stance:
+			_changed = true
+		f.stance = now
 
 
-func _deeds(_k: Dictionary) -> void:
-	pass
+## Once a day from DEED_HOUR, with the player in the kingdom: ally families give a gift from the
+## stock, the worst enemies steal from the player.
+func _deeds(k: Dictionary) -> void:
+	if fmod(_hour, 24.0) < GameConstants.DEED_HOUR or not _is_player_in.call(k):
+		return
+	var today := floori(_hour / 24.0)
+	for f in _state.families_of(k.id):
+		if f.stance != "ally" or int(f.deed_day) >= today:
+			continue
+		f.deed_day = today
+		var res := _most(GameConstants.GIFT_RES, func(r: int) -> int: return _state.stock_of(k, r))
+		if _state.stock_of(k, res) < GameConstants.GIFT_MIN_STOCK:
+			continue
+		_state.add_stock(k, res, -GameConstants.GIFT_AMOUNT)
+		_state.add_resource(res, GameConstants.GIFT_AMOUNT)
+		_say.call(k, GameConstants.SOCIETY_MSG_GIFT % [f.surname, GameConstants.GIFT_AMOUNT, _res_name(res)])
+	var enemies := _people(k).filter(func(p: Dictionary) -> bool:
+		return p.stance == "enemy" and int(p.deed_day) < today)
+	enemies.sort_custom(func(a: Dictionary, b: Dictionary) -> bool: return float(a.opinion) < float(b.opinion))
+	for i in enemies.size():
+		var p: Dictionary = enemies[i]
+		p.deed_day = today
+		if i >= GameConstants.THEFT_MAX_PER_DAY:
+			continue
+		var res := _most(GameConstants.THEFT_RES, func(r: int) -> int: return _state.get_resource(r))
+		var n := mini(GameConstants.THEFT_AMOUNT, _state.get_resource(res))
+		if n <= 0 or not _state.spend({res: n}):
+			continue
+		_state.add_stock(k, res, n)
+		_say.call(k, GameConstants.SOCIETY_MSG_THEFT % [PersonGen.full_name(p), n, _res_name(res)])
+
+
+## The resource of `options` with the largest amount (ties: the first).
+static func _most(options: Array, amount: Callable) -> int:
+	var best: int = options[0]
+	for r: int in options:
+		if amount.call(r) > amount.call(best):
+			best = r
+	return best
+
+
+static func _res_name(res: int) -> String:
+	return (GameConstants.RES_NAMES[res] as String).to_lower()

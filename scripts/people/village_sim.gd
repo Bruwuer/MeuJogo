@@ -45,6 +45,7 @@ var _last_hour := -1.0
 var _props_near: Dictionary = {} # Vector3 center -> props around it (the scatter is deterministic)
 ## Families, couples, children and opinions (one tick per kingdom per hour).
 var society := SocietySim.new()
+var _dropped_news := 0
 
 
 func setup(state: WorldState, gen: TerrainGenerator, scatter: PropScatter, day_night: DayNight) -> void:
@@ -168,6 +169,8 @@ func _spawn_traveler(k: Dictionary, snap: Dictionary) -> void:
 	pos.y = _gen.height_at(pos.x, pos.z)
 	var rec := _state.add_person(p, pos, k.id, now_hours())
 	traveler_spawned.emit(rec)
+	if is_kingdom_loaded.call(k):
+		message.emit(GameConstants.VILLAGE_MSG_APPROACH % k.name)
 
 
 ## A free spot in front of the seat, where travelers stop to look at the kingdom.
@@ -444,8 +447,18 @@ func nearest_prop(from: Vector3, types: Array, exclude: Dictionary = {}) -> Dict
 func _say(k: Dictionary, text: String) -> void:
 	if is_kingdom_loaded.call(k):
 		message.emit(text)
-	else:
-		pending_messages.append(text)
+		return
+	pending_messages.append(text)
+	while pending_messages.size() > GameConstants.VILLAGE_NEWS_MAX:
+		pending_messages.pop_front()
+		_dropped_news += 1
+
+
+## How many news were dropped from the full queue since the last call (they still count as news).
+func take_dropped() -> int:
+	var n := _dropped_news
+	_dropped_news = 0
+	return n
 
 
 ## Every prop (standing or not) within VILLAGE_HARVEST_RADIUS of a kingdom center, cached

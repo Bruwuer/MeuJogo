@@ -427,6 +427,9 @@ func donate(pos: Vector3) -> String:
 		if n > 0:
 			cost[res] = n
 			parts.append("%d %s" % [n, (GameConstants.RES_NAMES[res] as String).to_lower()])
+	var total := 0
+	for res in cost:
+		total += int(cost[res])
 	if cost.is_empty() or not _state.spend(cost):
 		return GameConstants.DONATE_NOTHING_MSG
 	for res in cost:
@@ -434,7 +437,7 @@ func donate(pos: Vector3) -> String:
 	sync_all()
 	for p in _state.residents(k.id):
 		if _flat(p.pos, pos) <= GameConstants.DONATE_RADIUS:
-			p.opinion = clampf(float(p.opinion) + GameConstants.DONATE_OPINION, -1.0, 1.0)
+			p.opinion = clampf(float(p.opinion) + donation_opinion(total), -1.0, 1.0)
 	_snaps.erase(k.id)
 	return GameConstants.DONATE_MSG % [", ".join(parts), k.name]
 
@@ -548,3 +551,13 @@ func _sec_per_hour() -> float:
 
 static func _flat(a: Vector3, b: Vector3) -> float:
 	return Vector2(a.x - b.x, a.z - b.z).length()
+
+
+## Opinion a donation of `total` resources earns (a handful of berries is not a full gift).
+static func donation_opinion(total: int) -> float:
+	return GameConstants.DONATE_OPINION * minf(1.0, float(total) / GameConstants.DONATE_FULL_AT)
+
+
+## The player talked to `rec` (E): once a game day it changes the person's opinion by temper.
+func talked_to(rec: Dictionary) -> void:
+	SocietyRules.talk(rec, floori(_sim.now_hours() / 24.0))

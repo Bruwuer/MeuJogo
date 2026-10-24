@@ -204,8 +204,9 @@ func _flush_offscreen_messages() -> void:
 	# Village news are many: the latest few, and how many more happened.
 	var news := _village.take_messages()
 	var shown := mini(news.size(), GameConstants.VILLAGE_NEWS_SHOWN)
-	if news.size() > shown:
-		_hud.add_message(GameConstants.VILLAGE_NEWS_MORE % (news.size() - shown))
+	var more := news.size() - shown + _village.take_dropped()
+	if more > 0:
+		_hud.add_message(GameConstants.VILLAGE_NEWS_MORE % more)
 	for text in news.slice(news.size() - shown):
 		_hud.add_message(text)
 

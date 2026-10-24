@@ -119,3 +119,18 @@ static func label(rel: float) -> String:
 ## The per-hour chance that gives `per_day` over 24 hours.
 static func hourly_chance(per_day: float) -> float:
 	return 1.0 - pow(1.0 - per_day, 1.0 / 24.0)
+
+
+## The player talks to `p` on game day `day`: the first talk of the day pleases a sociable person,
+## annoys a loner and is mildly nice to anyone else. Returns whether it counted.
+static func talk(p: Dictionary, day: int) -> bool:
+	if int(p.get("talk_day", -1)) >= day:
+		return false
+	p.talk_day = day
+	var key := "other"
+	if PersonGen.has_trait(p, T.SOCIABLE):
+		key = "sociable"
+	elif PersonGen.has_trait(p, T.LONER):
+		key = "loner"
+	p.opinion = clampf(float(p.opinion) + GameConstants.TALK_OPINION[key], -1.0, 1.0)
+	return true
