@@ -269,3 +269,125 @@ func test_union_is_a_ceremony_of_the_heads() -> void:
 	assert_true(not s.family(small.id).is_empty(), "still two Houses")
 	house.complete_deed(k, s.person(int(small.head_id)), [])
 	assert_true(s.family(small.id).is_empty(), "one House after the ceremony")
+
+
+# --- Night deeds and witnesses ---
+
+func _storage() -> Dictionary:
+	var st := s.all_buildings().filter(func(b: Dictionary) -> bool: return b.type == B.STORAGE)
+	if not st.is_empty():
+		return st[0]
+	return s.add_building(B.STORAGE, k.center + Vector3(0, 0, 20), 0)
+
+
+func test_skim_is_a_night_trip_to_the_storage() -> void:
+	var st := _storage()
+	k.stock = {GameConstants.Res.WOOD: 50}
+	var f := _house("Ganância", 50.0, 21.0)
+	var head := s.person(int(f.head_id))
+	house._hour = 10.0
+	house.plan_skim(k, f)
+	assert_eq(head.deed.get("kind", ""), "skim")
+	assert_true((head.deed.pos as Vector3).distance_to(PeopleManager.door_of(st)) < 0.01, "to the storage door")
+	assert_eq(head.deed.start_hour, GameConstants.DEED_NIGHT.x, "at night")
+	assert_eq(s.stock_of(k, GameConstants.Res.WOOD), 50, "nothing taken yet")
+	house.complete_deed(k, head, [], 23.5)
+	assert_true(s.stock_of(k, GameConstants.Res.WOOD) < 50, "taken")
+	assert_eq((f.secrets as Array).size(), 1, "and nobody knows")
+	assert_near(float(f.dishonor), 0.0, 0.001)
+
+
+func test_seen_skim_is_a_scandal() -> void:
+	_storage()
+	k.stock = {GameConstants.Res.WOOD: 50}
+	var f := _house("Desvio", 50.0, 22.0)
+	var head := s.person(int(f.head_id))
+	var w := _person("Testemunha", true, 40.0)
+	house._hour = 10.0
+	house.plan_skim(k, f)
+	house.complete_deed(k, head, [w.id], 23.5)
+	assert_eq((f.secrets as Array).size(), 0, "out in the open")
+	assert_true(float(f.dishonor) > 0.0)
+	assert_true(_chronicle_has("Testemunha"), "the log says who saw it")
+
+
+func test_spy_moves_in_by_day() -> void:
+	var own := _house("Sombra", 100.0, 23.0)
+	var rival := _house("Alvo", 100.0, -23.0)
+	var spy := _join(_person("Espião", false, 24.0, [T.GREEDY, T.LONER]), own)
+	own.rival_id = rival.id
+	house._hour = 10.0
+	assert_true(house.send_spy(k, own, rival))
+	assert_eq(spy.deed.get("kind", ""), "spy_move")
+	assert_eq(spy.family_id, own.id, "not yet")
+	assert_true((spy.deed.pos as Vector3).distance_to(PeopleManager.door_of(s.building(int(s.person(int(rival.head_id)).home_id)))) < 0.01)
+	house.complete_deed(k, spy, [])
+	assert_eq(spy.family_id, rival.id, "moved in to serve")
+	assert_eq(spy.secret.get("kind", ""), "spy")
+
+
+func test_spy_reports_at_night_and_can_be_caught() -> void:
+	var own := _house("Noite", 100.0, 24.0)
+	var rival := _house("Dia", 100.0, -24.0)
+	var spy := _join(_person("Vulto", false, 24.0, [T.GREEDY, T.LONER]), own)
+	house._hour = 10.0
+	house.plant_spy(k, own, rival, spy)
+	house.plan_spy_report(k, spy)
+	assert_eq(spy.deed.get("kind", ""), "spy_report")
+	assert_true((spy.deed.pos as Vector3).distance_to(PeopleManager.door_of(s.building(int(s.person(int(own.head_id)).home_id)))) < 0.01,
+			"sneaks to the House that sent them")
+	var maid := _join(_person("Criada", true, 30.0), rival)
+	house.complete_deed(k, spy, [maid.id], 23.5)
+	assert_eq(spy.get("secret", {}), {}, "caught by the rival's own household")
+	assert_eq(int(own.rival_id), rival.id)
+
+
+func test_tryst_at_a_remote_spot() -> void:
+	var a := _house("Flor", 100.0, 25.0)
+	var b := _house("Rio", 100.0, -25.0)
+	var x := _join(_person("Duarte", false, 24.0, [T.BRAVE, T.LONER]), a)
+	var y := _join(_person("Simão", false, 26.0), b)
+	s.set_relation(x.id, y.id, 0.9)
+	assert_true(house.start_romance(k, x, y))
+	house._hour = 10.0
+	house.plan_tryst(k, x)
+	assert_eq(x.deed.get("kind", ""), "tryst")
+	assert_eq(y.deed.get("kind", ""), "tryst")
+	assert_true((x.deed.pos as Vector3).distance_to(y.deed.pos) < 2.0, "they meet")
+	var d := Vector2(x.deed.pos.x - k.center.x, x.deed.pos.z - k.center.z).length()
+	assert_true(d > float(k.radius) * 0.6, "away from the houses (%.1f)" % d)
+	house.complete_deed(k, x, [], 23.5)
+	assert_eq(x.secret.get("kind", ""), "romance", "unseen, still a secret")
+	house.plan_tryst(k, x)
+	var w := _person("Ronda", false, 35.0)
+	house.complete_deed(k, x, [w.id], 47.5)
+	assert_eq(x.get("secret", {}), {}, "seen: a scandal")
+	assert_true(float(a.dishonor) > 0.0)
+
+
+func test_revenge_by_night() -> void:
+	var f := _house("Ira", 100.0, 26.0)
+	var target := _house("Ofensa", 100.0, -26.0)
+	f.insulted_by = target.id
+	f.goal = {kind = G.REVENGE, target_id = target.id, deadline_hour = 1000.0}
+	house._hour = 10.0
+	house.plan_revenge(k, f, target)
+	var head := s.person(int(f.head_id))
+	assert_eq(head.deed.get("kind", ""), "revenge")
+	assert_true((head.deed.pos as Vector3).distance_to(PeopleManager.door_of(s.building(int(s.person(int(target.head_id)).home_id)))) < 0.01)
+	assert_near(float(target.dishonor), 0.0, 0.001, "not yet")
+	var w := _person("Vizinho", false, 40.0)
+	house.complete_deed(k, head, [w.id], 23.5)
+	assert_true(float(target.dishonor) > 0.0, "done")
+	assert_true(float(f.dishonor) > 0.0, "and seen: the avenger's House is shamed too")
+
+
+func test_secrets_do_not_come_out_by_luck() -> void:
+	var f := _house("Calada", 100.0, 27.0)
+	(f.secrets as Array).append({kind = "skim", res = GameConstants.Res.WOOD, amount = 5, hour = 0.0})
+	for i in 30:
+		_person("Curioso%d" % i, i % 2 == 0, 30.0, [T.SOCIABLE, T.DEVOUT])
+	for day in 30:
+		house._hour = day * 24.0 + GameConstants.DEED_HOUR
+		house._intrigue(k, RandomNumberGenerator.new())
+	assert_eq((f.secrets as Array).size(), 1, "only a witness brings a secret out")

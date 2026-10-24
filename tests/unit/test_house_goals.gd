@@ -108,8 +108,6 @@ func test_corruption_only_greedy() -> void:
 	var fam := _fam(TR.MERCHANTS)
 	assert_eq(HouseRules.corruption_chance(fam, {traits = [T.GENEROUS, T.WORKER]}), 0.0)
 	assert_true(HouseRules.corruption_chance(fam, {traits = [T.GREEDY, T.WORKER]}) > 0.0)
-	assert_true(HouseRules.discovery_chance(4) > HouseRules.discovery_chance(0))
-	assert_true(HouseRules.discovery_chance(100) <= 0.4)
 
 
 func test_spy_targets_rival_only() -> void:

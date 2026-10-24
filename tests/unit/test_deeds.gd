@@ -129,4 +129,4 @@ func test_witness_filter() -> void:
 		{id = 6, family_id = 12, pos = Vector3(GameConstants.DEED_WITNESS_RADIUS + 1.0, 0, 0), adult = true, visible = true},
 		{id = 7, family_id = 12, pos = Vector3(1, 0, 1), adult = true, visible = true}, # part of the deed
 	]
-	assert_eq(PeopleManager.witness_ids(doer, [7], Vector3.ZERO, people), [3])
+	assert_eq(PeopleManager.witness_ids(doer.id, int(doer.family_id), [7], Vector3.ZERO, people), [3])

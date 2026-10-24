@@ -3,7 +3,8 @@ extends RefCounted
 ## The hourly life of the Houses (stage 7), run by VillageSim right after SocietySim for every
 ## kingdom (records only): wealth and craft from work, prestige, vocations that clash with the
 ## House trade and how people leave (friendly / neutral / hostile, openly or running away at night),
-## adoption of orphans. Everything goes to the chronicle; big moments also go to the HUD.
+## adoption of orphans, and the deeds people carry out for their House (see Deeds). Everything
+## goes to the ADM chronicle; the player never sees it on the HUD.
 ## Randomness is seeded by (world seed, tag, kingdom, hour).
 
 const P := GameConstants.Profession
@@ -17,15 +18,14 @@ signal deed_completed(rec: Dictionary, deed: Dictionary, seen: Array)
 var has_node: Callable = func(_id: int) -> bool: return false
 
 var _state: WorldState
-var _say: Callable # (k: Dictionary, text: String)
 var _society: SocietySim
 var _gen: TerrainGenerator
 var _hour := 0.0
 
 
-func setup(state: WorldState, say: Callable, society: SocietySim, gen: TerrainGenerator = null) -> void:
+## `_say` is unused: House events go to the ADM chronicle only.
+func setup(state: WorldState, _say: Callable, society: SocietySim, gen: TerrainGenerator = null) -> void:
 	_state = state
-	_say = say
 	_society = society
 	_gen = gen
 
@@ -127,7 +127,7 @@ func _vocations(k: Dictionary, rng: RandomNumberGenerator) -> void:
 ## out to the edge of the territory at night. `depart` happens when the deed is done.
 func leave(k: Dictionary, f: Dictionary, p: Dictionary, style: Dictionary, data := {}) -> void:
 	var d := data.duplicate()
-	d.merge({style = style, family_id = f.id, secret = bool(style.secret)}, true)
+	d.merge({style = style, family_id = f.id, secret = bool(style.secret), quiet = -1}, true)
 	if style.secret:
 		var w := Deeds.next_window(_hour, GameConstants.DEED_NIGHT.x, GameConstants.DEED_NIGHT.y)
 		plan_deed(p, Deeds.make("runaway", _edge_spot(k, p), GameConstants.PERSON_ARRIVE * 2.0, w.x, w.y,
@@ -280,6 +280,44 @@ func complete_deed(k: Dictionary, p: Dictionary, seen: Array, hour := -1.0) -> v
 			var big := _state.family(int(data.get("big_id", -1)))
 			if not small.is_empty() and not big.is_empty() and small.id != big.id:
 				unite(k, small, big)
+		"skim":
+			var f := _state.family(int(data.get("family_id", -1)))
+			var before := (f.get("secrets", []) as Array).size()
+			if not f.is_empty():
+				skim(k, f)
+			if not seen.is_empty() and not f.is_empty() and (f.secrets as Array).size() > before:
+				_log(k, GameConstants.HOUSE_MSG_SEEN_SKIM % [_witness_name(seen), PersonGen.full_name(p)])
+				expose(k, f, (f.secrets as Array)[-1])
+		"spy_move":
+			var own := _state.family(int(data.get("for_id", -1)))
+			var rival := _state.family(int(data.get("in_id", -1)))
+			if not own.is_empty() and not rival.is_empty() and int(p.get("family_id", -1)) == own.id:
+				plant_spy(k, own, rival, p)
+		"spy_report":
+			if (p.get("secret", {}) as Dictionary).get("kind", "") == "spy":
+				spy_day(k, p)
+				if not seen.is_empty():
+					var own := _state.family(int(p.secret.for_id))
+					_log(k, GameConstants.HOUSE_MSG_SEEN_SPY % [_witness_name(seen), PersonGen.full_name(p), own.get("surname", "?")])
+					expose_spy(k, p)
+		"tryst":
+			if data.has("with") and (p.get("secret", {}) as Dictionary).get("kind", "") == "romance":
+				var other := _state.person(int(data.with))
+				if not seen.is_empty():
+					_log(k, GameConstants.HOUSE_MSG_SEEN_TRYST % [_witness_name(seen), PersonGen.full_name(p),
+							PersonGen.full_name(other) if not other.is_empty() else "?"])
+					expose_romance(k, p)
+				elif not other.is_empty():
+					_state.add_relation(p.id, other.id, GameConstants.TRYST_RELATION_GAIN)
+		"revenge":
+			var f := _state.family(int(data.get("family_id", -1)))
+			var target := _state.family(int(data.get("target_id", -1)))
+			if not f.is_empty() and not target.is_empty():
+				take_revenge(k, f, target)
+				if not seen.is_empty():
+					f.dishonor = float(f.get("dishonor", 0.0)) + GameConstants.SCANDAL_DISHONOR
+					_state.add_relation(int(f.head_id), int(target.head_id), GameConstants.FEUD_RELATION_HIT)
+					_log(k, GameConstants.HOUSE_MSG_SEEN_REVENGE % [_witness_name(seen), PersonGen.full_name(p), target.surname])
 	deed_completed.emit(p, deed, seen)
 
 
@@ -297,12 +335,13 @@ func _offscreen_seen(k: Dictionary, p: Dictionary, deed: Dictionary) -> Array:
 	if not (deed.data as Dictionary).get("secret", false):
 		return []
 	var party: Array = deed.data.get("party", [])
+	var quiet := int(deed.data.get("quiet", p.get("family_id", -1)))
 	var h := fmod(_hour, 24.0)
 	var asleep := h >= GameConstants.SLEEP_START_HOUR or h < GameConstants.SLEEP_END_HOUR
 	var awake := _state.residents(k.id).filter(func(o: Dictionary) -> bool:
 		if o.id == p.id or party.has(o.id) or not SocietyRules.is_adult(o):
 			return false
-		if int(p.get("family_id", -1)) >= 0 and int(o.get("family_id", -1)) == int(p.family_id):
+		if quiet >= 0 and int(o.get("family_id", -1)) == quiet:
 			return false
 		var guard := int(o.profession) == GameConstants.Profession.GUARD and VillageRules.guard_on_duty(h)
 		return guard or not asleep)
@@ -637,7 +676,7 @@ func _pursue(k: Dictionary, f: Dictionary) -> void:
 		G.REVENGE:
 			var target := _state.family(int(f.goal.target_id))
 			if not target.is_empty() and _roll(f.id, "revenge") < GameConstants.REVENGE_PER_DAY:
-				take_revenge(k, f, target)
+				plan_revenge(k, f, target)
 
 
 ## A goal past its deadline is not failed while its work is under way (building, staking).
@@ -740,27 +779,26 @@ func _intrigue(k: Dictionary, rng: RandomNumberGenerator) -> void:
 	for f in _state.families_of(k.id):
 		var head := _state.person(int(f.head_id))
 		if rng.randf() < HouseRules.corruption_chance(f, head) and _is_work_day():
-			skim(k, f)
-		for sec in (f.get("secrets", []) as Array).duplicate():
-			if rng.randf() < HouseRules.discovery_chance(_watchers(k, f.id)):
-				expose(k, f, sec)
+			plan_skim(k, f)
 		var rival := _state.family(int(f.get("rival_id", -1)))
 		if not rival.is_empty() and int((f.goal as Dictionary).get("kind", -1)) in [GameConstants.Goal.SURPASS, GameConstants.Goal.REVENGE] \
 				and _state.relation(int(f.head_id), int(rival.head_id)) < GameConstants.INFILTRATE_AT \
 				and rng.randf() < GameConstants.INFILTRATE_PER_DAY and not _has_spy(f.id, rival.id):
-			plant_spy(k, f, rival)
+			send_spy(k, f, rival)
+	# Secrets come out only when someone sees the deed (see complete_deed).
 	for p in _state.residents(k.id):
 		var sec: Dictionary = p.get("secret", {})
+		if not (p.get("deed", {}) as Dictionary).is_empty():
+			continue
 		match String(sec.get("kind", "")):
 			"spy":
-				spy_day(k, p)
-				if rng.randf() < HouseRules.discovery_chance(_watchers(k, int(sec.in_id))):
-					expose_spy(k, p)
+				if rng.randf() < GameConstants.SPY_REPORT_PER_DAY:
+					plan_spy_report(k, p)
 			"romance":
 				var other := _state.person(int(sec.with))
-				var watchers := _watchers(k, int(p.family_id)) + _watchers(k, int(other.get("family_id", -1)))
-				if p.id < int(sec.with) and rng.randf() < HouseRules.discovery_chance(watchers):
-					expose_romance(k, p)
+				if p.id < int(sec.with) and (other.get("deed", {}) as Dictionary).is_empty() \
+						and rng.randf() < GameConstants.TRYST_PER_DAY:
+					plan_tryst(k, p)
 	_romances(k, rng)
 
 
@@ -899,6 +937,83 @@ func unite(k: Dictionary, small: Dictionary, big: Dictionary) -> void:
 	_log(k, GameConstants.HOUSE_MSG_UNION % [small.surname, big.surname])
 
 
+## Night deeds: the doer sneaks out between DEED_NIGHT hours; data.secret makes witnesses count.
+func _night_deed(p: Dictionary, kind: String, at: Vector3, data: Dictionary, work_sec := GameConstants.DEED_WORK_SEC) -> void:
+	var w := Deeds.next_window(_hour, GameConstants.DEED_NIGHT.x, GameConstants.DEED_NIGHT.y)
+	var d := data.duplicate()
+	d.secret = true
+	plan_deed(p, Deeds.make(kind, at, GameConstants.PERSON_ARRIVE * 1.5, w.x, w.y, work_sec, d))
+
+
+func _free_head(f: Dictionary) -> Dictionary:
+	var head := _state.person(int(f.head_id))
+	return head if not head.is_empty() and (head.get("deed", {}) as Dictionary).is_empty() else {}
+
+
+## The door of the storage nearest the center (the seat's when the kingdom has none).
+func _storage_door(k: Dictionary) -> Vector3:
+	var best := {}
+	for b in VillageRules.kingdom_buildings(_state, k):
+		if b.type == GameConstants.Building.STORAGE and not b.get("site", false) \
+				and (best.is_empty() or (b.pos as Vector3).distance_to(k.center) < (best.pos as Vector3).distance_to(k.center)):
+			best = b
+	if best.is_empty():
+		best = _state.building(int(k.get("seat_id", -1)))
+	return PeopleManager.door_of(best) if not best.is_empty() else k.center
+
+
+## The greedy head goes to the storage at night to take from the kingdom stock.
+func plan_skim(k: Dictionary, f: Dictionary) -> void:
+	var head := _free_head(f)
+	if not head.is_empty():
+		_night_deed(head, "skim", _storage_door(k), {family_id = f.id})
+
+
+## A House member goes to serve in the rival House (by day); the spying starts once moved in.
+func send_spy(k: Dictionary, f: Dictionary, rival: Dictionary) -> bool:
+	var spy := HouseRules.spy_candidate(f, rival, _state.family_members(f.id))
+	if spy.is_empty() or not (spy.get("deed", {}) as Dictionary).is_empty():
+		return false
+	var w := Deeds.next_window(_hour, GameConstants.DEED_DAY.x, GameConstants.DEED_DAY.y)
+	plan_deed(spy, Deeds.make("spy_move", _door_of_house(k, rival), GameConstants.PERSON_ARRIVE * 1.5, w.x, w.y,
+			GameConstants.DEED_WORK_SEC, {for_id = f.id, in_id = rival.id}))
+	return true
+
+
+## The spy sneaks at night to the House that sent them, to tell what they learned.
+func plan_spy_report(k: Dictionary, spy: Dictionary) -> void:
+	var own := _state.family(int(spy.secret.get("for_id", -1)))
+	if not own.is_empty():
+		_night_deed(spy, "spy_report", _door_of_house(k, own), {quiet = own.id})
+
+
+## The two secret lovers meet at night at a spot far from the houses.
+func plan_tryst(k: Dictionary, a: Dictionary) -> void:
+	var b := _state.person(int(a.secret.get("with", -1)))
+	if b.is_empty():
+		return
+	var rng := RandomNumberGenerator.new()
+	rng.seed = hash([_state.seed, "tryst", mini(a.id, b.id), floori(_hour / 24.0)])
+	var dir := Vector3.FORWARD.rotated(Vector3.UP, rng.randf() * TAU)
+	var spot: Vector3 = k.center + dir * float(k.radius) * 0.85
+	spot.y = _gen.height_at(spot.x, spot.z) if _gen else k.center.y
+	_night_deed(a, "tryst", spot, {with = b.id, quiet = -1, party = [b.id]}, GameConstants.DEED_TRYST_SEC)
+	_night_deed(b, "tryst", spot + Vector3(0.8, 0, 0), {follow = a.id, quiet = -1, party = [a.id]}, GameConstants.DEED_TRYST_SEC)
+
+
+## The avenging head goes at night to the target House's home.
+func plan_revenge(k: Dictionary, f: Dictionary, target: Dictionary) -> void:
+	var head := _free_head(f)
+	if not head.is_empty():
+		_night_deed(head, "revenge", _door_of_house(k, target), {family_id = f.id, target_id = target.id})
+
+
+## Who saw a night deed, by name (for the ADM log).
+func _witness_name(seen: Array) -> String:
+	var w := _state.person(int(seen[0]))
+	return PersonGen.full_name(w) if not w.is_empty() else "Alguém"
+
+
 ## A greedy House takes some of the most plentiful resource of the kingdom stock (a secret).
 func skim(k: Dictionary, f: Dictionary) -> void:
 	var res := SocietySim._most([GameConstants.Res.WOOD, GameConstants.Res.STONE, GameConstants.Res.FOOD],
@@ -923,8 +1038,8 @@ func expose(k: Dictionary, f: Dictionary, secret: Dictionary) -> void:
 
 
 ## Plants a member of `f` in the rival House as a household member (cover: "went to serve").
-func plant_spy(k: Dictionary, f: Dictionary, rival: Dictionary) -> bool:
-	var spy := HouseRules.spy_candidate(f, rival, _state.family_members(f.id))
+func plant_spy(k: Dictionary, f: Dictionary, rival: Dictionary, chosen := {}) -> bool:
+	var spy := chosen if not chosen.is_empty() else HouseRules.spy_candidate(f, rival, _state.family_members(f.id))
 	if spy.is_empty():
 		return false
 	spy.family_id = rival.id
@@ -1027,21 +1142,12 @@ func _romances(k: Dictionary, rng: RandomNumberGenerator) -> void:
 
 # --- Intrigue helpers -----------------------------------------------------------------------
 
-## Honest, devout or sociable adults outside House `family_id` who might notice a secret.
-func _watchers(k: Dictionary, family_id: int) -> int:
-	var n := 0
-	for p in _state.residents(k.id):
-		if int(p.get("family_id", -1)) == family_id or not SocietyRules.is_adult(p):
-			continue
-		var traits: Array = p.get("traits", [])
-		if traits.has(GameConstants.Trait.GENEROUS) or traits.has(GameConstants.Trait.DEVOUT) or traits.has(GameConstants.Trait.SOCIABLE):
-			n += 1
-	return n
-
-
 func _has_spy(from_id: int, in_id: int) -> bool:
 	return _state.all_people().any(func(p: Dictionary) -> bool:
 		var sec: Dictionary = p.get("secret", {})
+		var deed: Dictionary = p.get("deed", {})
+		if deed.get("kind", "") == "spy_move": # on the way to serve
+			return int(deed.data.for_id) == from_id and int(deed.data.in_id) == in_id
 		return sec.get("kind", "") == "spy" and int(sec.get("for_id", -1)) == from_id and int(sec.get("in_id", -1)) == in_id)
 
 

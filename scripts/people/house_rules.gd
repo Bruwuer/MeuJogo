@@ -220,10 +220,6 @@ static func corruption_chance(family: Dictionary, head: Dictionary) -> float:
 	return GameConstants.CORRUPTION_BASE + float((family.get("values", {}) as Dictionary).get("wealth", 0.5)) * 0.15 + bonus
 
 
-## Chance per day that a secret (skimming, a spy, a hidden romance) comes out, given how many
-## honest/curious people watch.
-static func discovery_chance(watchers: int) -> float:
-	return minf(GameConstants.DISCOVERY_BASE + GameConstants.DISCOVERY_PER_WATCHER * watchers, GameConstants.DISCOVERY_MAX)
 
 
 ## A member the House could plant in its rival (never the head; prefers loners and the greedy),
