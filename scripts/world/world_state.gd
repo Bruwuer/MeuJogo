@@ -24,6 +24,13 @@ var _buildings: Dictionary[int, Dictionary] = {} # id -> {id, type, pos, rot, co
 var _buildings_by_chunk: Dictionary[Vector2i, PackedInt32Array] = {} # derived index, not saved
 var _kingdoms: Array[Dictionary] = [] # {id, name, color, center, radius, seat_id}
 var _next_building_id := 1
+var _building_hp: Dictionary[int, float] = {} # only damaged buildings
+var _creatures: Dictionary[int, Dictionary] = {} # id -> {id, genome, pos, hp, age, pack_id, hunger}
+var _creatures_by_chunk: Dictionary[Vector2i, PackedInt32Array] = {} # derived index, not saved
+var _next_creature_id := 1
+var _packs: Dictionary[int, Dictionary] = {} # id -> {id, species, den, motives..., leader_id}
+var _next_pack_id := 1
+var _visited: Dictionary[Vector2i, bool] = {} # chunks whose initial creatures were spawned
 
 
 func mark_removed(c: Vector2i, id: int) -> void:
@@ -81,6 +88,7 @@ func remove_building(id: int) -> Dictionary:
 		return {}
 	var rec: Dictionary = _buildings[id]
 	_buildings.erase(id)
+	_building_hp.erase(id)
 	var c := ChunkMath.world_to_chunk(rec.pos)
 	var ids: PackedInt32Array = _buildings_by_chunk.get(c, PackedInt32Array())
 	var i := ids.find(id)
@@ -146,6 +154,12 @@ func save_to(path: String) -> Error:
 		buildings = _buildings.values(),
 		kingdoms = _kingdoms,
 		next_building_id = _next_building_id,
+		building_hp = _building_hp,
+		creatures = _creatures.values(),
+		next_creature_id = _next_creature_id,
+		packs = _packs.values(),
+		next_pack_id = _next_pack_id,
+		visited = _visited.keys(),
 	})
 	if err != OK:
 		return err
@@ -238,9 +252,154 @@ static func _from_dict(data: Dictionary) -> WorldState:
 		s._index_building(rec)
 	s._kingdoms.assign(data.get("kingdoms", []))
 	s._next_building_id = data.get("next_building_id", 1)
+	var hps: Dictionary = data.get("building_hp", {})
+	for id in hps:
+		s._building_hp[id] = hps[id]
+	for rec: Dictionary in data.get("creatures", []):
+		s._creatures[rec.id] = rec
+		s._index_creature(rec)
+	s._next_creature_id = data.get("next_creature_id", 1)
+	for p: Dictionary in data.get("packs", []):
+		s._packs[p.id] = p
+	s._next_pack_id = data.get("next_pack_id", 1)
+	for c in data.get("visited", []):
+		s._visited[c] = true
 	if data.get("version", -1) == GameConstants.WORLDGEN_VERSION:
 		for c in data.get("removed", {}):
 			s._removed[c] = data.removed[c]
 	else:
 		push_warning("WorldState: world generation changed, removed props reset")
 	return s
+
+
+# --- Creatures and packs -------------------------------------------------------------------
+
+func add_creature(genome: Dictionary, pos: Vector3, pack_id: int, age := 1.0) -> Dictionary:
+	var rec := {id = _next_creature_id, genome = genome, pos = pos, hp = float(genome.max_hp), age = age,
+			pack_id = pack_id, hunger = 0.0}
+	_next_creature_id += 1
+	_creatures[rec.id] = rec
+	_index_creature(rec)
+	return rec
+
+
+func remove_creature(id: int) -> Dictionary:
+	if not _creatures.has(id):
+		return {}
+	var rec: Dictionary = _creatures[id]
+	_creatures.erase(id)
+	_unindex_creature(id, rec.pos)
+	return rec
+
+
+func creature(id: int) -> Dictionary:
+	return _creatures.get(id, {})
+
+
+func creatures_in(c: Vector2i) -> Array[Dictionary]:
+	var out: Array[Dictionary] = []
+	for id in _creatures_by_chunk.get(c, PackedInt32Array()):
+		out.append(_creatures[id])
+	return out
+
+
+func all_creatures() -> Array[Dictionary]:
+	var out: Array[Dictionary] = []
+	out.assign(_creatures.values())
+	return out
+
+
+## Updates a creature's position, moving it to another chunk's index when it crosses a border.
+func move_creature(id: int, pos: Vector3) -> void:
+	var rec: Dictionary = _creatures.get(id, {})
+	if rec.is_empty():
+		return
+	if ChunkMath.world_to_chunk(rec.pos) != ChunkMath.world_to_chunk(pos):
+		_unindex_creature(id, rec.pos)
+		rec.pos = pos
+		_index_creature(rec)
+	else:
+		rec.pos = pos
+
+
+func add_pack(species: String, den: Vector3) -> Dictionary:
+	var p := {id = _next_pack_id, species = species, den = den, hunger = 0.0, territory = 0.0, grudge = 0.0,
+			cubs_alarm = 0.0, leader_id = -1, raid_kingdom = -1, next_raid_hour = 0.0}
+	_next_pack_id += 1
+	_packs[p.id] = p
+	return p
+
+
+func pack(id: int) -> Dictionary:
+	return _packs.get(id, {})
+
+
+func all_packs() -> Array[Dictionary]:
+	var out: Array[Dictionary] = []
+	out.assign(_packs.values())
+	return out
+
+
+func pack_members(pack_id: int) -> Array[Dictionary]:
+	var out: Array[Dictionary] = []
+	for rec: Dictionary in _creatures.values():
+		if rec.pack_id == pack_id:
+			out.append(rec)
+	return out
+
+
+func remove_pack(id: int) -> void:
+	_packs.erase(id)
+
+
+func visited(c: Vector2i) -> bool:
+	return _visited.has(c)
+
+
+func mark_visited(c: Vector2i) -> void:
+	_visited[c] = true
+
+
+func _index_creature(rec: Dictionary) -> void:
+	var c := ChunkMath.world_to_chunk(rec.pos)
+	var ids: PackedInt32Array = _creatures_by_chunk.get(c, PackedInt32Array())
+	ids.append(rec.id)
+	_creatures_by_chunk[c] = ids
+
+
+func _unindex_creature(id: int, pos: Vector3) -> void:
+	var c := ChunkMath.world_to_chunk(pos)
+	var ids: PackedInt32Array = _creatures_by_chunk.get(c, PackedInt32Array())
+	var i := ids.find(id)
+	if i >= 0:
+		ids.remove_at(i)
+		_creatures_by_chunk[c] = ids
+
+
+# --- Building health -----------------------------------------------------------------------
+
+func building_hp(id: int) -> float:
+	var rec := building(id)
+	if rec.is_empty():
+		return 0.0
+	return _building_hp.get(id, GameConstants.BUILD_HP[rec.type])
+
+
+func is_seat(id: int) -> bool:
+	return _kingdoms.any(func(k: Dictionary) -> bool: return k.seat_id == id)
+
+
+## Returns true when the building was destroyed (and removed). The seat cabin stops at 1 hp.
+func damage_building(id: int, amount: float) -> bool:
+	if building(id).is_empty():
+		return false
+	var hp := building_hp(id) - amount
+	if is_seat(id):
+		_building_hp[id] = maxf(1.0, hp)
+		return false
+	if hp <= 0.0:
+		_building_hp.erase(id)
+		remove_building(id)
+		return true
+	_building_hp[id] = hp
+	return false

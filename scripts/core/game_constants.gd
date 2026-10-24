@@ -286,6 +286,41 @@ const AVOID_TURN_DEG := 70.0
 const CUB_SIZE := 0.45 ## Size of a newborn relative to an adult.
 const CORPSE_SEC := 3.0 ## Dead creatures lie down this long before disappearing.
 
+# Packs and their motives (all 0..1; rates per in-game hour)
+const TERRITORY_RADIUS := 45.0 ## Around a pack's den.
+const PREY_RADIUS := 70.0 ## Herbivores this close to the den count as the pack's prey.
+const PREY_ENOUGH := 5 ## With this many prey around the pack feeds itself fully.
+const HUNGER_RATE := 0.05
+const PACK_FEED_RATE := 0.08 ## Hunger lost per hour with PREY_ENOUGH prey around.
+const TERRITORY_PER_BUILDING := 0.25 ## Territory motive per building inside the den radius.
+const GRUDGE_PER_KILL := 0.3
+const GRUDGE_PER_CUB := 0.6
+const GRUDGE_PER_HURT := 0.03
+const GRUDGE_DECAY_PER_DAY := 0.5
+const CUB_ALARM_RADIUS := 20.0 ## Player this close to a den with cubs sets off the alarm.
+const CUBS_ALARM_DECAY := 0.5 ## Per hour.
+const MOTIVE_WEIGHTS := { hunger = 0.9, territory = 0.9, grudge = 1.0, cubs = 1.0 }
+const RAID_THRESHOLD := 0.6 ## Weighted motive x (0.5 + aggression) needed to raid.
+const RAID_RANGE := 130.0 ## Packs only raid kingdoms this close to their den.
+const RAID_COOLDOWN_HOURS := 24.0
+const RAID_SATED_HUNGER := 0.35 ## Hunger lost after a raid (they raid food stores).
+const RAID_GRUDGE_KEEP := 0.5 ## Share of grudge left after a raid.
+const OFFSCREEN_RAID_HITS := 8.0 ## Bites per raider when a raid on an unloaded kingdom is summarized.
+## Text shown when a pack raids: (species plural in lower case, kingdom name).
+const RAID_MESSAGES := {
+	hunger = "Os %s famintos rondam o Reino de %s: a caça acabou na região",
+	territory = "Os %s defendem seu território: o Reino de %s foi erguido perto da toca",
+	grudge = "Os %s querem vingança contra o Reino de %s pelos seus mortos",
+	cubs = "Os %s furiosos protegem os filhotes perto do Reino de %s",
+}
+const OFFSCREEN_RAID_MSG := "Enquanto você estava fora, os %s destruíram %s no Reino de %s"
+const OFFSCREEN_RAID_NOTHING_MSG := "Enquanto você estava fora, os %s atacaram o Reino de %s, mas nada caiu"
+## Building hit points; the seat cabin never drops below 1.
+const BUILD_HP := {
+	Building.CABIN: 300.0, Building.CAMPFIRE: 60.0, Building.STORAGE: 250.0,
+	Building.FENCE: 80.0, Building.WELL: 200.0, Building.FLAG: 50.0,
+}
+
 # Day / night
 const DAY_LENGTH_SEC := 480.0 ## One full day-night cycle.
 const START_TIME_OF_DAY := 0.30 ## 0 = midnight, 0.5 = noon.

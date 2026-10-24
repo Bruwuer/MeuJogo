@@ -74,3 +74,13 @@ func test_moonlight_at_midnight() -> void:
 	assert_true(_sun.light_energy > 0.0, "no moonlight at midnight")
 	assert_true(_sun.light_color.b > _sun.light_color.r, "moonlight should be bluish")
 	assert_true((-_sun.global_transform.basis.z).y < -0.5, "moon should shine down at midnight")
+
+
+func test_is_night_and_total_hours() -> void:
+	var dn := _make()
+	_at(dn, 0.1)
+	assert_true(dn.is_night())
+	_at(dn, 0.5)
+	assert_true(not dn.is_night())
+	dn.day = 2
+	assert_near(dn.total_hours(), 2 * 24.0 + 12.0, 0.001)

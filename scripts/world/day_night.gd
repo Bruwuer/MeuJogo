@@ -69,3 +69,12 @@ func apply() -> void:
 func clock_text() -> String:
 	var minutes := int(round(time_of_day * 24.0 * 60.0)) % (24 * 60)
 	return "Dia %d · %02d:%02d" % [day, minutes / 60, minutes % 60]
+
+
+func is_night() -> bool:
+	return sun_elevation() < 0.0
+
+
+## Game hours since the start of day 0 (keeps growing across days).
+func total_hours() -> float:
+	return (day + time_of_day) * 24.0
