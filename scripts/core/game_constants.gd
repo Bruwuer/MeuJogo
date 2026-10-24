@@ -516,3 +516,72 @@ const HOUSE_CAPACITY := { Building.HOUSE: 3, Building.CABIN: 2 }
 const SCAFFOLD_SCENE := "res://assets/models/scaffold.glb" ## Unit frame (1 x 1 x 3 m), scaled to each footprint.
 const SITE_MIN_SCALE := 0.15 ## Height scale of a building model on a site with no progress.
 const PERSON_START_CONTENTMENT := 0.6
+
+# Village rules (1 game hour = DAY_LENGTH_SEC / 24 s)
+const KINGDOM_FOUNDERS := 2 ## The first people to reach a kingdom always stay.
+const KINGDOM_MAX_PEOPLE := 12
+const KINGDOM_STOCK_TARGET := { Res.WOOD: 60, Res.STONE: 30 } ## Villagers gather only below these.
+const BERRY_FOOD_DAYS := 3.0 ## Gatherers pick berries while food lasts less than this.
+const FOOD_PER_DAY := 2 ## Meals a person eats a day (1 food or 1 berry each).
+const HUNGER_PER_HOUR := 1.0 / 24.0 ## Hunger reaches 0.5 (a meal) twice a day.
+const HUNGER_MEAL := 0.5 ## Eats at this hunger; a meal removes as much.
+const FARM_FOOD_PER_DAY := 8.0 ## Planning estimate of one tended farm.
+const RAID_RECENT_HOURS := 48.0
+const FOOD_SAFE_DAYS := 2.0 ## Food for this many days counts as "food stored".
+const PROJECT_FOOD_DAYS := 2.0 ## Below this the farm goes before the house.
+const PROJECT_FARM_PER_PEOPLE := 3 ## Up to one farm per this many residents when food is short.
+const PROJECT_MARKET_AT := 4
+const PROJECT_WELL_AT := 3
+## Stay decision weights (the traveler stays if the sum is > 0).
+const STAY_HOUSE := 0.25
+const STAY_CAMPFIRE := 0.05
+const STAY_NO_SHELTER := -0.3
+const STAY_FOOD := 0.25
+const STAY_NO_FOOD := -0.35
+const STAY_RAID := -0.25
+const FEARFUL_RAID_MULT := 2.0
+const BRAVE_RAID_MULT := 0.5
+const STAY_JOB := 0.1
+const STAY_WELL := 0.05
+const STAY_SMALL := 0.2
+const STAY_SMALL_BELOW := 3
+const STAY_SOCIABLE_PER := 0.05
+const STAY_SOCIABLE_FROM := 3
+const STAY_SOCIABLE_MAX := 0.15
+const STAY_LONER_PER := -0.05
+const STAY_LONER_FROM := 6
+const STAY_OPINION := 0.2
+const STAY_NOISE := 0.1
+## "Ana Ferreira decidiu ficar: <reason>".
+const STAY_REASONS := {
+	founder = "o reino é novo e precisa de gente", house = "há uma casa com vaga",
+	campfire = "dá para dormir junto à fogueira", food = "há comida guardada", job = "há trabalho de %s",
+	well = "há um poço", small = "o reino é pequeno e precisa de gente", sociable = "gosta de um reino animado",
+	opinion = "gosta de você", other = "gostou do lugar",
+}
+## "Bento do Vale seguiu viagem: <reason>".
+const LEAVE_REASONS := {
+	no_shelter = "não há onde morar", no_food = "não há comida", raid = "o reino foi atacado há pouco",
+	loner = "há gente demais", opinion = "desconfia de você", other = "não gostou do lugar",
+}
+## "Carla deixou o Reino de X: <reason>".
+const LEAVE_REASONS_PAST := {
+	hunger = "passava fome", shelter = "não tinha onde morar", raid = "tinha medo dos ataques",
+	other = "não estava feliz",
+}
+## Hourly contentment changes.
+const CONTENT_HUNGRY := -0.04
+const CONTENT_NO_SHELTER := -0.03
+const CONTENT_CAMPFIRE_ONLY := -0.01
+const CONTENT_RAID := -0.02
+const CONTENT_FED := 0.02
+const CONTENT_HOME := 0.01
+const CONTENT_WELL := 0.005
+const CONTENT_MARKET := 0.01
+const LEAVE_CONTENTMENT := 0.25
+const LEAVE_AFTER_HOURS := 24.0
+## Site placement: a deterministic spiral around the kingdom center.
+const SITE_CANDIDATES := 24 ## Places tested per planning hour.
+const SITE_MIN_RADIUS := 9.0
+const SITE_SPIRAL_STEP := 1.2 ## Radius gained per candidate.
+const SITE_GAP := 1.5 ## Free corridor kept around a new site (to other buildings).
