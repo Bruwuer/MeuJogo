@@ -17,7 +17,7 @@ static func generate(rng: RandomNumberGenerator, fame := 0.0, profession := -1) 
 		female = female,
 		age = rng.randi_range(GameConstants.PERSON_AGE.x, GameConstants.PERSON_AGE.y),
 		traits = _traits(rng),
-		profession = rng.randi() % P.size(),
+		profession = GameConstants.TRAVELER_PROFESSIONS[rng.randi() % GameConstants.TRAVELER_PROFESSIONS.size()],
 		looks = {
 			skin = _pick(GameConstants.SKIN_COLORS, rng),
 			hair = _pick(GameConstants.HAIR_COLORS, rng),

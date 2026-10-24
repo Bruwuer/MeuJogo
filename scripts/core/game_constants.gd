@@ -465,11 +465,15 @@ const TRAIT_OPINION := {
 }
 const OPINION_JITTER := 0.2 ## Initial opinion spread (+-).
 const FAME_OPINION_SHARE := 0.5 ## Share of the player's fame a newcomer already believes.
-enum Profession { WOODCUTTER, MASON, FARMER, GATHERER, BUILDER, MERCHANT }
+enum Profession { WOODCUTTER, MASON, FARMER, GATHERER, BUILDER, MERCHANT, GUARD }
+## Trades a traveler can arrive with (guards come only from warrior Houses and vocations).
+const TRAVELER_PROFESSIONS := [Profession.WOODCUTTER, Profession.MASON, Profession.FARMER, Profession.GATHERER,
+		Profession.BUILDER, Profession.MERCHANT]
 const PROFESSION_NAMES := {
 	Profession.WOODCUTTER: ["lenhador", "lenhadora"], Profession.MASON: ["pedreiro", "pedreira"],
 	Profession.FARMER: ["agricultor", "agricultora"], Profession.GATHERER: ["coletor", "coletora"],
 	Profession.BUILDER: ["construtor", "construtora"], Profession.MERCHANT: ["comerciante", "comerciante"],
+	Profession.GUARD: ["guarda", "guarda"],
 }
 const MALE_NAMES := [
 	"Afonso", "Álvaro", "Bento", "Bartolomeu", "Martim", "Gonçalo", "Vasco", "Rodrigo", "Nuno", "Fernão",
@@ -782,3 +786,50 @@ const FAMILY_STANCE_TEXTS := { "ally": "aliada", "enemy": "inimiga", "": "neutra
 const FAMILIES_TITLE := "Famílias do Reino de %s"
 const FAMILIES_EMPTY := "Ainda não há famílias"
 const FAMILIES_REFRESH_SEC := 1.0
+
+# Houses and ambitions (stage 7)
+enum Tradition { WARRIORS, FARMERS, MERCHANTS, BUILDERS, FOREST }
+const TRADITION_NAMES := {
+	Tradition.WARRIORS: "Guerreiros", Tradition.FARMERS: "Lavradores", Tradition.MERCHANTS: "Mercadores",
+	Tradition.BUILDERS: "Construtores", Tradition.FOREST: "Gente da mata",
+}
+## Trades a House expects from its members.
+const TRADITION_PROFESSIONS := {
+	Tradition.WARRIORS: [Profession.GUARD], Tradition.FARMERS: [Profession.FARMER],
+	Tradition.MERCHANTS: [Profession.MERCHANT], Tradition.BUILDERS: [Profession.BUILDER, Profession.MASON],
+	Tradition.FOREST: [Profession.WOODCUTTER, Profession.GATHERER],
+}
+## What a House cares about (0..1), before a little per-House noise.
+const TRADITION_VALUES := {
+	Tradition.WARRIORS: { wealth = 0.3, land = 0.4, prestige = 0.8, faith = 0.4, honor = 0.9 },
+	Tradition.FARMERS: { wealth = 0.4, land = 0.9, prestige = 0.3, faith = 0.6, honor = 0.5 },
+	Tradition.MERCHANTS: { wealth = 0.9, land = 0.3, prestige = 0.6, faith = 0.3, honor = 0.4 },
+	Tradition.BUILDERS: { wealth = 0.5, land = 0.5, prestige = 0.6, faith = 0.4, honor = 0.6 },
+	Tradition.FOREST: { wealth = 0.3, land = 0.6, prestige = 0.3, faith = 0.5, honor = 0.6 },
+}
+const VALUE_NOISE := 0.15
+enum Goal { LAND, UPGRADE, ALLIANCE, SURPASS, REVENGE, WEALTH, HEIR, UNION }
+const GOAL_TEXTS := {
+	Goal.LAND: "conseguir mais terra", Goal.UPGRADE: "melhorar a casa", Goal.ALLIANCE: "aliança por casamento com a Casa %s",
+	Goal.SURPASS: "superar a Casa %s", Goal.REVENGE: "vingar-se da Casa %s", Goal.WEALTH: "juntar riqueza",
+	Goal.HEIR: "formar um herdeiro no ofício", Goal.UNION: "unir-se à Casa %s",
+}
+enum Desire { NONE, LOVE, RICH, PROTECT, LEAVE, SURPASS_PARENT }
+const DESIRE_TEXTS := {
+	Desire.NONE: "", Desire.LOVE: "casar com %s", Desire.RICH: "ficar rico", Desire.PROTECT: "proteger os irmãos",
+	Desire.LEAVE: "sair da Casa", Desire.SURPASS_PARENT: "superar %s",
+}
+const HOUSE_LEVEL_NAMES := ["casa simples", "casa de pedra", "solar"]
+const HOUSE_LEVEL_CAPACITY := [4, 6, 8]
+const UPGRADE_PRICE := [120, 300] ## Wealth to go from level 0 -> 1 and 1 -> 2.
+const PLOT_SIZE := 8.0
+const PLOT_PRICE := 40
+const PLOTS_PER_ADULT := 1 ## A House wants about one plot per adult member.
+const PLOTS_MAX := 6
+const DOWRY := 30
+const BRIBE := 25
+const WEALTH_PER_WORK_HOUR := 0.5 ## Base wealth a working member brings home each hour.
+const SKILL_HOURS_FOR_MAX := 200.0 ## House hours in a trade for the full skill bonus.
+const SKILL_MAX_BONUS := 0.5
+const SKILL_INHERIT := 0.6 ## Share of the House's skill a child following the trade starts with.
+const CHRONICLE_MAX := 200

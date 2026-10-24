@@ -41,6 +41,8 @@ var _person_chunk: Dictionary[int, Vector2i] = {}
 var _next_person_id := 1
 var _families: Dictionary[int, Dictionary] = {} # id -> family (see add_family)
 var _next_family_id := 1
+var _ancestry: Dictionary = {} # person id -> {parents, adopted_by, name, female}: kept after death or departure
+var _chronicle: Array = [] # {hour, text, kingdom_id, public}, oldest first
 var _relations: Dictionary[Vector2i, float] = {} # (lower id, higher id) -> -1..1, symmetric
 ## The player's reputation: average opinion of every resident (-1..1), refreshed hourly.
 var fame := 0.0
@@ -218,6 +220,8 @@ func save_to(path: String) -> Error:
 		families = _families.values(),
 		next_family_id = _next_family_id,
 		relations = _relation_list(),
+		ancestry = _ancestry,
+		chronicle = _chronicle,
 	})
 	if err != OK:
 		return err
@@ -332,6 +336,10 @@ static func _from_dict(data: Dictionary) -> WorldState:
 	s.fame = data.get("fame", 0.0)
 	for fam: Dictionary in data.get("families", []):
 		s._families[fam.id] = fam
+		s._family_defaults(fam)
+	for id in data.get("ancestry", {}):
+		s._ancestry[id] = data.ancestry[id]
+	s._chronicle.assign(data.get("chronicle", []))
 	s._next_family_id = data.get("next_family_id", 1)
 	for r: Array in data.get("relations", []):
 		s._relations[Vector2i(r[0], r[1])] = r[2]
@@ -500,6 +508,7 @@ func remove_person(id: int) -> Dictionary:
 	if not _people.has(id):
 		return {}
 	var rec: Dictionary = _people[id]
+	note_ancestry(rec)
 	_people.erase(id)
 	_unindex_person(id)
 	var spouse: Dictionary = _people.get(int(rec.get("spouse_id", -1)), {})
@@ -512,11 +521,13 @@ func remove_person(id: int) -> Dictionary:
 	return rec
 
 
-## Fields added in stage 6 (records from older saves lack them). `parents` is never cleared: kinship
+## Fields added in stages 6 and 7 (records from older saves lack them). `parents` is never cleared: kinship
 ## still counts after a parent is gone.
 static func person_defaults(p: Dictionary) -> void:
 	var defaults := {family_id = -1, spouse_id = -1, parents = [], stance = "", last_birth_hour = -1e9,
-			talk_day = -1, deed_day = -1, widowed = false}
+			talk_day = -1, deed_day = -1, widowed = false,
+			vocation = -1, desire = {kind = GameConstants.Desire.NONE, target_id = -1}, resentment = 0.0,
+			secret = {}, adopted_by = []}
 	for key in defaults:
 		if not p.has(key):
 			p[key] = defaults[key]
@@ -532,6 +543,7 @@ func add_family(surname: String, crest: Dictionary, kingdom_id: int, head_id: in
 			last_split_hour = hour}
 	_next_family_id += 1
 	_families[f.id] = f
+	_family_defaults(f)
 	return f
 
 
@@ -714,3 +726,62 @@ func add_progress(id: int, work_hours: float, hour: float) -> bool:
 	for key in ["site", "progress", "reserved", "started_hour", "worked_hour"]:
 		rec.erase(key)
 	return true
+
+
+# --- Houses (stage 7): defaults, ancestry, chronicle ----------------------------------------
+
+## Fields a House gets in stage 7 (also fills families from older saves). The tradition follows
+## the head's trade when there is one.
+func _family_defaults(f: Dictionary) -> void:
+	if not f.has("tradition"):
+		var head := person(int(f.get("head_id", -1)))
+		f.tradition = tradition_of_profession(int(head.get("profession", -1)))
+	if not f.has("values"):
+		f.values = (GameConstants.TRADITION_VALUES[f.tradition] as Dictionary).duplicate()
+	var defaults := {wealth = 0.0, plots = [], skill = {}, prestige = 0.0, goal = {}, rival_id = -1,
+			known_secrets = []}
+	for key in defaults:
+		if not f.has(key):
+			f[key] = defaults[key].duplicate() if defaults[key] is Array or defaults[key] is Dictionary else defaults[key]
+
+
+## The tradition whose expected trades include `profession` (FOREST when none does).
+static func tradition_of_profession(profession: int) -> int:
+	for t in GameConstants.TRADITION_PROFESSIONS:
+		if (GameConstants.TRADITION_PROFESSIONS[t] as Array).has(profession):
+			return t
+	return GameConstants.Tradition.FOREST
+
+
+## Remembers who someone's parents are, so kinship survives deaths and departures.
+func note_ancestry(p: Dictionary) -> void:
+	_ancestry[p.id] = {parents = (p.get("parents", []) as Array).duplicate(),
+			adopted_by = (p.get("adopted_by", []) as Array).duplicate(), name = p.get("name", ""),
+			female = p.get("female", false)}
+
+
+## A living person's record, or what is remembered of someone gone ({} if unknown).
+func ancestry(id: int) -> Dictionary:
+	var p := person(id)
+	if not p.is_empty():
+		return p
+	return _ancestry.get(id, {})
+
+
+func chronicle_add(hour: float, text: String, kingdom_id: int, public := true) -> void:
+	_chronicle.append({hour = hour, text = text, kingdom_id = kingdom_id, public = public})
+	var count := 0
+	for e: Dictionary in _chronicle:
+		if e.kingdom_id == kingdom_id:
+			count += 1
+	if count > GameConstants.CHRONICLE_MAX:
+		for i in _chronicle.size():
+			if _chronicle[i].kingdom_id == kingdom_id:
+				_chronicle.remove_at(i)
+				break
+
+
+## The last `n` public entries of a kingdom, oldest first.
+func chronicle(kingdom_id: int, n: int) -> Array:
+	var out := _chronicle.filter(func(e: Dictionary) -> bool: return e.kingdom_id == kingdom_id and e.public)
+	return out.slice(maxi(0, out.size() - n))
