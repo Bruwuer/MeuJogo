@@ -119,3 +119,21 @@ cair se o chunk descarregar, e com 40 criaturas ativas uma criatura próxima nã
 
 **Capturas:** `18_traveler_arrives`, `19_village_working`, `20_site_rising`, `21_person_card` e
 `22_village_night`.
+
+**Revisão final (subagente opus):** nenhum problema crítico. Foram corrigidos, cada um com um teste que
+falhava antes, cinco pontos importantes e um bug achado nas capturas:
+- viajantes que se repetiam depois de recarregar o jogo;
+- profissões paradas quando acabavam as rochas ou árvores por perto (agora ajudam na obra);
+- a salvaguarda de pessoa presa, que podia pôr alguém dentro de uma construção;
+- obras que podiam emparedar o jogador ou um morador;
+- reinos de saves antigos sem estoque inicial, que nunca cresciam;
+- o erro do agricultor ativo antes da primeira hora resumida (achado nas capturas).
+
+Ficaram para depois doze pontos menores, listados no ledger. Os principais:
+- trabalho perdido quando o resumo corta uma árvore que alguém está cortando;
+- o custo por pessoa a cada decisão;
+- falta uma mensagem de "viajante chegando";
+- a doação de 1 fruta já rende opinião cheia;
+- a fila de notícias não tem limite.
+
+Suíte: 342 testes passando.
