@@ -118,7 +118,7 @@ func test_goal_success_event() -> void:
 	f.goal = {kind = G.WEALTH, target_id = -1, deadline_hour = 1000.0}
 	f.wealth = GameConstants.WEALTH_COMFORT + 1.0
 	house.tick_hour(k, _daily(1))
-	assert_true(s.chronicle(k.id, 20).any(func(e: Dictionary) -> bool: return (e.text as String).contains("conseguiu")))
+	assert_true(s.chronicle(k.id, 20).any(func(e: Dictionary) -> bool: return e.text == "A Casa Souto alcançou o objetivo de juntar riqueza"))
 	assert_true(f.goal.is_empty() or f.goal.kind != G.WEALTH, "a reached goal is replaced")
 
 
@@ -129,7 +129,7 @@ func test_goal_failure_is_a_broken_expectation() -> void:
 	member.contentment = 0.6
 	f.goal = {kind = G.UPGRADE, target_id = -1, deadline_hour = 10.0, start_level = 0}
 	house.tick_hour(k, _daily(2))
-	assert_true(s.chronicle(k.id, 20).any(func(e: Dictionary) -> bool: return (e.text as String).contains("não conseguiu")))
+	assert_true(s.chronicle(k.id, 20).any(func(e: Dictionary) -> bool: return e.text == "A Casa Pinto desistiu de melhorar a casa"))
 	assert_true(member.contentment < 0.6, "members are let down")
 
 

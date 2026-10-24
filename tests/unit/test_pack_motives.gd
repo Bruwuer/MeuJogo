@@ -193,3 +193,19 @@ func test_raid_skipped_when_pack_cannot_reach() -> void:
 	sim.tick_hours(1.0)
 	assert_eq(raids, [], "phantom raid announced")
 	assert_eq(p.raid_kingdom, -1)
+
+
+func test_plot_stakes_are_no_building_for_packs() -> void:
+	var s := WorldState.new()
+	var k := s.add_kingdom("Valdemar", Color.RED, Vector3(100, 0, 100), -1)
+	var p := s.add_pack("lobo", Vector3(110, 0, 100))
+	s.add_creature(_genome("lobo", 1), Vector3(110, 0, 100), p.id)
+	var stake := s.add_building(GameConstants.Building.STAKE, Vector3(104, 0, 100), 0)
+	var sim := PackSim.new()
+	add_child(sim)
+	sim.setup(s, null)
+	assert_eq(sim._context(p, s.pack_members(p.id)).buildings_in_territory, 0, "stakes mark land, they do not anger a pack")
+	assert_true(not PackSim.is_raid_target(stake, k), "nor are they raided")
+	var fence := s.add_building(GameConstants.Building.FENCE, Vector3(104, 0, 104), 0)
+	assert_true(PackSim.is_raid_target(fence, k))
+	sim.queue_free()

@@ -89,6 +89,15 @@ docs/superpowers/     specs/ e plans/
     reino e hora). Brasões são desenhados por código (`Crest`, imagem 32 × 40); o estandarte do Blender
     (`crest_banner`) recebe a textura e fica no canto da casa que a câmera vê. Crianças não trabalham, não
     casam e nunca vão embora sozinhas.
+16. **O jogador não sabe de tudo.** Nenhum evento do reino vai para o HUD (viajantes, nascimentos, casamentos,
+    mortes, ataques, intrigas). Tudo vai para a crônica (`WorldState.chronicle_add`, segredos com
+    `public = false`) e para o log do ADM (`AdminLog`, `user://adm_log.txt`). O HUD só mostra o que é do
+    jogador. Painéis do ADM: F9 (crônica com segredos) e F10 (Casas), fora da dica de teclas.
+17. **Decisões das Casas acontecem de verdade.** Viram um feito (`person.deed`, ver `Deeds`): a pessoa anda até
+    o lugar numa janela de horas e trabalha ali; só então o efeito acontece (`HouseSim.complete_deed`). Sem nó,
+    o feito é resumido na hora em que começa. Segredos só vêm à tona por testemunhas (adultos acordados de fora
+    da Casa, perto do feito; fora da tela, sorteio por quem está acordado). Casamento e filhos só entre homem e
+    mulher; romance do mesmo sexo é segredo malvisto (escândalo se descoberto).
 
 ## Comandos
 
@@ -98,8 +107,8 @@ docs/superpowers/     specs/ e plans/
 - Abrir o editor: `powershell -ExecutionPolicy Bypass -File tools/godot.ps1 -e`
 - Começar um mundo novo (apaga o save): `powershell -ExecutionPolicy Bypass -File tools/new_world.ps1`
 - Controles: WASD anda, Shift corre, E fala com quem está perto (cartão com família, brasão e relações) ou coleta (árvore 4 golpes = 3 madeira,
-  rocha 5 = 2 pedra, arbusto 1 = 2 frutas), G doa ao reino (até 10 de madeira, pedra e frutas), C abre e fecha o
-  painel de famílias do reino
+  rocha 5 = 2 pedra, arbusto 1 = 2 frutas), G doa ao reino (até 10 de madeira, pedra e frutas).
+  Só para o ADM (desenvolvimento): F9 crônica do reino com segredos, F10 Casas do reino
 - Construção: B liga/desliga, 1–5 escolhe (Cabana, Fogueira, Depósito, Cerca, Poço), R gira, clique ou E constrói,
   Esc ou clique direito sai; X demole (devolve 50 %). A primeira Cabana funda o reino.
 - Combate (só teclado): Espaço ataca para onde o personagem olha, 1/2/3 escolhem Espada/Lança/Arco, Q troca,

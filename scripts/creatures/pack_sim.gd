@@ -81,8 +81,7 @@ func resolve_offscreen_raid(pack: Dictionary, kingdom: Dictionary) -> Array[Stri
 	strength = raid_strength(strength, guards)
 	var center: Vector3 = kingdom.center
 	var targets := _state.all_buildings().filter(func(b: Dictionary) -> bool:
-		return b.id != kingdom.seat_id and b.type != GameConstants.Building.FLAG and b.type != GameConstants.Building.STAKE \
-				and not b.get("site", false) and _flat_dist(b.pos, center) <= kingdom.radius)
+		return b.id != kingdom.seat_id and is_raid_target(b, kingdom) and _flat_dist(b.pos, center) <= kingdom.radius)
 	var den: Vector3 = pack.den
 	targets.sort_custom(func(a: Dictionary, b: Dictionary) -> bool: return _flat_dist(a.pos, den) < _flat_dist(b.pos, den))
 	var destroyed: Array[String] = []
@@ -143,7 +142,7 @@ func _context(pack: Dictionary, members: Array) -> Dictionary:
 			prey += GameConstants.UNVISITED_CHUNK_PREY
 	var buildings := 0
 	for b: Dictionary in _state.all_buildings():
-		if _flat_dist(b.pos, den) <= GameConstants.TERRITORY_RADIUS:
+		if b.type != GameConstants.Building.STAKE and _flat_dist(b.pos, den) <= GameConstants.TERRITORY_RADIUS:
 			buildings += 1
 	var cubs := members.filter(func(m: Dictionary) -> bool: return float(m.age) < 1.0).size()
 	var near := is_instance_valid(player) and _flat_dist(player.global_position, den) <= GameConstants.CUB_ALARM_RADIUS
@@ -170,6 +169,11 @@ static func _join(names: Array[String]) -> String:
 	if names.size() == 1:
 		return names[0]
 	return ", ".join(names.slice(0, names.size() - 1)) + " e " + names[-1]
+
+
+## What raiders go for (the seat aside): not the flag, plot stakes or unfinished sites.
+static func is_raid_target(b: Dictionary, _kingdom: Dictionary) -> bool:
+	return b.type != GameConstants.Building.FLAG and b.type != GameConstants.Building.STAKE and not b.get("site", false)
 
 
 ## Strength of a summarized raid after the kingdom's guards fight back.

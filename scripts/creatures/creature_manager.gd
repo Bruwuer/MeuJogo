@@ -314,7 +314,7 @@ func _raid_target(pack: Dictionary, from: Vector3) -> Dictionary:
 	var best := {}
 	var best_d := INF
 	for b in _state.all_buildings():
-		if b.type == GameConstants.Building.FLAG or b.id == kingdom.seat_id or b.get("site", false):
+		if b.id == kingdom.seat_id or not PackSim.is_raid_target(b, kingdom):
 			continue
 		if PackSim._flat_dist(b.pos, kingdom.center) > kingdom.radius:
 			continue
