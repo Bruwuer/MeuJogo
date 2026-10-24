@@ -764,3 +764,6 @@ const SOCIETY_MSG_THEFT := "%s roubou %d de %s de você"
 const DONATE_FULL_AT := 10 ## Resources given at once for the full opinion gain.
 const VILLAGE_NEWS_MAX := 40 ## News kept for the player's return (the oldest go first).
 const VILLAGE_MSG_APPROACH := "Um viajante se aproxima do Reino de %s"
+const CREST_BANNER_SCENE := "res://assets/models/crest_banner.glb"
+## Banner beside a house: local offset from the footprint corner on the door (+Z) side, outward.
+const CREST_BANNER_GAP := Vector2(0.35, 0.4)

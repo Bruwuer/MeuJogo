@@ -1,7 +1,7 @@
 """Low-poly buildings: one joined mesh per building, origin at the footprint center on the ground,
 front (door) facing -Y in Blender (= +Z in Godot). Footprints match GameConstants.BUILD_FOOTPRINT.
 
-    blender -b --factory-startup --python tools/blender/buildings.py -- <cabin|campfire|storage|fence|well|flag|house|farm|market|scaffold> <out.glb>
+    blender -b --factory-startup --python tools/blender/buildings.py -- <cabin|campfire|storage|fence|well|flag|house|farm|market|scaffold|crest_banner> <out.glb>
 """
 import math
 import os
@@ -217,8 +217,59 @@ def scaffold():
     return parts
 
 
+
+
+CREST_W = 0.6  # cloth width (m); its shape matches Crest's pixel mask (32 x 40)
+CREST_H = 0.75
+CREST_SPLIT = 22.0 / 40.0  # where the straight sides start curving into the point
+
+
+def crest_banner():
+    """Family banner: pole, crossbar and a shield-shaped cloth (material `crest`, UV 0..1 over the
+    crest image) facing -Y (Godot +Z). Godot paints the family's crest on the cloth."""
+    pole = common.flat_material("pole", POLE)
+    cloth = common.flat_material("crest", BANNER)
+    parts = [
+        cylinder("pole", 0.04, 2.4, (0, 0, 1.2), pole, segments=6),
+        box("bar", (0.75, 0.04, 0.04), (0.36, 0, 2.3), pole),
+        cylinder("finial", 0.07, 0.12, (0, 0, 2.46), pole, segments=6, radius_top=0.0),
+    ]
+    top, cx = 2.27, 0.38
+    outline = [(0.0, 0.0), (1.0, 0.0)]  # (u, v) of the image, v down
+    steps = 8
+    for k in range(steps + 1):
+        v = CREST_SPLIT + (1.0 - CREST_SPLIT) * k / steps
+        t = (v - CREST_SPLIT) / (1.0 - CREST_SPLIT)
+        outline.append((0.5 + 0.5 * (1.0 - t * t), v))
+    for k in range(steps - 1, -1, -1):
+        v = CREST_SPLIT + (1.0 - CREST_SPLIT) * k / steps
+        t = (v - CREST_SPLIT) / (1.0 - CREST_SPLIT)
+        outline.append((0.5 - 0.5 * (1.0 - t * t), v))
+    bm = bmesh.new()
+    uv = bm.loops.layers.uv.new("UVMap")
+    verts = []
+    for u, v in outline:
+        verts.append(bm.verts.new((cx + (u - 0.5) * CREST_W, -0.03, top - v * CREST_H)))
+    # Drop the duplicated point at the tip.
+    face_verts = []
+    for vert in verts:
+        if not face_verts or (vert.co - face_verts[-1].co).length > 1e-5:
+            face_verts.append(vert)
+    if (face_verts[0].co - face_verts[-1].co).length < 1e-5:
+        face_verts.pop()
+    face = bm.faces.new(face_verts)
+    bm.normal_update()
+    if face.normal.y > 0:  # face the front (-Y)
+        face.normal_flip()
+    for loop in face.loops:
+        co = loop.vert.co
+        loop[uv].uv = ((co.x - cx) / CREST_W + 0.5, (co.z - (top - CREST_H)) / CREST_H)  # glTF flips v
+    parts.append(common.mesh_object("cloth", bm, (0, 0, 0), cloth))
+    return parts
+
+
 BUILDERS = {"cabin": cabin, "campfire": campfire, "storage": storage, "fence": fence, "well": well, "flag": flag,
-            "house": house, "farm": farm, "market": market, "scaffold": scaffold}
+            "house": house, "farm": farm, "market": market, "scaffold": scaffold, "crest_banner": crest_banner}
 
 if __name__ == "__main__":
     argv = sys.argv[sys.argv.index("--") + 1:]

@@ -43,10 +43,16 @@ func setup(state: WorldState, gen: TerrainGenerator, scatter: PropScatter, strea
 	sim.message.connect(func(t: String) -> void: message.emit(t))
 	sim.site_opened.connect(_show_building)
 	sim.site_finished.connect(_refresh_building)
+	sim.site_finished.connect(func(_r: Dictionary) -> void: refresh_crests())
+	sim.families_changed.connect(refresh_crests)
+	sim.person_born.connect(func(_r: Dictionary) -> void: _fill())
+	sim.person_died.connect(func(r: Dictionary) -> void: _free_node(r.id))
 	sim.site_abandoned.connect(_hide_building)
 	sim.prop_removed.connect(_remove_prop)
 	sim.traveler_spawned.connect(func(_r: Dictionary) -> void: _fill())
-	streamer.chunk_loaded.connect(func(_c: Vector2i) -> void: _fill())
+	streamer.chunk_loaded.connect(func(_c: Vector2i) -> void:
+		_fill()
+		refresh_crests())
 	streamer.chunk_unloaded.connect(_on_chunk_unloaded)
 
 
@@ -113,6 +119,7 @@ func _sync() -> void:
 		if not _streamer.is_loaded(ChunkMath.world_to_chunk(n.global_position)):
 			_free_node(id)
 	_fill()
+	refresh_crests() # catches any owner change the signals did not announce
 
 
 func sync_all() -> void:
@@ -201,6 +208,8 @@ func person_context(n: Person) -> Dictionary:
 	if not home.is_empty():
 		me.home_pos = home.pos
 		me.door_pos = door_of(home)
+		if not SocietyRules.is_adult(rec):
+			ctx.seat_pos = me.door_pos # children play by their front door
 	me.raid = _state.all_packs().any(func(p: Dictionary) -> bool: return p.raid_kingdom == k.id)
 	me.threat_pos = _threat(n)
 	if rec.status == "resident" and me.is_work_time and not me.raid:
@@ -561,3 +570,23 @@ static func donation_opinion(total: int) -> float:
 ## The player talked to `rec` (E): once a game day it changes the person's opinion by temper.
 func talked_to(rec: Dictionary) -> void:
 	SocietyRules.talk(rec, floori(_sim.now_hours() / 24.0))
+
+
+## Every loaded house owned by a person shows that person's family crest on its banner.
+## Idempotent and cheap (Chunk.set_crest skips unchanged banners).
+func refresh_crests() -> void:
+	for b in _state.all_buildings():
+		if b.type != B.HOUSE or b.get("site", false):
+			continue
+		var chunk := _chunk_of(b.pos)
+		if chunk:
+			chunk.set_crest(b, house_crest(_state, b))
+
+
+## The crest of the family of a house's owner, or {} (kingdom or player houses, no family).
+static func house_crest(state: WorldState, b: Dictionary) -> Dictionary:
+	var owner := int(b.get("owner", GameConstants.OWNER_PLAYER))
+	if owner < 0:
+		return {}
+	var fam := state.family(int(state.person(owner).get("family_id", -1)))
+	return fam.get("crest", {})

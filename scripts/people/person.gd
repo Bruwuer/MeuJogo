@@ -62,7 +62,7 @@ func setup(rec: Dictionary, library: ModelLibrary, mgr: Node) -> void:
 	if scene:
 		_model = scene.instantiate() as Node3D
 		_model.name = "Model"
-		_model.scale = Vector3.ONE * h
+		_model.scale = Vector3.ONE * body_scale(rec)
 		add_child(_model)
 		_recolor()
 		var players := _model.find_children("*", "AnimationPlayer", true, false)
@@ -159,6 +159,10 @@ func _physics_process(delta: float) -> void:
 
 
 func _think() -> void:
+	if _model:
+		var s := body_scale(record)
+		if absf(_model.scale.x - s) > 0.001: # children grow
+			_model.scale = Vector3.ONE * s
 	var me := {
 		pos = global_position, status = record.status, job = record.get("job", ""),
 		carrying = record.get("carrying", {}), home_pos = null, door_pos = null, is_work_time = false,
@@ -320,3 +324,9 @@ func _recolor() -> void:
 				_materials[key] = mat
 			mi.set_surface_override_material(s, _materials[key])
 			_overrides[slot] = _materials[key]
+
+
+## Model scale: the adult height, smaller for children (growing with age).
+static func body_scale(rec: Dictionary) -> float:
+	var grown := clampf(float(rec.age) / GameConstants.ADULT_AGE, 0.0, 1.0)
+	return float(rec.looks.height) * lerpf(GameConstants.CHILD_MIN_SCALE, 1.0, grown)

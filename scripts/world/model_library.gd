@@ -18,6 +18,7 @@ var _weapons: Dictionary[int, PackedScene] = {} # Weapon -> scene (own materials
 var _arrow: PackedScene
 var _scaffold: PackedScene
 var _person: PackedScene # humanoid for villagers (own materials: recolored per person)
+var _crest: PackedScene # family banner (own materials: the cloth gets the crest texture)
 var _queue: Array[Array] = [] # [kind ("prop" | "building" | "part" | "weapon" | "arrow" | "scaffold" | "person"), key, path] not requested yet
 var _current: Array = [] # entry being loaded, [] = none
 var _started := false
@@ -36,6 +37,7 @@ func start_loading() -> void:
 	_queue.append(["arrow", 0, GameConstants.ARROW_SCENE])
 	_queue.append(["scaffold", 0, GameConstants.SCAFFOLD_SCENE])
 	_queue.append(["person", 0, GameConstants.HUMANOID_SCENE])
+	_queue.append(["crest", 0, GameConstants.CREST_BANNER_SCENE])
 	_request_next()
 
 
@@ -90,7 +92,7 @@ func _process(_delta: float) -> void:
 		var scene: PackedScene = ResourceLoader.load_threaded_get(path)
 		var root := scene.instantiate()
 		var meshes := root.find_children("*", "MeshInstance3D", true, false)
-		if not (_current[0] in ["weapon", "arrow", "person"]): # held items and people keep their own materials
+		if not (_current[0] in ["weapon", "arrow", "person", "crest"]): # held items and people keep their own materials
 			for mi: MeshInstance3D in meshes:
 				_use_occlusion_shader(mi.mesh)
 		if _current[0] == "prop":
@@ -100,6 +102,8 @@ func _process(_delta: float) -> void:
 			_weapons[_current[1]] = scene
 		elif _current[0] == "scaffold":
 			_scaffold = scene
+		elif _current[0] == "crest":
+			_crest = scene
 		elif _current[0] == "person":
 			_person = scene
 		elif _current[0] == "arrow":
@@ -128,3 +132,7 @@ func _use_occlusion_shader(mesh: Mesh) -> void:
 		if src and src.emission_enabled:
 			mat.set_shader_parameter("emission", src.emission * src.emission_energy_multiplier)
 		mesh.surface_set_material(s, mat)
+
+
+func crest_scene() -> PackedScene:
+	return _crest

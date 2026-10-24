@@ -144,3 +144,36 @@ func test_scaffold_and_person_in_library() -> void:
 		assert_true(not inst.find_children("*", "AnimationPlayer", true, false).is_empty(), "person has no animations")
 		inst.free()
 	lib.queue_free()
+
+
+func test_crest_banner_model() -> void:
+	if not ResourceLoader.exists(GameConstants.CREST_BANNER_SCENE):
+		failures.append("%s missing: run tools/build_models.ps1" % GameConstants.CREST_BANNER_SCENE)
+		return
+	var n: Node3D = load(GameConstants.CREST_BANNER_SCENE).instantiate()
+	add_child(n)
+	var box := _aabb(n)
+	assert_near(box.size.y, 2.5, 0.2, "banner height")
+	var found := false
+	for mi: MeshInstance3D in n.find_children("*", "MeshInstance3D", true, false):
+		for s in mi.mesh.get_surface_count():
+			if mi.mesh.surface_get_material(s).resource_name != "crest":
+				continue
+			found = true
+			var arrays := mi.mesh.surface_get_arrays(s)
+			var uvs: PackedVector2Array = arrays[Mesh.ARRAY_TEX_UV]
+			var verts: PackedVector3Array = arrays[Mesh.ARRAY_VERTEX]
+			assert_true(uvs.size() == verts.size() and uvs.size() >= 6, "cloth has UVs")
+			var lo := Vector2(INF, INF)
+			var hi := Vector2(-INF, -INF)
+			var top_y := -INF
+			var top_v := 0.0
+			for i in uvs.size():
+				lo = lo.min(uvs[i])
+				hi = hi.max(uvs[i])
+				if verts[i].y > top_y:
+					top_y = verts[i].y
+					top_v = uvs[i].y
+			assert_true(lo.distance_to(Vector2.ZERO) < 0.02 and hi.distance_to(Vector2.ONE) < 0.02, "UV spans 0..1 (%s %s)" % [lo, hi])
+			assert_near(top_v, 0.0, 0.02, "image top at the cloth top")
+	assert_true(found, "a surface named crest")

@@ -230,3 +230,35 @@ func _rebuild_type(type: int) -> void:
 	mmi.multimesh.instance_count = transforms.size()
 	for i in transforms.size():
 		mmi.multimesh.set_instance_transform(i, transforms[i])
+
+
+func building_node(id: int) -> Node3D:
+	return _buildings.get(id)
+
+
+## Shows `crest` on a banner beside the building's front corner ({} removes it). Does nothing when
+## the banner already shows that crest. The chunk knows nothing about families: PeopleManager calls it.
+func set_crest(rec: Dictionary, crest: Dictionary) -> void:
+	var node: Node3D = _buildings.get(rec.id)
+	if node == null:
+		return
+	var key := Crest.key(crest) if not crest.is_empty() else ""
+	var old := node.get_node_or_null("Crest")
+	if old and old.get_meta("crest_key", "") == key:
+		return
+	if old:
+		node.remove_child(old)
+		old.queue_free()
+	if key == "" or _library.crest_scene() == null:
+		return
+	var banner := _library.crest_scene().instantiate() as Node3D
+	banner.name = "Crest"
+	banner.set_meta("crest_key", key)
+	var fp: Vector2 = GameConstants.BUILD_FOOTPRINT[rec.type]
+	banner.position = Vector3(fp.x * 0.5 + GameConstants.CREST_BANNER_GAP.x, 0.0, fp.y * 0.5 - GameConstants.CREST_BANNER_GAP.y)
+	for mi: MeshInstance3D in banner.find_children("*", "MeshInstance3D", true, false):
+		for s in mi.mesh.get_surface_count():
+			var mat := mi.mesh.surface_get_material(s)
+			if mat and mat.resource_name == "crest":
+				mi.set_surface_override_material(s, Crest.material(crest))
+	node.add_child(banner)
