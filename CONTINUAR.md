@@ -24,7 +24,8 @@ primeiro e atualizá-lo ao concluir cada tarefa** (seção "Estado atual").
   - Branch `etapa-4` criado a partir do `main`.
   - Design escrito e commitado: `docs/superpowers/specs/2026-10-24-etapa-4-criaturas-combate-design.md`
     (ainda sem revisão do design).
-  - Próximo passo: revisão do design por subagente → plano → execução.
+  - Design revisado (seção 7), plano em `docs/superpowers/plans/2026-10-24-etapa-4-criaturas-combate.md`.
+  - Execução: ver ledger `.superpowers/sdd/2026-10-24-etapa-4-criaturas-combate/progress.md` (linhas `Task N: complete`).
 - Etapas 5 a 9: não iniciadas (ver roadmap no `CLAUDE.md`).
 
 ## Execução automática
