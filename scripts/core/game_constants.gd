@@ -166,6 +166,68 @@ const LAYER_OBSTACLES := 2 ## Trees, rocks and buildings.
 const KINGDOM_RADIUS := 40.0
 const FOUNDING_TOAST_SEC := 5.0
 
+# Creatures: body parts, diets and species (genome templates)
+enum Body { CANINE, BULKY, LIZARD, DEER }
+enum Head { WOLF, BEAR, BOAR, DEER, LIZARD, HORNED }
+enum Legs { THIN, THICK, CLAWED }
+enum Tail { BUSHY, STUB, LONG, SPIKED, NONE }
+enum Extra { NONE, ANTLERS, HORNS, SPIKES, MANE }
+enum Diet { HERBIVORE, CARNIVORE }
+const MUTATION_CHANCE := 0.05 ## Per gene, when two creatures have a cub.
+const MUTATION_SPREAD := 0.15 ## Numeric genes mutate by up to +-15 %.
+const HYBRID_COMPATIBILITY := 0.3 ## Chance factor for close species to breed.
+## Ranges are Vector2(min, max) (Vector2i for pack size). Biome weights drive spawning.
+const SPECIES := {
+	"lobo": { name = "Lobo", invented = false, body = Body.CANINE, head = Head.WOLF, legs = Legs.THIN,
+		tail = Tail.BUSHY, extra = Extra.NONE, size = Vector2(0.9, 1.15),
+		color_a = Color(0.45, 0.43, 0.40), color_b = Color(0.78, 0.75, 0.70), color_jitter = 0.08,
+		diet = Diet.CARNIVORE, aggression = Vector2(0.5, 0.75), pack = Vector2i(3, 5), speed = Vector2(5.5, 7.0),
+		hp = Vector2(40, 55), damage = Vector2(8, 12), perception = 22.0, nocturnal = false, territorial = true,
+		biomes = { Biome.FOREST: 0.5, Biome.PLAINS: 0.35, Biome.ROCKY: 0.15 } },
+	"urso": { name = "Urso", invented = false, body = Body.BULKY, head = Head.BEAR, legs = Legs.THICK,
+		tail = Tail.STUB, extra = Extra.NONE, size = Vector2(1.1, 1.4),
+		color_a = Color(0.36, 0.24, 0.15), color_b = Color(0.25, 0.17, 0.11), color_jitter = 0.06,
+		diet = Diet.CARNIVORE, aggression = Vector2(0.4, 0.7), pack = Vector2i(1, 1), speed = Vector2(4.5, 5.5),
+		hp = Vector2(120, 160), damage = Vector2(18, 26), perception = 18.0, nocturnal = false, territorial = true,
+		biomes = { Biome.FOREST: 0.5, Biome.ROCKY: 0.4 } },
+	"javali": { name = "Javali", invented = false, body = Body.BULKY, head = Head.BOAR, legs = Legs.THIN,
+		tail = Tail.STUB, extra = Extra.NONE, size = Vector2(0.6, 0.8),
+		color_a = Color(0.30, 0.24, 0.20), color_b = Color(0.45, 0.38, 0.30), color_jitter = 0.06,
+		diet = Diet.HERBIVORE, aggression = Vector2(0.5, 0.8), pack = Vector2i(2, 4), speed = Vector2(5.0, 6.0),
+		hp = Vector2(45, 60), damage = Vector2(8, 12), perception = 16.0, nocturnal = false, territorial = true,
+		biomes = { Biome.FOREST: 0.6, Biome.PLAINS: 0.3 } },
+	"cervo": { name = "Cervo", invented = false, body = Body.DEER, head = Head.DEER, legs = Legs.THIN,
+		tail = Tail.STUB, extra = Extra.ANTLERS, size = Vector2(0.9, 1.1),
+		color_a = Color(0.62, 0.45, 0.30), color_b = Color(0.85, 0.78, 0.65), color_jitter = 0.07,
+		diet = Diet.HERBIVORE, aggression = Vector2(0.0, 0.1), pack = Vector2i(3, 6), speed = Vector2(6.5, 8.0),
+		hp = Vector2(30, 40), damage = Vector2(3, 5), perception = 24.0, nocturnal = false, territorial = false,
+		biomes = { Biome.PLAINS: 0.5, Biome.FOREST: 0.4 } },
+	"espinhudo": { name = "Espinhudo", invented = true, body = Body.LIZARD, head = Head.LIZARD, legs = Legs.CLAWED,
+		tail = Tail.SPIKED, extra = Extra.SPIKES, size = Vector2(0.9, 1.3),
+		color_a = Color(0.35, 0.45, 0.30), color_b = Color(0.70, 0.62, 0.30), color_jitter = 0.08,
+		diet = Diet.CARNIVORE, aggression = Vector2(0.6, 0.9), pack = Vector2i(1, 2), speed = Vector2(4.0, 5.0),
+		hp = Vector2(80, 110), damage = Vector2(12, 18), perception = 15.0, nocturnal = false, territorial = true,
+		biomes = { Biome.ROCKY: 0.7, Biome.PLAINS: 0.1 } },
+	"chifrudo": { name = "Chifrudo", invented = true, body = Body.BULKY, head = Head.HORNED, legs = Legs.THICK,
+		tail = Tail.LONG, extra = Extra.HORNS, size = Vector2(1.3, 1.7),
+		color_a = Color(0.50, 0.42, 0.36), color_b = Color(0.82, 0.78, 0.70), color_jitter = 0.06,
+		diet = Diet.HERBIVORE, aggression = Vector2(0.3, 0.6), pack = Vector2i(2, 4), speed = Vector2(4.5, 5.5),
+		hp = Vector2(140, 190), damage = Vector2(16, 24), perception = 18.0, nocturnal = false, territorial = true,
+		biomes = { Biome.PLAINS: 0.4, Biome.ROCKY: 0.3 } },
+	"rastejante": { name = "Rastejante", invented = true, body = Body.LIZARD, head = Head.LIZARD, legs = Legs.CLAWED,
+		tail = Tail.LONG, extra = Extra.NONE, size = Vector2(1.0, 1.4),
+		color_a = Color(0.20, 0.28, 0.22), color_b = Color(0.50, 0.60, 0.35), color_jitter = 0.06,
+		diet = Diet.CARNIVORE, aggression = Vector2(0.5, 0.8), pack = Vector2i(1, 3), speed = Vector2(5.0, 6.5),
+		hp = Vector2(50, 70), damage = Vector2(10, 15), perception = 20.0, nocturnal = true, territorial = false,
+		biomes = { Biome.FOREST: 0.4, Biome.ROCKY: 0.3 } },
+	"uivante": { name = "Uivante", invented = true, body = Body.CANINE, head = Head.WOLF, legs = Legs.THIN,
+		tail = Tail.BUSHY, extra = Extra.MANE, size = Vector2(1.0, 1.25),
+		color_a = Color(0.85, 0.85, 0.88), color_b = Color(0.55, 0.58, 0.65), color_jitter = 0.05,
+		diet = Diet.CARNIVORE, aggression = Vector2(0.6, 0.85), pack = Vector2i(4, 6), speed = Vector2(6.0, 7.5),
+		hp = Vector2(50, 65), damage = Vector2(10, 14), perception = 26.0, nocturnal = true, territorial = true,
+		biomes = { Biome.ROCKY: 0.3, Biome.FOREST: 0.3 } },
+}
+
 # Day / night
 const DAY_LENGTH_SEC := 480.0 ## One full day-night cycle.
 const START_TIME_OF_DAY := 0.30 ## 0 = midnight, 0.5 = noon.
