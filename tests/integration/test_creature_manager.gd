@@ -118,6 +118,8 @@ func test_creatures_survive_chunk_reload() -> void:
 
 func test_first_wolves_near_spawn() -> void:
 	var spot := _make()
+	while not lib.is_ready(): # never leave a threaded load running
+		await get_tree().process_frame
 	var p := mgr.ensure_first_wolves(spot)
 	assert_eq(p.species, "lobo")
 	var d := Vector2(p.den.x - spot.x, p.den.z - spot.z).length()

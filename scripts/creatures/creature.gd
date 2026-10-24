@@ -306,7 +306,9 @@ func _on_died(source: Object) -> void:
 	body.play_death()
 	sync_record()
 	died.emit(self, source)
-	get_tree().create_timer(GameConstants.CORPSE_SEC).timeout.connect(queue_free)
+	var tw := create_tween()
+	tw.tween_interval(GameConstants.CORPSE_SEC)
+	tw.tween_callback(queue_free)
 
 
 func _add_collision() -> void:
