@@ -20,6 +20,7 @@
 - One loader (`ModelLibrary`); the banner keeps its own materials (not the occlusion shader).
 - Keyboard only: E card, C families panel (new action `families`, physical key 67).
 - Old saves (stage 5) load; residents without a family get one in the first hour.
+- Design §5 (25 decisions after the builder check) is binding, notably: births only below `KINGDOM_BIRTH_CAP := 14`; per-day chances converted per hour `1-(1-p)^(1/24)`; `tick_hours(n)` gives SocietySim each simulated hour; `person_died` emitted before removal; `widowed` flag; house owner passes to the oldest adult occupant (else `OWNER_KINGDOM`); `THEFT_MAX_PER_DAY := 2`; gifts only wood/stone; thefts only wood/stone/berries; `FAMILY_SPLIT_COOLDOWN_DAYS := 3`; `profession_name` of -1 = "criança".
 
 ## Review Focus
 
