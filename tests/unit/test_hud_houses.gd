@@ -45,7 +45,8 @@ func test_family_rows_show_the_house() -> void:
 	home.house_level = 1
 	a.home_id = home.id
 	var text: String = PeopleManager.family_rows(s, k)[0].text
-	for part in ["Lavradores", "riqueza 123", "2 lotes", "casa de pedra", "referência em agricultor", "Quer: conseguir mais terra"]:
+	assert_true(text.count("\n") <= 1, "two lines per House at most: %s" % text)
+	for part in ["Lavradores", "riqueza 123", "2 lotes", "casa de pedra", "referência em agricultor", "quer conseguir mais terra"]:
 		assert_true(text.contains(part), "row lacks '%s': %s" % [part, text])
 
 
@@ -86,5 +87,5 @@ func test_chronicle_lines() -> void:
 	s.chronicle_add(10.0, "segredo", k.id, false)
 	var lines := Hud.chronicle_lines(s, k, 10)
 	assert_eq(lines.size(), 2)
-	assert_eq(lines[0], "Dia 4, 9h — Martim fugiu da Casa Ferreira durante a noite", "newest first")
-	assert_eq(lines[1], "Dia 3, 14h — A Casa Vale tomou posse de um lote")
+	assert_eq(lines[0], "Dia 3, 9h — Martim fugiu da Casa Ferreira durante a noite", "newest first (game hours already count from day 1)")
+	assert_eq(lines[1], "Dia 2, 14h — A Casa Vale tomou posse de um lote")

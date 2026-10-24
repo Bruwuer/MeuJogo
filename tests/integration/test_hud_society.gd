@@ -168,3 +168,34 @@ func test_families_panel_stays_on_screen() -> void:
 	var rect := hud.families_rect()
 	var view := get_viewport().get_visible_rect()
 	assert_near(rect.get_center().y, view.get_center().y, 1.0, "centered on its anchor, grows up and down (%s)" % rect)
+
+
+func test_families_panel_fits_with_many_houses() -> void:
+	_make()
+	for i in 12:
+		var p := _person(40 + i, "Pessoa%d" % i, GameConstants.SURNAMES[i])
+		var f := _family(p, 50 + i)
+		f.goal = {kind = GameConstants.Goal.WEALTH, target_id = -1}
+	hud.toggle_families()
+	await wait_frames(3)
+	assert_eq(hud.families_rows(), GameConstants.FAMILIES_MAX_ROWS, "only the most prestigious Houses are listed")
+	assert_true(hud.families_text().contains("e mais %d Casas" % (12 - GameConstants.FAMILIES_MAX_ROWS)))
+	# Headless viewports are tiny: measure against the real window.
+	var window_h := float(ProjectSettings.get_setting("display/window/size/viewport_height"))
+	assert_true(hud.families_rect().size.y <= window_h * 0.75, "the panel fits on screen (%s)" % hud.families_rect())
+	assert_true(hud.families_centered(), "a modal panel in the middle of the screen, clear of the HUD lines")
+
+
+func test_messages_hidden_under_panels() -> void:
+	_make()
+	var p := _person(70, "Ana", "Ferreira")
+	_family(p, 71)
+	hud.toggle_families()
+	await wait_frames(2)
+	assert_true(not hud.messages_visible(), "messages would print over the families panel")
+	hud.toggle_families()
+	await wait_frames(2)
+	assert_true(hud.messages_visible())
+	hud.toggle_chronicle()
+	await wait_frames(2)
+	assert_true(not hud.messages_visible(), "nor over the chronicle")

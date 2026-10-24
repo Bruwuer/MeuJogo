@@ -19,7 +19,7 @@ const _CARD_WIDTH := 440.0
 const _CARD_COLOR := Color(0.1, 0.08, 0.06, 0.82)
 const _CARD_CREST_SCALE := 2.0
 const _ROW_CREST_SCALE := 1.0
-const _FAMILIES_WIDTH := 560.0
+const _FAMILIES_WIDTH := 780.0
 
 var _state: WorldState
 var _harvest: HarvestSystem
@@ -261,6 +261,11 @@ func _update_combat(delta: float) -> void:
 	_message_list = _message_list.filter(func(m: Array) -> bool: return m[1] > 0.0)
 	if _message_list.size() != before:
 		_messages.text = messages_text()
+	_messages.visible = not (_families.visible or chronicle_visible()) # panels sit where messages print
+
+
+func messages_visible() -> bool:
+	return _messages.visible
 
 
 func _on_kingdom_founded(kingdom: Dictionary) -> void:
@@ -311,9 +316,10 @@ func _crest_rect(scale: float) -> TextureRect:
 func _make_families_panel(style: StyleBox) -> void:
 	_families = PanelContainer.new()
 	_families.name = "Families"
-	_families.set_anchors_and_offsets_preset(Control.PRESET_CENTER_LEFT)
-	_families.offset_left = _MARGIN
-	_families.offset_right = _MARGIN + _FAMILIES_WIDTH
+	_families.set_anchors_and_offsets_preset(Control.PRESET_CENTER) # modal: clear of the HUD lines
+	_families.offset_left = -_FAMILIES_WIDTH * 0.5
+	_families.offset_right = _FAMILIES_WIDTH * 0.5
+	_families.grow_horizontal = Control.GROW_DIRECTION_BOTH
 	_families.grow_vertical = Control.GROW_DIRECTION_BOTH # many families stay on screen
 	_families.add_theme_stylebox_override("panel", style)
 	_families.visible = false
@@ -339,7 +345,7 @@ static func chronicle_lines(state: WorldState, k: Dictionary, n: int) -> PackedS
 	entries.reverse()
 	for e: Dictionary in entries:
 		var h := float(e.hour)
-		out.append("Dia %d, %dh — %s" % [floori(h / 24.0) + 1, floori(fmod(h, 24.0)), e.text])
+		out.append("Dia %d, %dh — %s" % [floori(h / 24.0), floori(fmod(h, 24.0)), e.text]) # hours count from day 1
 	return out
 
 
@@ -397,8 +403,12 @@ func families_visible() -> bool:
 	return _families.visible
 
 
+func families_centered() -> bool:
+	return is_equal_approx(_families.anchor_left, 0.5) and is_equal_approx(_families.anchor_right, 0.5)
+
+
 func families_rows() -> int:
-	return maxi(0, _families_box.get_child_count() - 1)
+	return _families_box.get_children().filter(func(c: Node) -> bool: return c is HBoxContainer).size()
 
 
 func families_text() -> String:
@@ -431,7 +441,7 @@ func _fill_families(k: Dictionary) -> void:
 	var rows := PeopleManager.family_rows(_state, k)
 	if rows.is_empty():
 		title.text += "\n" + GameConstants.FAMILIES_EMPTY
-	for r in rows:
+	for r in rows.slice(0, GameConstants.FAMILIES_MAX_ROWS):
 		var row := HBoxContainer.new()
 		row.add_theme_constant_override("separation", 10)
 		var icon := _crest_rect(_ROW_CREST_SCALE)
@@ -445,6 +455,11 @@ func _fill_families(k: Dictionary) -> void:
 		label.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 		row.add_child(label)
 		_families_box.add_child(row)
+	if rows.size() > GameConstants.FAMILIES_MAX_ROWS:
+		var more := Label.new()
+		more.text = GameConstants.FAMILIES_MORE % (rows.size() - GameConstants.FAMILIES_MAX_ROWS)
+		more.add_theme_font_size_override("font_size", _FONT_SIZE - 4)
+		_families_box.add_child(more)
 
 
 func card_rect() -> Rect2:

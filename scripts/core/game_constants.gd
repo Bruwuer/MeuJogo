@@ -941,3 +941,5 @@ const CARD_VOCATION := ["Sonha ser %s", "Sonha ser %s"]
 const CARD_AGAINST_HOUSE := " — contra a vontade da Casa"
 const CARD_DESIRE := "Deseja: %s"
 const CARD_HOUSE_GOAL := "A Casa quer: %s"
+const FAMILIES_MAX_ROWS := 6 ## Houses listed in the C panel (most prestigious first).
+const FAMILIES_MORE := "… e mais %d Casas"

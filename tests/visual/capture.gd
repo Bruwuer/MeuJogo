@@ -72,6 +72,7 @@ func _run() -> void:
 	await _village(scatter)
 	await _people()
 	await _society()
+	await _houses()
 	await _creatures(scatter)
 	print("WORST_FRAME_MS %.1f" % _worst_ms)
 	print("WOOD %d" % _world.get_state().get_resource(GameConstants.Res.WOOD))
@@ -210,6 +211,183 @@ func _creatures(scatter: PropScatter) -> void:
 	sim.tick_hours(1.0)
 	await _physics(240)
 	await _shot("17_raid_night")
+	_set_time(DAY_TIME)
+
+
+## Stage 7: Houses with land, homes of stone and a manor, guards, and a chronicle full of events
+## (a runaway, a blessed departure, an arranged marriage, scandals: skimming, a spy, a secret romance).
+func _houses() -> void:
+	const P := GameConstants.Profession
+	const B := GameConstants.Building
+	if _village_spot.x < 0.0 or _world.get_state().kingdoms().is_empty():
+		print("SKIPPED houses: no village")
+		return
+	var state := _world.get_state()
+	var gen := _world.get_generator()
+	var sim := _world.get_village_sim()
+	var houses := sim.houses
+	var mgr := _world.get_people_manager()
+	var hud := _world.get_hud()
+	var p := _world.get_player()
+	var k: Dictionary = state.kingdoms()[0]
+	k.next_traveler_hour = 1e9
+	for pk in state.all_packs():
+		pk.next_raid_hour = 1e9
+	_set_time(DAY_TIME)
+	var hour := floorf(sim.now_hours())
+	houses.tick_hour(k, hour) # traditions and prestige for every House
+	var fams := state.families_of(k.id)
+	fams.sort_custom(func(a: Dictionary, b: Dictionary) -> bool:
+		return state.family_members(a.id).size() > state.family_members(b.id).size())
+	var traditions := [GameConstants.Tradition.WARRIORS, GameConstants.Tradition.FARMERS, GameConstants.Tradition.MERCHANTS,
+			GameConstants.Tradition.BUILDERS, GameConstants.Tradition.FOREST]
+	for i in fams.size():
+		fams[i].tradition = traditions[i % traditions.size()]
+		fams[i].wealth = 420.0 - i * 60.0
+		fams[i].skill = {GameConstants.TRADITION_PROFESSIONS[fams[i].tradition][0]: 160.0 - i * 20.0}
+
+	# Land and homes: plots marked by stakes, a manor and a stone house.
+	for f in fams.slice(0, 3):
+		houses.acquire_plot(k, f)
+		houses.acquire_plot(k, f)
+	var with_house := fams.filter(func(f: Dictionary) -> bool:
+		var head := state.person(int(f.head_id))
+		var home := state.building(int(head.get("home_id", -1))) if not head.is_empty() else {}
+		return not home.is_empty() and home.type == B.HOUSE)
+	if with_house.size() >= 1:
+		with_house[0].wealth = 600.0
+		houses.upgrade(k, with_house[0])
+		houses.upgrade(k, with_house[0])
+	if with_house.size() >= 2:
+		with_house[1].wealth = 300.0
+		houses.upgrade(k, with_house[1])
+
+	# Lives and choices: a runaway, a blessed departure, an arranged marriage, scandals.
+	# Grown children of the heads: a brother and sister in the first House, sons elsewhere.
+	var youth_rng := RandomNumberGenerator.new()
+	youth_rng.seed = 707
+	var add_child_of := func(f: Dictionary, female: bool, age: float) -> Dictionary:
+		var head := state.person(int(f.head_id))
+		var y := state.add_person(PersonGen.generate(youth_rng), _ground(gen, _village_spot + Vector3(youth_rng.randf_range(-5, 5), 0, 8)), k.id)
+		y.status = "resident"
+		y.female = female
+		y.name = (GameConstants.FEMALE_NAMES if female else GameConstants.MALE_NAMES)[youth_rng.randi() % 20]
+		y.age = age
+		y.parents = [head.id]
+		y.family_id = f.id
+		y.surname = f.surname
+		y.home_id = int(head.get("home_id", -1))
+		state.note_ancestry(y)
+		return y
+	var card_youth := {}
+	if fams.size() >= 4:
+		card_youth = add_child_of.call(fams[0], false, 19.0)
+		var sister: Dictionary = add_child_of.call(fams[0], true, 21.0)
+		var runaway: Dictionary = add_child_of.call(fams[1], false, 22.0)
+		var blessed: Dictionary = add_child_of.call(fams[2], false, 24.0)
+		var groom: Dictionary = add_child_of.call(fams[3], false, 23.0)
+		# The warrior House's son dreams of trading: a clash with the House.
+		card_youth.vocation = P.MERCHANT
+		card_youth.profession = HouseRules.expected_professions(fams[0])[0]
+		card_youth.conflict = true
+		# He runs off at night, at odds with his House; she leaves with her family's blessing.
+		runaway.vocation = P.WOODCUTTER
+		houses.depart(k, fams[1], runaway, {tone = "hostile", secret = true}, hour)
+		houses.depart(k, fams[2], blessed, {tone = "friendly", secret = false}, hour)
+		# An arranged marriage seals an alliance between two Houses.
+		fams[3].goal = {kind = GameConstants.Goal.ALLIANCE, target_id = fams[0].id, deadline_hour = hour + 72.0}
+		houses.arranged_marriage(k, fams[3], groom, sister, "accept")
+	var shown_card := card_youth
+	if fams.size() >= 2:
+		var greedy: Dictionary = fams[1]
+		state.add_stock(k, GameConstants.Res.WOOD, 20)
+		houses.skim(k, greedy)
+		if not (greedy.secrets as Array).is_empty():
+			houses.expose(k, greedy, greedy.secrets[0])
+		fams[0].rival_id = fams[1].id
+		fams[1].rival_id = fams[0].id
+		if houses.plant_spy(k, fams[1], fams[0]):
+			var spy := state.residents(k.id).filter(func(x: Dictionary) -> bool:
+				return (x.get("secret", {}) as Dictionary).get("kind", "") == "spy")
+			if not spy.is_empty():
+				houses.spy_day(k, spy[0])
+				houses.expose_spy(k, spy[0])
+	var adults := state.residents(k.id).filter(func(x: Dictionary) -> bool: return SocietyRules.is_adult(x))
+	for a in adults:
+		var done := false
+		for b in adults:
+			if a.id < b.id and bool(a.female) == bool(b.female) and a.family_id != b.family_id \
+					and a.id != shown_card.get("id", -1) and b.id != shown_card.get("id", -1):
+				state.set_relation(a.id, b.id, 0.9)
+				if houses.start_romance(k, a, b):
+					houses.expose_romance(k, a)
+					done = true
+					break
+		if done:
+			break
+	# The next morning the runaway is missed.
+	houses.tick_hour(k, (floorf(hour / 24.0) + 1.0) * 24.0 + GameConstants.DISCOVERY_HOUR)
+	for f in state.families_of(k.id):
+		f.prestige = houses.prestige_of(f)
+
+	# Guards with spears.
+	var guards := 0
+	for x in state.residents(k.id):
+		if guards >= 2:
+			break
+		if SocietyRules.is_adult(x) and x.id != shown_card.get("id", -1) and int(x.profession) != P.GUARD:
+			x.profession = P.GUARD
+			mgr._free_node(x.id)
+			guards += 1
+	await _physics(30)
+
+	var manor := {}
+	for b in state.all_buildings():
+		if b.type == B.HOUSE and int(b.get("house_level", 0)) == 2:
+			manor = b
+	var yaw := deg_to_rad(GameConstants.CAM_YAW_DEG)
+	var focus: Vector3 = manor.pos if not manor.is_empty() else _village_spot
+	await _teleport(focus + Vector3(sin(yaw), 0.0, cos(yaw)) * 6.0)
+	await _physics(30)
+	await _shot("29_land_and_manor")
+
+	hud.toggle_families()
+	await _frames(10)
+	await _shot("30_houses_panel")
+	hud.toggle_families()
+	hud.toggle_chronicle()
+	await _frames(10)
+	await _shot("31_chronicle")
+	hud.toggle_chronicle()
+
+	if not shown_card.is_empty():
+		var n := mgr.node_for(shown_card.id)
+		if n:
+			await _teleport(n.global_position + Vector3(1.4, 0, 0))
+		shown_card.vocation = P.MERCHANT
+		shown_card.conflict = true
+		hud.show_card(shown_card)
+		await _frames(10)
+		await _shot("32_card_kin_vocation")
+		hud.hide_card()
+
+	# Wolves come into the village; the guards meet them.
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 77
+	var guard_nodes := state.residents(k.id).filter(func(x: Dictionary) -> bool: return int(x.profession) == P.GUARD)
+	var where := _village_spot
+	for g in guard_nodes:
+		var gn := mgr.node_for(g.id)
+		if gn:
+			where = gn.global_position
+			break
+	var pack := state.add_pack("lobo", where + Vector3(7, 0, 3))
+	for i in 3:
+		state.add_creature(Genome.random("lobo", rng), _ground(gen, pack.den + Vector3(i * 1.5, 0, 0)), pack.id)
+	await _teleport(where + Vector3(3, 0, 5))
+	await _physics(150)
+	await _shot("33_guards_vs_wolves")
+	print("GUARDS %d" % guard_nodes.size())
 	_set_time(DAY_TIME)
 
 

@@ -672,8 +672,8 @@ static func family_rows(state: WorldState, k: Dictionary) -> Array[Dictionary]:
 	return out
 
 
-## "Lavradores · riqueza 120 · 2 lotes · casa de pedra · referência em agricultor" and, on a new
-## line, what the House wants.
+## "Lavradores · riqueza 120 · 2 lotes · casa de pedra · referência em agricultor · quer conseguir
+## mais terra" (one line: the panel keeps two lines per House).
 static func house_line(state: WorldState, k: Dictionary, f: Dictionary) -> String:
 	var plots := (f.get("plots", []) as Array).size()
 	var head := state.person(int(f.head_id))
@@ -692,10 +692,9 @@ static func house_line(state: WorldState, k: Dictionary, f: Dictionary) -> Strin
 			best_prof = int(prof)
 	if best_prof >= 0:
 		parts.append("referência em %s" % GameConstants.PROFESSION_NAMES[best_prof][0])
-	var line := " · ".join(parts)
 	if not (f.get("goal", {}) as Dictionary).is_empty():
-		line += "\nQuer: %s" % HouseSim.goal_text_of(state, f.goal)
-	return line
+		parts.append("quer %s" % HouseSim.goal_text_of(state, f.goal))
+	return " · ".join(parts)
 
 
 static func _top_in_kingdom(state: WorldState, k: Dictionary, f: Dictionary, prof: int, hours: float) -> bool:
