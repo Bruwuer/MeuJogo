@@ -43,6 +43,8 @@ static func meeting_delta(a: Dictionary, b: Dictionary, close: bool, rng: Random
 static func can_marry(a: Dictionary, b: Dictionary, rel: float) -> bool:
 	if a.id == b.id or rel < GameConstants.COUPLE_AT:
 		return false
+	if bool(a.female) == bool(b.female): # medieval custom: only a man and a woman marry
+		return false
 	for p in [a, b]:
 		if float(p.age) < GameConstants.MARRY_MIN_AGE or int(p.spouse_id) >= 0:
 			return false

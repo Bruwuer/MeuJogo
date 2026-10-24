@@ -23,7 +23,7 @@ func test_three_generations() -> void:
 	var b := _p("Leonor", true, [g1, g2])
 	var w := _p("Inês", true)
 	var c1 := _p("Martim", false, [a, w])
-	var spouse := _p("Teresa", true)
+	var spouse := _p("Tomé", false)
 	var c2 := _p("Joana", true, [b, spouse])
 	a.spouse_id = w.id
 	w.spouse_id = a.id
@@ -55,13 +55,13 @@ func test_kinship_survives_death() -> void:
 	assert_true(Kinship.is_close_kin(s, c1, c2))
 
 
-func test_same_sex_parents_and_adoption() -> void:
+func test_adoption_by_a_couple() -> void:
 	var x := _p("Maria", true)
-	var y := _p("Clara", true)
+	var y := _p("Vasco", false)
 	var orphan := _p("Rui", false)
 	orphan.adopted_by = [x.id, y.id]
 	s.note_ancestry(orphan)
 	assert_eq(Kinship.relation_word(s, x, orphan), "mãe")
-	assert_eq(Kinship.relation_word(s, y, orphan), "mãe")
+	assert_eq(Kinship.relation_word(s, y, orphan), "pai")
 	assert_eq(Kinship.relation_word(s, orphan, y), "filho")
 	assert_eq(Kinship.parents_of(s, orphan.id).size(), 2)

@@ -20,9 +20,8 @@ desejos próprios que podem bater de frente com os da Casa. O reino passa a gera
 
 **Dentro**
 1. **Parentesco completo:** pais, filhos, irmãos, avós, netos, tios, sobrinhos e primos calculados
-   pela árvore (`parents`). Casais de qualquer composição (marido e mulher, dois maridos, duas
-   esposas). Casais sem filhos biológicos — e também pessoas sozinhas de boa situação — podem
-   **adotar** órfãos (crianças sem pai nem mãe no reino). O cartão mostra o parentesco entre
+   pela árvore (`parents`). **Costume medieval (pedido do autor):** casamento e filhos só entre homem e
+   mulher. Casais sem filhos, viúvos e viúvas de boa situação podem **adotar** órfãos (crianças sem pai nem mãe no reino). O cartão mostra o parentesco entre
    moradores ("primo de Ana", "tio de Bento").
 2. **Tradição da Casa (estilo de vida):** cada Casa nasce com uma tradição — **Guerreiros, Lavradores,
    Mercadores, Construtores, Gente da mata** (lenha e coleta) — e **valores** (pesos de riqueza,
@@ -71,6 +70,10 @@ desejos próprios que podem bater de frente com os da Casa. O reino passa a gera
     agregado). O infiltrado **espia** (a Casa dele adianta os próprios objetivos contra a rival) e
     **sabota** (atrasa um objetivo, desvia riqueza). Pode ser **descoberto**: escândalo grande, rixa
     aberta, o infiltrado é expulso. O jogador só vê o que já veio a público.
+14b. **Amores malvistos (pedido do autor):** dois homens ou duas mulheres podem se apaixonar, mas só em
+    **segredo** — é malvisto como na Idade Média. Se descoberto, vira **escândalo** para a Casa (honra e
+    prestígio caem, relações com a família azedam) e a pessoa sofre pressão: conforma-se e separa-se,
+    ou se afasta da Casa (às claras ou fugindo). O tratamento é sóbrio, sem caricatura.
 15. **Quebra de expectativas** como evento explícito: herdeiro que recusa o ofício, noiva que foge,
     aliança que trai, casa que não sai, filho escondido que aparece. Cada uma gera mensagem, mexe em
     relações, opiniões e objetivos.

@@ -61,7 +61,7 @@ func test_marry_needs_adults_and_love() -> void:
 	b.spouse_id = 7
 	assert_true(not SocietyRules.can_marry(a, b, 1.0), "already married")
 	var c := _p(5, [T.WORKER, T.BRAVE], 26.0, true)
-	assert_true(SocietyRules.can_marry(a, c, 1.0), "any two adults")
+	assert_true(not SocietyRules.can_marry(a, c, 1.0), "only a man and a woman marry (medieval custom)")
 
 
 func test_birth_mother() -> void:

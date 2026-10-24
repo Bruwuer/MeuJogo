@@ -30,7 +30,7 @@
 - Constants: `enum Tradition {WARRIORS, FARMERS, MERCHANTS, BUILDERS, FOREST}`, `TRADITION_NAMES`, `TRADITION_PROFESSIONS`, `TRADITION_VALUES` (per tradition: `{wealth, land, prestige, faith, honor}`), `Profession.GUARD` appended + names; `enum Goal {LAND, UPGRADE, ALLIANCE, SURPASS, REVENGE, WEALTH, HEIR, UNION}` + Portuguese texts; `enum Desire {LOVE, RICH, PROTECT, LEAVE, SURPASS_PARENT, NONE}` + texts; prices/limits (`PLOT_SIZE := 8.0`, `PLOT_PRICE`, `PLOTS_MAX_PER_MEMBER`, `UPGRADE_PRICE`, `HOUSE_LEVEL_CAPACITY := [4, 6, 8]`, `DOWRY`, `BRIBE`), `CHRONICLE_MAX := 200`.
 - `Kinship` (static): `parents_of(state, p)`, `children_of`, `siblings_of`, `grandparents_of`, `uncles_of`, `cousins_of`, `relation_word(state, a, b) -> String` ("pai", "mãe", "filho", "irmã", "tio", "prima", "avô", "neto", "cônjuge", ""), `is_close_kin(state, a, b) -> bool` (up to first cousins).
 - `WorldState`: family defaults (`tradition`, `values`, `wealth`, `plots`, `skill`, `house_level` on house buildings, `prestige`, `goal`, `rival_id`, `known_secrets`), person defaults (`vocation`, `desire`, `resentment`, `secret`, `adopted_by`), `chronicle_add(hour, text, kingdom_id, public := true)`, `chronicle(kingdom_id, n) -> Array`.
-- Tests: kinship words for a 3-generation tree (incl. cousins/uncles, same-sex parents), `test_stage6_save_defaults`, chronicle limit.
+- Tests: kinship words for a 3-generation tree (incl. cousins/uncles, adoption by a couple), `test_stage6_save_defaults`, chronicle limit.
 - Commit `feat: parentesco, dados das Casas e crônica`.
 
 ### Task 2: HouseRules A — tradition, vocation, conflict, departure, economy
@@ -59,7 +59,7 @@
 
 ### Task 6: HouseSim C — arranged marriages, unions, corruption, infiltration
 **Files:** Modify `scripts/people/house_sim.gd`; Test `tests/unit/test_house_sim_intrigue.gd`
-- Arranged marriages (dowry; accept/resist/flee with lover, secret marriage, unhappy marriage → quarrels/separation), union of Houses (small heirless ally absorbed: members, plots, wealth), corruption (skim from kingdom stock to House wealth; discovery → scandal: prestige −, relations −, chronicle + HUD), infiltration (spy planted via arranged marriage or as household member; spying boosts own goal vs rival, sabotage sets rival progress back/steals wealth; discovery → feud, spy expelled).
+- Arranged marriages (dowry; accept/resist/flee with lover, secret marriage, unhappy marriage → quarrels/separation), secret same-sex romances (frowned upon by medieval custom: never marriage or children; discovery → House scandal and family pressure → conform or leave), union of Houses (small heirless ally absorbed: members, plots, wealth), corruption (skim from kingdom stock to House wealth; discovery → scandal: prestige −, relations −, chronicle + HUD), infiltration (spy planted via arranged marriage or as household member; spying boosts own goal vs rival, sabotage sets rival progress back/steals wealth; discovery → feud, spy expelled).
 - Tests: `test_arranged_marriage_dowry_and_alliance`, `test_flee_with_lover`, `test_unhappy_marriage_separates`, `test_union_merges_houses`, `test_corruption_scandal`, `test_infiltration_and_discovery`.
 - Commit `feat: intrigas das Casas`.
 
