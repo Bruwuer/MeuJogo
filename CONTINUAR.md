@@ -19,12 +19,14 @@ primeiro e atualizá-lo ao concluir cada tarefa** (seção "Estado atual").
 
 ## Estado atual
 
-- Etapas 1 a 5: concluídas e no `main` (342 testes passando). Resumo em `docs/ENTREGAS.md`.
-- **Próxima: Etapa 6 (sociedade)** — famílias e brasões, relações, opinião sobre o jogador, aliados e inimigos
-  internos. Branch `etapa-6` JÁ CRIADO (vazio, a partir do main). Começar pelo design curto em `docs/superpowers/specs/`.
+- Etapas 1 a 6: concluídas e no `main` (409 testes passando). Resumo em `docs/ENTREGAS.md`.
+- **Próxima: Etapa 7 (governo)** — decisões com efeito, sucessão, governante NPC (corrupção, lealdade, culto ou
+  inimizade). Criar o branch `etapa-7` a partir do `main` e começar pelo design curto em `docs/superpowers/specs/`.
+  A etapa 6 deixou prontos: famílias com chefe (`head_id`), posição de cada pessoa e família (`stance`:
+  aliado/inimigo), relações entre pessoas e entre casas (`PeopleManager.family_relation`) e `kingdom_id` nas famílias.
   Pedidos do autor continuam valendo: combate e construção só por teclado; ataques ao reino só com motivo.
-  Pendências menores da etapa 5 estão em `docs/ENTREGAS.md` (podem entrar na etapa 6 se tocarem o mesmo código).
-- Etapas 6 a 9: não iniciadas (ver roadmap no `CLAUDE.md`).
+  Pendências menores da etapa 6 estão em `docs/ENTREGAS.md`.
+- Etapas 7 a 9: não iniciadas (ver roadmap no `CLAUDE.md`).
 
 ## Execução automática
 

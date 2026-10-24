@@ -137,3 +137,72 @@ Ficaram para depois doze pontos menores, listados no ledger. Os principais:
 - a fila de notícias não tem limite.
 
 Suíte: 342 testes passando.
+
+## Etapa 6 — Sociedade (2026-10-24)
+
+**O que mudou**
+- **Famílias (casas):** todo morador pertence a uma família. Quem decide ficar funda a sua ("Casa Ferreira")
+  ou, se já existe uma casa com o mesmo sobrenome, entra nela como parente. A família tem chefe (quem fundou;
+  depois, o adulto mais velho) e se desfaz quando não sobra ninguém ("A Casa do Vale se desfez").
+- **Brasões gerados por código:** escudo com divisão (pleno, partido, cortado, em banda, esquartelado, em
+  asna), duas cores heráldicas (metal sobre cor) e uma figura (besante, cruz, losango, estrela, crescente).
+  A imagem de 32 × 40 é desenhada pixel a pixel; nunca há dois brasões iguais no mesmo reino.
+- **Estandarte nas casas:** modelo novo do Blender (`crest_banner`, poste com pendão em forma de escudo) que
+  recebe o brasão da família do dono, no canto da casa que a câmera vê.
+- **Relações:** a cada hora alguns moradores se encontram (mais quem mora junto, é da família ou tem a mesma
+  profissão). Traços iguais aproximam, opostos afastam, sociável aproxima, solitário afasta. Daí saem amigos
+  e rivais.
+- **Casamentos:** adultos solteiros, sem parentesco, que se gostam muito, se casam ("Ana Ferreira e Bento do
+  Vale se casaram"), entram na mesma família (a maior) e vão morar juntos, levando os filhos pequenos.
+- **Filhos:** casal de mulher e homem, contente, com comida e cama livre em casa pode ter filhos ("Nasceu
+  Inês, filha de…"). O filho herda um traço de cada pai, a pele de um e o cabelo do outro. Criança não
+  trabalha (brinca perto de casa), aparece menor e cresce; aos 16 ganha a profissão de que o reino precisa
+  ("Inês Ferreira cresceu e agora é lenhadora"). A partir dos 70 os velhos podem morrer; o cônjuge fica viúvo.
+- **Rupturas:** quem vira rival forte do chefe rompe e funda a própria casa, com brasão novo e sobrenome
+  novo ("Martim Ferreira rompeu com a Casa Ferreira e fundou a Casa do Monte"). Família grande solta um
+  ramo em paz, com brasão derivado (mesmo escudo, outra figura).
+- **Opinião sobre você:** além de doações e proteção, agora muda sozinha: quem vive bem pensa melhor de você,
+  a família puxa todos para a média dela, amigos se influenciam e rivais se contrariam. Conversar (E) agrada
+  uma vez por dia o sociável e irrita o solitário.
+- **Aliados e inimigos:** com opinião alta a pessoa ou família vira aliada; baixa, inimiga ("A Casa Ferreira
+  agora é sua aliada", "Rui Couto agora é seu inimigo"). A família aliada dá um presente por dia (madeira ou
+  pedra do estoque); um inimigo rouba um pouco do que você tem mais. Só com você no reino.
+- **Interface:** o cartão do **E** mostra família e brasão, cônjuge, pais ou filhos, melhor amigo, pior rival
+  e se a pessoa é sua aliada ou inimiga. **C** abre o painel de famílias do reino (brasão, pessoas, chefe,
+  posição e rival de outra casa). A linha do povoado mostra "Famílias: N".
+- **Mundo sem você:** tudo roda no `VillageSim` horário para todos os reinos; as notícias de reino longe
+  ficam para a volta (agora no máximo 40, as mais antigas contam em "mais N coisas").
+- **Persistência:** famílias, relações e os campos novos das pessoas vão para o save. Saves da etapa 5 abrem.
+- **Pendências da etapa 5 resolvidas:** fila de notícias com limite, doação rende opinião proporcional e aviso
+  "Um viajante se aproxima do Reino de X".
+
+**Decisões principais** (lista completa na seção 5 do design e no ledger da etapa)
+- Casa passa a ter 4 camas (casal e dois filhos); teto do reino sobe para 16, e nascimentos param em 14 para
+  sobrar lugar para viajantes.
+- Crianças crescem 2 anos por dia de jogo (adultas em ~1 hora de jogo); adultos envelhecem 0,25 ano por dia.
+- Quem vai embora infeliz leva o cônjuge e os filhos pequenos; a casa passa ao adulto mais velho que mora nela.
+- Qualquer casal de adultos pode se casar; filhos só de mulher (18 a 45) e homem; sem divórcio nem adoção.
+- O estandarte fica no canto que a câmera vê, virado para ela (as capturas mostraram estandartes escondidos
+  atrás das casas); o cartão e o painel crescem para cima e para baixo para caber na tela.
+
+**Pendências**
+- Nascimentos podem passar o teto em 1 ou 2 quando já há viajantes a caminho.
+- Casa cujo dono morre com só crianças dentro fica do reino e não volta a ter estandarte quando elas crescem.
+- Ainda não há cache de membros por família (custo cresce com muitos reinos; rever na etapa 8).
+- No primeiro carregamento de um save da etapa 5, cada morador com sobrenome repetido anuncia que entrou na
+  família de parentes; em casa de órfãos o chefe pode ser uma criança.
+- Pequenos textos: "Filhos:" no plural para um filho só.
+
+**Capturas:** `23_family_card`, `24_couple_children`, `25_house_crests`, `26_families_panel`, `27_family_split`
+e `28_allies_enemies`.
+
+**Revisão final (subagente opus):** nenhum problema crítico. Foram corrigidos, cada um com um teste que
+falhava antes:
+- a casa nova podia ficar com uma criança e separar a família (agora fica com o adulto com mais parentes sem
+  casa, e as camas seguem a família);
+- filhos ficavam na casa antiga quando o pai ou a mãe ia morar com o cônjuge;
+- o painel de famílias podia sair da tela.
+Também entraram testes de horas recuperadas de uma vez e de recarregar o jogo sem repetir notícias.
+Ficaram para depois os pontos menores listados acima.
+
+Suíte: 409 testes passando.
