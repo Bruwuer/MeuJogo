@@ -38,13 +38,15 @@ assets/models/        .glb gerados pelo Blender (NUNCA editar à mão)
 scripts/core/         game_constants.gd (todas as constantes)
 scripts/world/        chunks, terreno, spawn, cena do mundo
 scripts/actors/       jogador e entrada
+scripts/combat/       vida, armas (Combat), flechas
+scripts/creatures/    genoma, corpo por peças, cérebro, criatura, bandos (motivos, PackSim), gerenciador
 scripts/camera/       câmera isométrica
 scripts/ui/           HUD
 shaders/              prop_occlusion.gdshader (árvores/rochas somem na frente do jogador)
 scenes/               main.tscn, player.tscn
 tests/                run_tests.gd, game_test.gd, unit/, integration/, visual/
 tools/                godot.ps1, run_tests.ps1, build_models.ps1, capture.ps1, new_world.ps1
-tools/blender/        scripts Python do Blender (um por modelo + common.py)
+tools/blender/        scripts Python do Blender (um por modelo + common.py; creature_parts.py e weapons.py)
 docs/superpowers/     specs/ e plans/
 ```
 
@@ -63,6 +65,9 @@ docs/superpowers/     specs/ e plans/
    low-poly, com rig e animações básicas (`idle`, `walk`, `run`), exportados em `.glb` para
    `assets/models/`. Para mudar um modelo, edite o script e rode `powershell -ExecutionPolicy Bypass -File tools/build_models.ps1`.
    Nunca edite o `.glb`. O terreno é gerado na Godot por código.
+   **Exceção registrada (etapa 4):** criaturas são montadas em runtime a partir de peças do Blender
+   (`assets/models/parts/`) escolhidas pelo genoma, e o "rig" é a hierarquia de nós; parado, andar e
+   correr são animados por código (`CreatureBody`). O genoma exige misturar peças de pais diferentes.
 6. Sem assets externos. As integrações de assets do Blender MCP (PolyHaven, Sketchfab etc.) ficam desligadas.
 7. Código e comentários em inglês. Documentação e textos do jogo em português.
 8. Commits pequenos, um por funcionalidade. Cada etapa do roadmap ganha um design curto antes.
@@ -72,17 +77,21 @@ docs/superpowers/     specs/ e plans/
 11. Camadas de física: `LAYER_TERRAIN` (chão) e `LAYER_OBSTACLES` (árvores, rochas, construções). Raios de
     posicionamento usam só o chão; o jogador colide com as duas.
 12. Só existe UM carregador de modelos (`ModelLibrary`, sequencial): cargas paralelas causam corrida no renderizador.
+13. Criaturas: registros em `WorldState`; só têm nó dentro dos chunks carregados (teto `CREATURE_MAX_ACTIVE`).
+    Ataques ao reino só por motivo do bando (fome, território, rancor, filhotes), nunca "porque é noite".
 
 ## Comandos
 
 - Testes: `powershell -ExecutionPolicy Bypass -File tools/run_tests.ps1 [filtro]`
 - Gerar modelos: `powershell -ExecutionPolicy Bypass -File tools/build_models.ps1`
-- Capturas de tela: `powershell -ExecutionPolicy Bypass -File tools/capture.ps1` (saem em `captures/`)
+- Capturas de tela: `powershell -ExecutionPolicy Bypass -File tools/capture.ps1` (saem em `captures/`, inclui a galeria de criaturas)
 - Abrir o editor: `powershell -ExecutionPolicy Bypass -File tools/godot.ps1 -e`
 - Começar um mundo novo (apaga o save): `powershell -ExecutionPolicy Bypass -File tools/new_world.ps1`
 - Controles: WASD anda, Shift corre, E coleta (árvore 4 golpes = 3 madeira, rocha 5 = 2 pedra, arbusto 1 = 2 frutas)
 - Construção: B liga/desliga, 1–5 escolhe (Cabana, Fogueira, Depósito, Cerca, Poço), R gira, clique ou E constrói,
   Esc ou clique direito sai; X demole (devolve 50 %). A primeira Cabana funda o reino.
+- Combate (só teclado): Espaço ataca para onde o personagem olha, 1/2/3 escolhem Espada/Lança/Arco, Q troca,
+  F faz 5 flechas com 1 madeira, H come 1 fruta (+15 de vida). Morrer leva de volta à sede sem perder nada.
 
 ## Roadmap
 
@@ -91,7 +100,7 @@ docs/superpowers/     specs/ e plans/
 2. ✅ **Mundo com conteúdo:** biomas, árvores, pedras e arbustos (MultiMesh), recursos coletáveis,
    dia e noite, mapa maior, persistência delta por chunk.
 3. ✅ **Construção:** inventário, coleta, construções pré-feitas com custo realista, fundação do reino.
-4. **Criaturas e combate:** genoma de peças (animais reais + inventadas), comportamento, cruzamento
+4. ✅ **Criaturas e combate:** genoma de peças (animais reais + inventadas), comportamento, cruzamento
    com herança, brigas entre espécies, armas medievais, ataques ao reino.
 5. **Pessoas:** gerador de pessoas (nome, traços, opinião), chegada e decisão de ficar,
    necessidades, construção autônoma.
