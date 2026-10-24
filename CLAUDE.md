@@ -40,7 +40,8 @@ scripts/world/        chunks, terreno, spawn, cena do mundo
 scripts/actors/       jogador e entrada
 scripts/combat/       vida, armas (Combat), flechas
 scripts/creatures/    genoma, corpo por peças, cérebro, criatura, bandos (motivos, PackSim), gerenciador
-scripts/people/       PersonGen, VillageRules, VillageSim (horário), Person + PersonBrain, PeopleManager
+scripts/people/       PersonGen, VillageRules, VillageSim (horário), Person + PersonBrain, PeopleManager,
+                      Crest (brasões), SocietyRules + SocietySim (famílias, relações, opinião)
 scripts/camera/       câmera isométrica
 scripts/ui/           HUD
 shaders/              prop_occlusion.gdshader (árvores/rochas somem na frente do jogador)
@@ -83,6 +84,11 @@ docs/superpowers/     specs/ e plans/
 14. Pessoas: registros em `WorldState` (como as criaturas); só têm nó nos chunks carregados (teto `PEOPLE_MAX_ACTIVE`).
     Quem tem nó trabalha de verdade; quem não tem é resumido pelo `VillageSim` (sem trabalho em dobro).
     O reino tem estoque próprio. Construções dos moradores (dono >= 0 ou `OWNER_KINGDOM`) não são demolidas pelo jogador.
+15. Sociedade: famílias (`WorldState` famílias + relações simétricas por par) são só registros e rodam no
+    `SocietySim`, chamado pelo `VillageSim` a cada hora para todos os reinos (sorteios semeados por semente,
+    reino e hora). Brasões são desenhados por código (`Crest`, imagem 32 × 40); o estandarte do Blender
+    (`crest_banner`) recebe a textura e fica no canto da casa que a câmera vê. Crianças não trabalham, não
+    casam e nunca vão embora sozinhas.
 
 ## Comandos
 
@@ -91,8 +97,9 @@ docs/superpowers/     specs/ e plans/
 - Capturas de tela: `powershell -ExecutionPolicy Bypass -File tools/capture.ps1` (saem em `captures/`, inclui a galeria de criaturas)
 - Abrir o editor: `powershell -ExecutionPolicy Bypass -File tools/godot.ps1 -e`
 - Começar um mundo novo (apaga o save): `powershell -ExecutionPolicy Bypass -File tools/new_world.ps1`
-- Controles: WASD anda, Shift corre, E fala com quem está perto ou coleta (árvore 4 golpes = 3 madeira,
-  rocha 5 = 2 pedra, arbusto 1 = 2 frutas), G doa ao reino (até 10 de madeira, pedra e frutas)
+- Controles: WASD anda, Shift corre, E fala com quem está perto (cartão com família, brasão e relações) ou coleta (árvore 4 golpes = 3 madeira,
+  rocha 5 = 2 pedra, arbusto 1 = 2 frutas), G doa ao reino (até 10 de madeira, pedra e frutas), C abre e fecha o
+  painel de famílias do reino
 - Construção: B liga/desliga, 1–5 escolhe (Cabana, Fogueira, Depósito, Cerca, Poço), R gira, clique ou E constrói,
   Esc ou clique direito sai; X demole (devolve 50 %). A primeira Cabana funda o reino.
 - Combate (só teclado): Espaço ataca para onde o personagem olha, 1/2/3 escolhem Espada/Lança/Arco, Q troca,
@@ -109,7 +116,7 @@ docs/superpowers/     specs/ e plans/
    com herança, brigas entre espécies, armas medievais, ataques ao reino.
 5. ✅ **Pessoas:** gerador de pessoas (nome, traços, opinião), chegada e decisão de ficar,
    necessidades, construção autônoma.
-6. **Sociedade:** famílias e brasões, relações, opinião sobre o jogador, aliados e inimigos internos.
+6. ✅ **Sociedade:** famílias e brasões, relações, opinião sobre o jogador, aliados e inimigos internos.
 7. **Governo:** decisões com efeito, sucessão, governante NPC (corrupção, lealdade, culto ou inimizade).
 8. **Mundo vivo:** reinos NPC, simulação resumida fora da tela, diplomacia e guerras, novos reinos.
 9. **Polimento:** menu, salvar/carregar, som, balanceamento.
