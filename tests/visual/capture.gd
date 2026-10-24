@@ -258,8 +258,10 @@ func _houses() -> void:
 			shot_kinds[deed.kind] = true
 			Engine.time_scale = 1.0
 			var p := _world.get_player()
-			p.global_position = n.global_position + Vector3(0, 0.3, 7)
+			var spot := _clear_spot_near(n.global_position)
+			p.global_position = Vector3(spot.x, _world.get_generator().height_at(spot.x, spot.z) + 0.3, spot.z)
 			p.reset_physics_interpolation()
+			p.face(n.global_position - spot)
 			_world.get_camera().snap_to_target()
 			await _physics(2)
 			shots += 1
@@ -334,7 +336,19 @@ func _clear_area(scatter: PropScatter, center: Vector3, radius: float) -> void:
 			chunk.remove_prop(p.id)
 
 
-func _ghost_at(target: Vector3) -> void:
+## A spot a few metres from `pos` on the camera's side (so the doer is not hidden behind the
+## player or a house), away from buildings, so the player never lands on a roof.
+func _clear_spot_near(pos: Vector3) -> Vector3:
+	var yaw := deg_to_rad(GameConstants.CAM_YAW_DEG)
+	var cam_dir := Vector3(sin(yaw), 0.0, cos(yaw))
+	for step in 12:
+		var turn := deg_to_rad(30.0 * floorf((step + 1) / 2.0) * (1.0 if step % 2 == 0 else -1.0))
+		var spot := pos + cam_dir.rotated(Vector3.UP, turn) * 3.5
+		var clear := _world.get_state().all_buildings().all(func(b: Dictionary) -> bool:
+			return Vector2(b.pos.x - spot.x, b.pos.z - spot.z).length() > 5.0)
+		if clear:
+			return spot
+	return pos + cam_dir * 3.5
 	var p := _world.get_player()
 	await _teleport(target - p.facing() * GameConstants.BUILD_GHOST_DISTANCE)
 
