@@ -738,7 +738,8 @@ func _family_defaults(f: Dictionary) -> void:
 		f.tradition = tradition_of_profession(int(head.get("profession", -1)))
 	if not f.has("values"):
 		f.values = (GameConstants.TRADITION_VALUES[f.tradition] as Dictionary).duplicate()
-	var defaults := {wealth = 0.0, plots = [], skill = {}, prestige = 0.0, goal = {}, rival_id = -1,
+	var defaults := {wealth = 0.0, plots = [], skill = {}, prestige = 0.0, goal = {}, rival_id = -1, secrets = [],
+			dishonor = 0.0, insulted_by = -1,
 			known_secrets = []}
 	for key in defaults:
 		if not f.has(key):

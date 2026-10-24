@@ -137,7 +137,8 @@ static func goal_scores(family: Dictionary, ctx: Dictionary) -> Dictionary:
 		s[G.WEALTH] = v.wealth * 0.8 + 0.2
 	if int(ctx.heirs) == 0 and int(ctx.adults) > 0 and float(ctx.head_age) >= GameConstants.HEIR_AGE:
 		s[G.HEIR] = 0.6
-	if int(ctx.members) <= GameConstants.UNION_MAX_MEMBERS and int(ctx.heirs) == 0 and not (ctx.allies as Array).is_empty():
+	if int(ctx.members) <= GameConstants.UNION_MAX_MEMBERS and int(ctx.heirs) == 0 and not (ctx.allies as Array).is_empty() \
+			and float(ctx.head_age) >= GameConstants.HEIR_AGE:
 		s[G.UNION] = 0.9
 	return s
 

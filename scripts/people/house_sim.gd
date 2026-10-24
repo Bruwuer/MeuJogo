@@ -38,6 +38,7 @@ func tick_hour(k: Dictionary, hour: float) -> void:
 	if _is_daily(GameConstants.DEED_HOUR):
 		_adoptions(k)
 		_goals(k, rng)
+		_intrigue(k, rng)
 	for f in _state.families_of(k.id):
 		f.prestige = prestige_of(f)
 
@@ -379,6 +380,7 @@ func _goals(k: Dictionary, rng: RandomNumberGenerator) -> void:
 				g.start_level = house_level_of(f)
 				f.goal = g
 				_state.chronicle_add(_hour, GameConstants.HOUSE_MSG_GOAL_SET % [f.surname, goal_text(g)], k.id)
+				continue # a new goal is pursued from the next day
 		_pursue(k, f)
 
 
@@ -393,6 +395,16 @@ func _pursue(k: Dictionary, f: Dictionary) -> void:
 						break
 		G.UPGRADE:
 			upgrade(k, f)
+		G.ALLIANCE:
+			_try_alliance(k, f)
+		G.UNION:
+			var big := _state.family(int(f.goal.target_id))
+			if not big.is_empty() and big.id != f.id:
+				unite(k, f, big)
+		G.REVENGE:
+			var target := _state.family(int(f.goal.target_id))
+			if not target.is_empty() and _roll(f.id, "revenge") < GameConstants.REVENGE_PER_DAY:
+				take_revenge(k, f, target)
 
 
 func goal_reached(f: Dictionary, goal: Dictionary, ctx: Dictionary) -> bool:
@@ -465,3 +477,311 @@ func goal_ctx(k: Dictionary, f: Dictionary) -> Dictionary:
 		allies = allies, partner_families = partners, insulted_by = int(f.get("insulted_by", -1)),
 		head_age = float(head.get("age", 0.0)),
 	}
+
+
+# --- Intrigue: marriages, unions, corruption, spies, revenge, secret romances ---------------
+
+## Daily: unhappy marriages, skimming and its discovery, spies at work (and caught), new spies in
+## rival Houses, secret romances starting and coming out.
+func _intrigue(k: Dictionary, rng: RandomNumberGenerator) -> void:
+	var people := _state.residents(k.id)
+	for p in people:
+		var sp := _state.person(int(p.get("spouse_id", -1)))
+		if p.get("unhappy_marriage", false) and not sp.is_empty() and p.id < sp.id:
+			_unhappy_day(k, p, sp)
+	for f in _state.families_of(k.id):
+		var head := _state.person(int(f.head_id))
+		if rng.randf() < HouseRules.corruption_chance(f, head) and _is_work_day():
+			skim(k, f)
+		for sec in (f.get("secrets", []) as Array).duplicate():
+			if rng.randf() < HouseRules.discovery_chance(_watchers(k, f.id)):
+				expose(k, f, sec)
+		var rival := _state.family(int(f.get("rival_id", -1)))
+		if not rival.is_empty() and int((f.goal as Dictionary).get("kind", -1)) in [GameConstants.Goal.SURPASS, GameConstants.Goal.REVENGE] \
+				and _state.relation(int(f.head_id), int(rival.head_id)) < GameConstants.INFILTRATE_AT \
+				and rng.randf() < GameConstants.INFILTRATE_PER_DAY and not _has_spy(f.id, rival.id):
+			plant_spy(k, f, rival)
+	for p in _state.residents(k.id):
+		var sec: Dictionary = p.get("secret", {})
+		match String(sec.get("kind", "")):
+			"spy":
+				spy_day(k, p)
+				if rng.randf() < HouseRules.discovery_chance(_watchers(k, int(sec.in_id))):
+					expose_spy(k, p)
+			"romance":
+				var other := _state.person(int(sec.with))
+				var watchers := _watchers(k, int(p.family_id)) + _watchers(k, int(other.get("family_id", -1)))
+				if p.id < int(sec.with) and rng.randf() < HouseRules.discovery_chance(watchers):
+					expose_romance(k, p)
+	_romances(k, rng)
+
+
+## Marries one of `f`'s unmarried adults into the House it wants an alliance with.
+func _try_alliance(k: Dictionary, f: Dictionary) -> void:
+	var target := _state.family(int(f.goal.target_id))
+	if target.is_empty():
+		return
+	var single := func(m: Dictionary) -> bool: return SocietyRules.is_adult(m) and int(m.get("spouse_id", -1)) < 0
+	var own := _state.family_members(f.id).filter(single)
+	var theirs := _state.family_members(target.id).filter(single)
+	var m := HouseRules.arranged_match(own, theirs, _state)
+	if m.is_empty():
+		return
+	var person := _state.person(int(m.person_id))
+	var partner := _state.person(int(m.partner_id))
+	var rng := RandomNumberGenerator.new()
+	rng.seed = hash([_state.seed, "arranged", person.id, int(_hour)])
+	var response := HouseRules.arranged_response(person, _state.relation(person.id, partner.id), _love_rel(person, partner.id), rng)
+	arranged_marriage(k, f, person, partner, response)
+
+
+## Outcome of an arranged marriage: "accept" (dowry, alliance, maybe an unhappy marriage),
+## "resist" (resentment) or "flee" (runs away and marries the one they love).
+func arranged_marriage(k: Dictionary, f: Dictionary, person: Dictionary, partner: Dictionary, response: String) -> void:
+	var other := _state.family(int(partner.family_id))
+	match response:
+		"accept":
+			var dowry := minf(float(GameConstants.DOWRY), maxf(0.0, float(f.wealth)))
+			f.wealth = float(f.wealth) - dowry
+			if not other.is_empty():
+				other.wealth = float(other.wealth) + dowry
+				_state.add_relation(int(f.head_id), int(other.head_id), GameConstants.ALLIANCE_RELATION_GAIN)
+			var unhappy := _state.relation(person.id, partner.id) < GameConstants.UNHAPPY_AT
+			_society._marry(k, person, partner)
+			person.unhappy_marriage = unhappy
+			partner.unhappy_marriage = unhappy
+			if not (f.goal as Dictionary).is_empty():
+				f.goal.done = true
+			_log(k, GameConstants.HOUSE_MSG_ARRANGED % [f.surname, PersonGen.full_name(person), PersonGen.full_name(partner),
+					other.get("surname", "?")], true)
+		"resist":
+			person.resentment = clampf(float(person.resentment) + GameConstants.RESIST_RESENTMENT, 0.0, 1.0)
+			_state.add_relation(person.id, int(f.head_id), GameConstants.RESIST_RELATION_HIT)
+			_log(k, GameConstants.HOUSE_MSG_RESISTED % [PersonGen.full_name(person), f.surname])
+		"flee":
+			var lover := _lover(person)
+			var nf := depart(k, f, person, {tone = "hostile", secret = true}, _hour)
+			if not lover.is_empty():
+				var lf := _state.family(int(lover.family_id))
+				if not lf.is_empty() and lf.id != nf.id:
+					lover.secret = {kind = "runaway", from = lf.id, hour = _hour, name = PersonGen.full_name(lover)}
+				lover.family_id = nf.id
+				lover.surname = nf.surname
+				lover.home_id = -1
+				_society._marry(k, person, lover)
+
+
+func _unhappy_day(k: Dictionary, a: Dictionary, b: Dictionary) -> void:
+	_state.add_relation(a.id, b.id, GameConstants.UNHAPPY_DRIFT)
+	if _state.relation(a.id, b.id) >= GameConstants.SEPARATE_AT:
+		return
+	a.spouse_id = -1
+	b.spouse_id = -1
+	a.unhappy_marriage = false
+	b.unhappy_marriage = false
+	var f := _state.family(int(a.family_id))
+	b.home_id = -1 # one of them moves out
+	if not f.is_empty():
+		f.dishonor = float(f.get("dishonor", 0.0)) + GameConstants.SEPARATION_DISHONOR
+	_log(k, GameConstants.HOUSE_MSG_SEPARATED % [PersonGen.full_name(a), PersonGen.full_name(b), f.get("surname", "?")], true)
+
+
+## `small` joins `big`: members, land, stakes and wealth.
+func unite(k: Dictionary, small: Dictionary, big: Dictionary) -> void:
+	for m in _state.family_members(small.id):
+		m.family_id = big.id
+		m.surname = big.surname
+	var head := _state.person(int(small.head_id))
+	if not head.is_empty():
+		head.family_id = big.id
+		head.surname = big.surname
+	big.wealth = float(big.wealth) + maxf(0.0, float(small.wealth))
+	(big.plots as Array).append_array(small.plots)
+	var moved := []
+	for b in _state.all_buildings():
+		if b.type == GameConstants.Building.STAKE and b.get("family_id", -1) == small.id:
+			b.family_id = big.id
+			b.color = house_color(big)
+			moved.append(b)
+	buildings_changed.emit(moved)
+	_state.remove_family(small.id)
+	if not (big.goal as Dictionary).is_empty() and int(big.goal.get("target_id", -1)) == small.id:
+		big.goal.done = true
+	_log(k, GameConstants.HOUSE_MSG_UNION % [small.surname, big.surname], true)
+
+
+## A greedy House takes some of the most plentiful resource of the kingdom stock (a secret).
+func skim(k: Dictionary, f: Dictionary) -> void:
+	var res := SocietySim._most([GameConstants.Res.WOOD, GameConstants.Res.STONE, GameConstants.Res.FOOD],
+			func(r: int) -> int: return _state.stock_of(k, r))
+	var n := mini(GameConstants.SKIM_AMOUNT, _state.stock_of(k, res))
+	if n <= 0:
+		return
+	_state.add_stock(k, res, -n)
+	f.wealth = float(f.wealth) + n * GameConstants.SKIM_VALUE
+	(f.secrets as Array).append({kind = "skim", res = res, amount = n, hour = _hour})
+	_state.chronicle_add(_hour, "A Casa %s desviou %d de %s" % [f.surname, n, SocietySim._res_name(res)], k.id, false)
+
+
+## A House secret comes out: scandal.
+func expose(k: Dictionary, f: Dictionary, secret: Dictionary) -> void:
+	(f.secrets as Array).erase(secret)
+	f.dishonor = float(f.get("dishonor", 0.0)) + GameConstants.SCANDAL_DISHONOR
+	for other in _state.families_of(k.id):
+		if other.id != f.id:
+			_state.add_relation(int(f.head_id), int(other.head_id), GameConstants.SCANDAL_RELATION_HIT)
+	_log(k, GameConstants.HOUSE_MSG_SKIM % [f.surname, SocietySim._res_name(int(secret.get("res", 0)))], true)
+
+
+## Plants a member of `f` in the rival House as a household member (cover: "went to serve").
+func plant_spy(k: Dictionary, f: Dictionary, rival: Dictionary) -> bool:
+	var spy := HouseRules.spy_candidate(f, rival, _state.family_members(f.id))
+	if spy.is_empty():
+		return false
+	spy.family_id = rival.id
+	spy.home_id = int(_state.person(int(rival.head_id)).get("home_id", -1))
+	spy.secret = {kind = "spy", for_id = f.id, in_id = rival.id, hour = _hour}
+	_log(k, GameConstants.HOUSE_MSG_SERVE % [PersonGen.full_name(spy), f.surname, rival.surname])
+	return true
+
+
+## A spy's day: wealth slips from the rival House to the spy's own, and the rival's plans slip.
+func spy_day(_k: Dictionary, spy: Dictionary) -> void:
+	var own := _state.family(int(spy.secret.get("for_id", -1)))
+	var rival := _state.family(int(spy.secret.get("in_id", -1)))
+	if own.is_empty() or rival.is_empty():
+		return
+	var take := maxf(0.0, float(rival.wealth)) * GameConstants.SPY_STEAL_SHARE
+	rival.wealth = float(rival.wealth) - take
+	own.wealth = float(own.wealth) + take
+	if not (rival.goal as Dictionary).is_empty():
+		rival.goal.deadline_hour = float(rival.goal.get("deadline_hour", _hour)) - GameConstants.SPY_SABOTAGE_HOURS
+
+
+func expose_spy(k: Dictionary, spy: Dictionary) -> void:
+	var own := _state.family(int(spy.secret.get("for_id", -1)))
+	var rival := _state.family(int(spy.secret.get("in_id", -1)))
+	spy.secret = {}
+	if own.is_empty() or rival.is_empty():
+		return
+	spy.family_id = own.id
+	spy.home_id = int(_state.person(int(own.head_id)).get("home_id", -1))
+	own.dishonor = float(own.get("dishonor", 0.0)) + GameConstants.SCANDAL_DISHONOR
+	rival.insulted_by = own.id
+	own.rival_id = rival.id
+	rival.rival_id = own.id
+	_state.add_relation(int(own.head_id), int(rival.head_id), GameConstants.FEUD_RELATION_HIT)
+	_state.add_relation(spy.id, int(rival.head_id), GameConstants.FEUD_RELATION_HIT)
+	_log(k, GameConstants.HOUSE_MSG_SPY % [PersonGen.full_name(spy), rival.surname, own.surname], true)
+
+
+func take_revenge(k: Dictionary, f: Dictionary, target: Dictionary) -> void:
+	target.dishonor = float(target.get("dishonor", 0.0)) + GameConstants.REVENGE_DISHONOR
+	var take := maxf(0.0, float(target.wealth)) * GameConstants.REVENGE_STEAL_SHARE
+	target.wealth = float(target.wealth) - take
+	f.wealth = float(f.wealth) + take
+	f.insulted_by = -1
+	if not (f.goal as Dictionary).is_empty():
+		f.goal.done = true
+	_log(k, GameConstants.HOUSE_MSG_REVENGE % [f.surname, target.surname], true)
+
+
+## Two adults of the same sex in love meet in secret (frowned upon: never marriage or children).
+func start_romance(_k: Dictionary, a: Dictionary, b: Dictionary) -> bool:
+	if not HouseRules.secret_romance_possible(a, b, _state.relation(a.id, b.id), Kinship.is_close_kin(_state, a, b)):
+		return false
+	if not (a.get("secret", {}) as Dictionary).is_empty() or not (b.get("secret", {}) as Dictionary).is_empty():
+		return false
+	a.secret = {kind = "romance", with = b.id, hour = _hour}
+	b.secret = {kind = "romance", with = a.id, hour = _hour}
+	return true
+
+
+## The romance comes out: dishonor for both Houses and family pressure — each gives in (resentment)
+## or leaves the House.
+func expose_romance(k: Dictionary, a: Dictionary) -> void:
+	var b := _state.person(int(a.secret.get("with", -1)))
+	a.secret = {}
+	if not b.is_empty():
+		b.secret = {}
+	var fa := _state.family(int(a.get("family_id", -1)))
+	_log(k, GameConstants.HOUSE_MSG_ROMANCE % [fa.get("surname", "?"), PersonGen.full_name(a),
+			PersonGen.full_name(b) if not b.is_empty() else "?"], true)
+	for p in [a, b]:
+		if p.is_empty():
+			continue
+		var f := _state.family(int(p.get("family_id", -1)))
+		if f.is_empty():
+			continue
+		f.dishonor = float(f.get("dishonor", 0.0)) + GameConstants.ROMANCE_DISHONOR
+		_state.add_relation(p.id, int(f.head_id), GameConstants.ROMANCE_RELATION_HIT)
+		var rng := RandomNumberGenerator.new()
+		rng.seed = hash([_state.seed, "romance", p.id, int(_hour)])
+		if p.id != int(f.head_id) and HouseRules.conflict_outcome(p, f, _state.relation(p.id, int(f.head_id)), rng) == "leave":
+			depart(k, f, p, HouseRules.departure_style(p, f, _state.relation(p.id, int(f.head_id)), rng), _hour)
+		else:
+			p.resentment = clampf(float(p.get("resentment", 0.0)) + GameConstants.ROMANCE_RESENTMENT, 0.0, 1.0)
+
+
+func _romances(k: Dictionary, rng: RandomNumberGenerator) -> void:
+	var people := _state.residents(k.id).filter(func(p: Dictionary) -> bool: return SocietyRules.is_adult(p))
+	for a in people:
+		for other_id in _state.relations_of(a.id):
+			if other_id <= a.id:
+				continue
+			var b := _state.person(other_id)
+			if b.is_empty() or b.status != "resident" or bool(a.female) != bool(b.female):
+				continue
+			if rng.randf() < GameConstants.ROMANCE_START_PER_DAY:
+				start_romance(k, a, b)
+
+
+# --- Intrigue helpers -----------------------------------------------------------------------
+
+## Honest, devout or sociable adults outside House `family_id` who might notice a secret.
+func _watchers(k: Dictionary, family_id: int) -> int:
+	var n := 0
+	for p in _state.residents(k.id):
+		if int(p.get("family_id", -1)) == family_id or not SocietyRules.is_adult(p):
+			continue
+		var traits: Array = p.get("traits", [])
+		if traits.has(GameConstants.Trait.GENEROUS) or traits.has(GameConstants.Trait.DEVOUT) or traits.has(GameConstants.Trait.SOCIABLE):
+			n += 1
+	return n
+
+
+func _has_spy(from_id: int, in_id: int) -> bool:
+	return _state.all_people().any(func(p: Dictionary) -> bool:
+		var sec: Dictionary = p.get("secret", {})
+		return sec.get("kind", "") == "spy" and int(sec.get("for_id", -1)) == from_id and int(sec.get("in_id", -1)) == in_id)
+
+
+## Strongest love for someone other than `except_id` (-1 when none).
+func _love_rel(p: Dictionary, except_id: int) -> float:
+	var lover := _lover(p, except_id)
+	return _state.relation(p.id, lover.id) if not lover.is_empty() else -1.0
+
+
+func _lover(p: Dictionary, except_id := -1) -> Dictionary:
+	var best := {}
+	var best_rel := GameConstants.COUPLE_AT
+	var rels := _state.relations_of(p.id)
+	for other_id in rels:
+		var o := _state.person(other_id)
+		if other_id == except_id or o.is_empty() or bool(o.female) == bool(p.female) or int(o.get("spouse_id", -1)) >= 0:
+			continue
+		if rels[other_id] >= best_rel and not Kinship.is_close_kin(_state, p, o):
+			best_rel = rels[other_id]
+			best = o
+	return best
+
+
+func _is_work_day() -> bool:
+	return true
+
+
+## A seeded roll per House, tag and day.
+func _roll(id: int, tag: String) -> float:
+	var rng := RandomNumberGenerator.new()
+	rng.seed = hash([_state.seed, tag, id, floori(_hour / 24.0)])
+	return rng.randf()

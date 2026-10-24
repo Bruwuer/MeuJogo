@@ -59,8 +59,9 @@ func test_targets_are_set() -> void:
 	var g := HouseRules.pick_goal(_fam(TR.WARRIORS), _ctx({rival_id = 9, rival_gap = 0.8, wealth = 900.0}), _rng(1))
 	if g.kind == G.SURPASS:
 		assert_eq(g.target_id, 9)
-	var u := HouseRules.pick_goal(_fam(), _ctx({members = 1, adults = 1, heirs = 0, allies = [4], wealth = 900.0, plots = 1}), _rng(2))
-	assert_eq(u.kind, G.UNION, "a lone heirless member with an ally seeks a union")
+	var u := HouseRules.pick_goal(_fam(), _ctx({members = 1, adults = 1, heirs = 0, allies = [4], wealth = 900.0, plots = 1, head_age = 60.0}), _rng(2))
+	assert_eq(u.kind, G.UNION, "an old heirless head with an ally seeks a union")
+	assert_true(not _kinds(_fam(), _ctx({members = 1, adults = 1, heirs = 0, allies = [4], head_age = 25.0})).has(G.UNION), "the young marry instead")
 	assert_eq(u.target_id, 4)
 
 
