@@ -395,7 +395,7 @@ func _people() -> void:
 	await _physics(240)
 	await _shot("19_village_working")
 	if not site.is_empty():
-		await _teleport(site.pos + Vector3(1.5, 0, 7.5))
+		await _teleport(site.pos + Vector3(3.6, 0, 3.6))
 		await _physics(120)
 		await _shot("20_site_rising")
 	else:
