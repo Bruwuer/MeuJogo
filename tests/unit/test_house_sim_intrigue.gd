@@ -88,6 +88,7 @@ func test_flee_with_lover() -> void:
 	var lover := _join(_person("Leonor", true, 21.0), c)
 	s.set_relation(groom.id, lover.id, 0.9)
 	house.arranged_marriage(k, a, groom, bride, "flee")
+	house.complete_deed(k, groom, []) # the night escape
 	assert_eq(groom.spouse_id, lover.id, "runs away and marries the one they love")
 	assert_true(groom.family_id != a.id)
 	assert_eq(lover.family_id, groom.family_id)
@@ -182,4 +183,4 @@ func test_secret_romance_scandal() -> void:
 	assert_true(float(a.get("dishonor", 0.0)) > 0.0 and float(b.get("dishonor", 0.0)) > 0.0)
 	assert_eq(x.get("secret", {}), {})
 	assert_true(x.spouse_id == -1 and y.spouse_id == -1, "they never marry")
-	assert_true(x.resentment > 0.0 or x.family_id != a.id, "they give in or leave the House")
+	assert_true(x.resentment > 0.0 or (x.deed as Dictionary).get("kind", "") in ["farewell", "runaway"], "they give in or leave the House")

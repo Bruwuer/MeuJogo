@@ -119,7 +119,45 @@ func _vocations(k: Dictionary, rng: RandomNumberGenerator) -> void:
 			"leave":
 				p.conflict = false
 				p.profession = int(p.vocation)
-				depart(k, f, p, HouseRules.departure_style(p, f, rel, rng), _hour)
+				leave(k, f, p, HouseRules.departure_style(p, f, rel, rng))
+
+
+## `p` decides to leave House `f`: openly a farewell at the head's door by day, in secret a walk
+## out to the edge of the territory at night. `depart` happens when the deed is done.
+func leave(k: Dictionary, f: Dictionary, p: Dictionary, style: Dictionary, data := {}) -> void:
+	var d := data.duplicate()
+	d.merge({style = style, family_id = f.id, secret = bool(style.secret)}, true)
+	if style.secret:
+		var w := Deeds.next_window(_hour, GameConstants.DEED_NIGHT.x, GameConstants.DEED_NIGHT.y)
+		plan_deed(p, Deeds.make("runaway", _edge_spot(k, p), GameConstants.PERSON_ARRIVE * 2.0, w.x, w.y,
+				GameConstants.DEED_WORK_SEC, d))
+	else:
+		var w := Deeds.next_window(_hour, GameConstants.DEED_DAY.x, GameConstants.DEED_DAY.y)
+		plan_deed(p, Deeds.make("farewell", _door_of_house(k, f), GameConstants.PERSON_ARRIVE * 1.5, w.x, w.y,
+				GameConstants.DEED_CEREMONY_SEC, d))
+
+
+## The door of the House head's home (the seat's when the House has no home).
+func _door_of_house(k: Dictionary, f: Dictionary) -> Vector3:
+	var head := _state.person(int(f.head_id))
+	var home := _state.building(int(head.get("home_id", -1))) if not head.is_empty() else {}
+	if home.is_empty():
+		home = _state.building(int(k.get("seat_id", -1)))
+	return PeopleManager.door_of(home) if not home.is_empty() else k.center
+
+
+## A spot near the edge of the territory, on the side of `p`'s home (away from the center).
+func _edge_spot(k: Dictionary, p: Dictionary) -> Vector3:
+	var home := _state.building(int(p.get("home_id", -1)))
+	var from: Vector3 = home.pos if not home.is_empty() else p.pos
+	var dir := Vector3(from.x - k.center.x, 0.0, from.z - k.center.z)
+	if dir.length() < 1.0:
+		var rng := RandomNumberGenerator.new()
+		rng.seed = hash([_state.seed, "edge", p.id])
+		dir = Vector3.FORWARD.rotated(Vector3.UP, rng.randf() * TAU)
+	var spot: Vector3 = k.center + dir.normalized() * (float(k.radius) - GameConstants.PLOT_SIZE * 0.5)
+	spot.y = _gen.height_at(spot.x, spot.z) if _gen else k.center.y
+	return spot
 
 
 ## `p` leaves House `f` and founds a House of their own (with the spouse when married), in the
@@ -215,7 +253,26 @@ func complete_deed(k: Dictionary, p: Dictionary, seen: Array, hour := -1.0) -> v
 	if deed.is_empty():
 		return
 	p.deed = {}
+	var data: Dictionary = deed.data
+	match String(deed.kind):
+		"farewell", "runaway":
+			var f := _state.family(int(data.get("family_id", -1)))
+			if not f.is_empty() and int(p.get("family_id", -1)) == f.id:
+				var old_name := PersonGen.full_name(p)
+				depart(k, f, p, data.style, _hour)
+				if int(data.get("lover_id", -1)) >= 0:
+					_elope(k, p, int(data.lover_id))
+				if deed.kind == "runaway" and not seen.is_empty():
+					_runaway_seen(k, p, f, old_name, seen[0])
 	deed_completed.emit(p, deed, seen)
+
+
+## Someone saw the runaway go: the old House knows at once.
+func _runaway_seen(k: Dictionary, p: Dictionary, f: Dictionary, old_name: String, witness_id: int) -> void:
+	p.secret = {}
+	_state.add_relation(p.id, int(f.head_id), GameConstants.RUNAWAY_HIT)
+	var w := _state.person(witness_id)
+	_log(k, GameConstants.HOUSE_MSG_SEEN_RUNAWAY % [PersonGen.full_name(w) if not w.is_empty() else "Alguém", old_name, f.surname])
 
 
 ## Offscreen, a secret deed is seen by chance by the outsiders awake at that hour (guards on watch
@@ -622,15 +679,28 @@ func arranged_marriage(k: Dictionary, f: Dictionary, person: Dictionary, partner
 			_log(k, GameConstants.HOUSE_MSG_RESISTED % [PersonGen.full_name(person), f.surname])
 		"flee":
 			var lover := _lover(person)
-			var nf := depart(k, f, person, {tone = "hostile", secret = true}, _hour)
+			var data := {lover_id = lover.get("id", -1), party = [lover.id] if not lover.is_empty() else []}
+			leave(k, f, person, {tone = "hostile", secret = true}, data)
 			if not lover.is_empty():
-				var lf := _state.family(int(lover.family_id))
-				if not lf.is_empty() and lf.id != nf.id:
-					lover.secret = {kind = "runaway", from = lf.id, hour = _hour, name = PersonGen.full_name(lover)}
-				lover.family_id = nf.id
-				lover.surname = nf.surname
-				lover.home_id = -1
-				_society._marry(k, person, lover)
+				var deed: Dictionary = (person.deed as Dictionary).duplicate(true)
+				deed.data = {follow = person.id, secret = true, party = [person.id]}
+				plan_deed(lover, deed)
+
+
+## The lover of a runaway leaves too, and they marry away from their Houses.
+func _elope(k: Dictionary, person: Dictionary, lover_id: int) -> void:
+	var lover := _state.person(lover_id)
+	if lover.is_empty() or lover.status != "resident":
+		return
+	var nf := _state.family(int(person.family_id))
+	var lf := _state.family(int(lover.get("family_id", -1)))
+	if not lf.is_empty() and lf.id != nf.id:
+		lover.secret = {kind = "runaway", from = lf.id, hour = _hour, name = PersonGen.full_name(lover)}
+	lover.family_id = nf.id
+	lover.surname = nf.surname
+	lover.home_id = -1
+	lover.deed = {}
+	_society._marry(k, person, lover)
 
 
 func _unhappy_day(k: Dictionary, a: Dictionary, b: Dictionary) -> void:
@@ -780,7 +850,7 @@ func expose_romance(k: Dictionary, a: Dictionary) -> void:
 		var rng := RandomNumberGenerator.new()
 		rng.seed = hash([_state.seed, "romance", p.id, int(_hour)])
 		if p.id != int(f.head_id) and HouseRules.conflict_outcome(p, f, _state.relation(p.id, int(f.head_id)), rng) == "leave":
-			depart(k, f, p, HouseRules.departure_style(p, f, _state.relation(p.id, int(f.head_id)), rng), _hour)
+			leave(k, f, p, HouseRules.departure_style(p, f, _state.relation(p.id, int(f.head_id)), rng))
 		else:
 			p.resentment = clampf(float(p.get("resentment", 0.0)) + GameConstants.ROMANCE_RESENTMENT, 0.0, 1.0)
 

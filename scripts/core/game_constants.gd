@@ -869,6 +869,7 @@ const HOUSE_MSG_BLESSED := "%s deixou a Casa %s com a bênção da família e fu
 const HOUSE_MSG_NEUTRAL := "%s deixou a Casa %s e fundou a Casa %s"
 const HOUSE_MSG_HOSTILE := "%s rompeu com a Casa %s e fundou a Casa %s, agora rival"
 const HOUSE_MSG_RUNAWAY := "%s fugiu da Casa %s durante a noite"
+const HOUSE_MSG_SEEN_RUNAWAY := "%s viu %s fugir da Casa %s de madrugada"
 const HOUSE_MSG_CONFORM := "%s aceitou seguir o ofício da Casa %s, contra a vontade"
 const HOUSE_MSG_NEGOTIATE := "A Casa %s aceitou que %s seja %s"
 const HOUSE_MSG_ADOPTED := "%s foi adotado pela Casa %s"
