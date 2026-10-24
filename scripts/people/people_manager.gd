@@ -487,16 +487,115 @@ static func card_text(rec: Dictionary, state: WorldState) -> String:
 	elif float(rec.get("contentment", 1.0)) < GameConstants.LEAVE_CONTENTMENT + 0.15:
 		need = "mood"
 	var k := state.kingdom(rec.get("kingdom_id", -1))
-	var lines: PackedStringArray = [
-		"%s, %d anos" % [PersonGen.full_name(rec), rec.age],
-		"%s · %s" % [PersonGen.profession_name(rec).capitalize(), ", ".join(traits)],
-		"Agora: %s" % doing,
-		"Precisa de: %s" % GameConstants.NEED_TEXTS[need],
-		opinion_text(float(rec.opinion)),
-	]
+	var g := 1 if rec.female else 0
+	var lines: PackedStringArray = ["%s, %d anos" % [PersonGen.full_name(rec), floori(float(rec.age))]]
 	if not k.is_empty():
-		lines.insert(1, "Reino de %s" % k.name if rec.status == "resident" else "De passagem pelo Reino de %s" % k.name)
+		lines.append("Reino de %s" % k.name if rec.status == "resident" else "De passagem pelo Reino de %s" % k.name)
+	var fam := state.family(int(rec.get("family_id", -1)))
+	if not fam.is_empty():
+		lines.append(GameConstants.CARD_FAMILY % fam.surname + (GameConstants.CARD_HEAD if fam.head_id == rec.id else ""))
+	lines.append("%s · %s" % [PersonGen.profession_name(rec).capitalize(), ", ".join(traits)])
+	lines.append_array(_kin_lines(rec, state))
+	var ties := _ties_line(rec, state)
+	if ties != "":
+		lines.append(ties)
+	lines.append("Agora: %s" % doing)
+	lines.append("Precisa de: %s" % GameConstants.NEED_TEXTS[need])
+	var stance: String = rec.get("stance", "")
+	lines.append(opinion_text(float(rec.opinion)) + (GameConstants.CARD_STANCE[stance][g] if stance != "" else ""))
+	if not fam.is_empty():
+		lines.append(GameConstants.CARD_CREST % Crest.describe(fam.crest))
 	return "\n".join(lines)
+
+
+## Spouse (or widowhood), then parents (for a child) or children.
+static func _kin_lines(rec: Dictionary, state: WorldState) -> PackedStringArray:
+	var g := 1 if rec.female else 0
+	var out: PackedStringArray = []
+	var spouse := state.person(int(rec.get("spouse_id", -1)))
+	if not spouse.is_empty():
+		out.append(GameConstants.CARD_SPOUSE[g] % PersonGen.full_name(spouse))
+	elif rec.get("widowed", false):
+		out.append(GameConstants.CARD_WIDOWED[g])
+	if not SocietyRules.is_adult(rec):
+		var names: PackedStringArray = []
+		for id: int in rec.get("parents", []):
+			var parent := state.person(id)
+			if not parent.is_empty():
+				names.append(PersonGen.full_name(parent))
+		if not names.is_empty():
+			out.append(GameConstants.CARD_PARENTS[g] % " e ".join(names))
+		return out
+	var kids: PackedStringArray = []
+	for c in state.all_people():
+		if (c.get("parents", []) as Array).has(rec.id):
+			kids.append("%s (%d)" % [c.name, floori(float(c.age))])
+	if not kids.is_empty():
+		out.append(GameConstants.CARD_CHILDREN % ", ".join(kids))
+	return out
+
+
+## Best friend and worst rival among living people.
+static func _ties_line(rec: Dictionary, state: WorldState) -> String:
+	var rels := state.relations_of(rec.id)
+	var best := {}
+	var worst := {}
+	for id in rels:
+		var o := state.person(id)
+		if o.is_empty() or id == rec.get("spouse_id", -1):
+			continue
+		var v: float = rels[id]
+		if v >= GameConstants.FRIEND_AT and (best.is_empty() or v > float(rels[best.id])):
+			best = o
+		if v <= GameConstants.RIVAL_AT and (worst.is_empty() or v < float(rels[worst.id])):
+			worst = o
+	var parts: PackedStringArray = []
+	if not best.is_empty():
+		parts.append(GameConstants.CARD_FRIEND[1 if best.female else 0] % PersonGen.full_name(best))
+	if not worst.is_empty():
+		parts.append(GameConstants.CARD_RIVAL % PersonGen.full_name(worst))
+	return " · ".join(parts)
+
+
+## One row per family of the kingdom: {crest, text} ("Casa Ferreira · 3 pessoas · chefe: Ana ·
+## aliada · rival da Casa Couto").
+static func family_rows(state: WorldState, k: Dictionary) -> Array[Dictionary]:
+	var out: Array[Dictionary] = []
+	var families := state.families_of(k.id)
+	families.sort_custom(func(a: Dictionary, b: Dictionary) -> bool: return a.id < b.id)
+	for f in families:
+		var members := state.family_members(f.id)
+		var n := members.size()
+		var head := state.person(f.head_id)
+		var text := "Casa %s · %d %s" % [f.surname, n, "pessoa" if n == 1 else "pessoas"]
+		if not head.is_empty():
+			text += " · chefe: %s" % head.name
+		text += " · " + GameConstants.FAMILY_STANCE_TEXTS[f.stance]
+		var rival := {}
+		var worst := GameConstants.RIVAL_AT
+		for o in families:
+			if o.id == f.id:
+				continue
+			var r := family_relation(state, members, state.family_members(o.id))
+			if r <= worst:
+				worst = r
+				rival = o
+		if not rival.is_empty():
+			text += " · rival da Casa %s" % rival.surname
+		out.append({crest = f.crest, text = text})
+	return out
+
+
+## Mean relation between the adults of two families (0 when none).
+static func family_relation(state: WorldState, a: Array, b: Array) -> float:
+	var sum := 0.0
+	var n := 0
+	for x: Dictionary in a:
+		for y: Dictionary in b:
+			if SocietyRules.is_adult(x) and SocietyRules.is_adult(y):
+				sum += state.relation(x.id, y.id)
+				n += 1
+	return sum / n if n > 0 else 0.0
 
 
 static func opinion_text(opinion: float) -> String:

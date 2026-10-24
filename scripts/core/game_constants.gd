@@ -659,7 +659,7 @@ const JOB_TEXTS := {
 }
 const STATUS_TEXTS := { "traveler": "chegando ao reino", "leaving": "indo embora", "inside": "em casa" }
 const NEED_TEXTS := { "food": "comida", "home": "uma casa", "mood": "ânimo", "none": "nada por enquanto" }
-const VILLAGE_LINE := "Moradores: %d · Estoque: %s"
+const VILLAGE_LINE := "Moradores: %d · Famílias: %d · Estoque: %s"
 const VILLAGE_NEWS_SHOWN := 3 ## Village messages shown when the player comes back.
 const VILLAGE_NEWS_MORE := "Enquanto você estava fora, aconteceram mais %d coisas nos povoados"
 const PERSON_STUCK_CHECK_SEC := 1.0 ## How often a walking person checks it is getting anywhere.
@@ -767,3 +767,18 @@ const VILLAGE_MSG_APPROACH := "Um viajante se aproxima do Reino de %s"
 const CREST_BANNER_SCENE := "res://assets/models/crest_banner.glb"
 ## Banner beside a house: local offset from the footprint corner on the door (+Z) side, outward.
 const CREST_BANNER_GAP := Vector2(0.35, 0.4)
+## Person card and families panel.
+const CARD_FAMILY := "Casa %s"
+const CARD_HEAD := " (chefe)"
+const CARD_SPOUSE := ["Casado com %s", "Casada com %s"]
+const CARD_WIDOWED := ["Viúvo", "Viúva"]
+const CARD_PARENTS := ["Filho de %s", "Filha de %s"]
+const CARD_CHILDREN := "Filhos: %s"
+const CARD_FRIEND := ["Amigo: %s", "Amiga: %s"]
+const CARD_RIVAL := "Rival: %s"
+const CARD_STANCE := { "ally": [" — seu aliado", " — sua aliada"], "enemy": [" — seu inimigo", " — sua inimiga"] }
+const CARD_CREST := "Brasão: %s"
+const FAMILY_STANCE_TEXTS := { "ally": "aliada", "enemy": "inimiga", "": "neutra" }
+const FAMILIES_TITLE := "Famílias do Reino de %s"
+const FAMILIES_EMPTY := "Ainda não há famílias"
+const FAMILIES_REFRESH_SEC := 1.0

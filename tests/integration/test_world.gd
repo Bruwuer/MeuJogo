@@ -103,3 +103,19 @@ func test_player_frozen_over_unloaded_chunk() -> void:
 func test_physics_interpolation_enabled() -> void:
 	# Player and camera move on physics ticks; without interpolation the image judders above 60 Hz.
 	assert_true(ProjectSettings.get_setting("physics/common/physics_interpolation", false), "physics interpolation off")
+
+
+func test_talking_changes_opinion_once_a_day() -> void:
+	var w: World = await _make_world()
+	var s := w.get_state()
+	var r := RandomNumberGenerator.new()
+	r.seed = 3
+	var p := s.add_person(PersonGen.generate(r), w.get_player().global_position, -1)
+	p.traits = [GameConstants.Trait.SOCIABLE, GameConstants.Trait.WORKER]
+	p.opinion = 0.0
+	var n := Person.new()
+	n.record = p
+	w.get_player().talked.emit(n)
+	w.get_player().talked.emit(n)
+	assert_near(float(p.opinion), GameConstants.TALK_OPINION.sociable, 0.0001, "once a day")
+	n.free()

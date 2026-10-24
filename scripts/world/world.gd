@@ -357,6 +357,7 @@ func _add_people(scatter: PropScatter, library: ModelLibrary) -> void:
 	_people.message.connect(_hud.add_message)
 	_creatures.creature_killed.connect(_people.on_creature_killed)
 	_player.talk_target = _people.nearest_person
+	_player.talked.connect(func(n: Node3D) -> void: _people.talked_to((n as Person).record))
 	_player.donate_handler = _people.donate
 	_hud.set_people(_people)
 	_village.player_pos = func() -> Variant: return _player.global_position

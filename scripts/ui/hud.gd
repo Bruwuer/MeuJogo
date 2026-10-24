@@ -17,6 +17,9 @@ const _MAX_MESSAGES := 4
 const _MESSAGE_SEC := 8.0
 const _CARD_WIDTH := 360.0
 const _CARD_COLOR := Color(0.1, 0.08, 0.06, 0.82)
+const _CARD_CREST_SCALE := 2.0
+const _ROW_CREST_SCALE := 1.0
+const _FAMILIES_WIDTH := 560.0
 
 var _state: WorldState
 var _harvest: HarvestSystem
@@ -41,6 +44,10 @@ var _village: Label
 var _card: PanelContainer
 var _card_label: Label
 var _card_left := 0.0
+var _card_crest: TextureRect
+var _families: PanelContainer
+var _families_box: VBoxContainer
+var _families_left := 0.0
 
 
 func setup(state: WorldState, harvest: HarvestSystem, day_night: DayNight, player: Node3D,
@@ -78,8 +85,15 @@ func setup(state: WorldState, harvest: HarvestSystem, day_night: DayNight, playe
 	_card_label = Label.new()
 	_card_label.add_theme_font_size_override("font_size", _FONT_SIZE - 2)
 	_card_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	_card.add_child(_card_label)
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", 12)
+	_card_crest = _crest_rect(_CARD_CREST_SCALE)
+	row.add_child(_card_crest)
+	_card_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	row.add_child(_card_label)
+	_card.add_child(row)
 	add_child(_card)
+	_make_families_panel(style)
 	_prompt = _make_label("Prompt", Control.PRESET_CENTER_BOTTOM, HORIZONTAL_ALIGNMENT_CENTER)
 	_center_h(_prompt, 400.0)
 	_prompt.offset_top = -_PROMPT_BOTTOM
@@ -96,7 +110,7 @@ func setup(state: WorldState, harvest: HarvestSystem, day_night: DayNight, playe
 	_hint = _make_label("Hint", Control.PRESET_BOTTOM_LEFT, HORIZONTAL_ALIGNMENT_LEFT)
 	_hint.offset_left = _MARGIN
 	_hint.offset_top = -_MARGIN - _FONT_SIZE * 1.5
-	_hint.text = "E fala · G doa · B construir · X demolir · Espaço ataca · H come · F flechas"
+	_hint.text = "E fala · G doa · C famílias · B construir · X demolir · Espaço ataca · H come · F flechas"
 	_toast = _make_label("Toast", Control.PRESET_CENTER, HORIZONTAL_ALIGNMENT_CENTER)
 	_toast.add_theme_font_size_override("font_size", _TOAST_FONT_SIZE)
 	_center_h(_toast, _WIDE * 2.0)
@@ -142,6 +156,7 @@ func _physics_process(delta: float) -> void:
 		_kingdom.text = "Reino de %s" % kingdom.name
 		_village.text = village_line(kingdom)
 	_village.visible = _kingdom.visible
+	_update_families(delta, kingdom)
 	if _card_left > 0.0:
 		_card_left -= delta
 		_card.visible = _card_left > 0.0
@@ -185,11 +200,15 @@ func village_line(kingdom: Dictionary) -> String:
 	var parts: PackedStringArray = []
 	for res in [GameConstants.Res.WOOD, GameConstants.Res.STONE, GameConstants.Res.FOOD, GameConstants.Res.BERRIES]:
 		parts.append("%s %d" % [GameConstants.RES_NAMES[res], _state.stock_of(kingdom, res)])
-	return GameConstants.VILLAGE_LINE % [_state.residents(kingdom.id).size(), ", ".join(parts)]
+	return GameConstants.VILLAGE_LINE % [_state.residents(kingdom.id).size(), _state.families_of(kingdom.id).size(),
+			", ".join(parts)]
 
 
 func show_card(rec: Dictionary) -> void:
 	_card_label.text = PeopleManager.card_text(rec, _state)
+	var fam := _state.family(int(rec.get("family_id", -1)))
+	_card_crest.texture = Crest.texture(fam.crest) if not fam.is_empty() else null
+	_card_crest.visible = _card_crest.texture != null
 	_card.visible = true
 	_card_left = GameConstants.PERSON_CARD_SEC
 
@@ -266,3 +285,108 @@ func _make_label(node_name: String, preset: Control.LayoutPreset, align: Horizon
 	label.set_anchors_and_offsets_preset(preset)
 	add_child(label)
 	return label
+
+
+func card_crest() -> Texture2D:
+	return _card_crest.texture if _card_crest.visible else null
+
+
+## A crest icon: the 32 x 40 image scaled up without blurring.
+func _crest_rect(scale: float) -> TextureRect:
+	var rect := TextureRect.new()
+	rect.name = "Crest"
+	rect.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	rect.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	rect.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	rect.custom_minimum_size = Vector2(GameConstants.CREST_SIZE) * scale
+	rect.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
+	return rect
+
+
+# --- Families panel (C) ---------------------------------------------------------------------
+
+func _make_families_panel(style: StyleBox) -> void:
+	_families = PanelContainer.new()
+	_families.name = "Families"
+	_families.set_anchors_and_offsets_preset(Control.PRESET_CENTER_LEFT)
+	_families.offset_left = _MARGIN
+	_families.offset_right = _MARGIN + _FAMILIES_WIDTH
+	_families.offset_top = -160.0
+	_families.add_theme_stylebox_override("panel", style)
+	_families.visible = false
+	_families_box = VBoxContainer.new()
+	_families_box.add_theme_constant_override("separation", 6)
+	_families.add_child(_families_box)
+	add_child(_families)
+
+
+func _unhandled_input(event: InputEvent) -> void:
+	if event.is_action_pressed("families"):
+		toggle_families()
+
+
+## Opens the list of the families of the kingdom the player is in (or closes it).
+func toggle_families() -> void:
+	if _families.visible:
+		_families.visible = false
+		return
+	var k := _state.kingdom_at(_player.global_position)
+	if k.is_empty():
+		return
+	_fill_families(k)
+	_families.visible = true
+	_families_left = GameConstants.FAMILIES_REFRESH_SEC
+
+
+func families_visible() -> bool:
+	return _families.visible
+
+
+func families_rows() -> int:
+	return maxi(0, _families_box.get_child_count() - 1)
+
+
+func families_text() -> String:
+	var lines: PackedStringArray = []
+	for label: Label in _families_box.find_children("*", "Label", true, false):
+		lines.append(label.text)
+	return "\n".join(lines)
+
+
+func _update_families(delta: float, kingdom: Dictionary) -> void:
+	if not _families.visible:
+		return
+	if kingdom.is_empty():
+		_families.visible = false
+		return
+	_families_left -= delta
+	if _families_left <= 0.0:
+		_families_left = GameConstants.FAMILIES_REFRESH_SEC
+		_fill_families(kingdom)
+
+
+func _fill_families(k: Dictionary) -> void:
+	for c in _families_box.get_children():
+		_families_box.remove_child(c)
+		c.queue_free()
+	var title := Label.new()
+	title.text = GameConstants.FAMILIES_TITLE % k.name
+	title.add_theme_font_size_override("font_size", _FONT_SIZE)
+	_families_box.add_child(title)
+	var rows := PeopleManager.family_rows(_state, k)
+	if rows.is_empty():
+		title.text += "\n" + GameConstants.FAMILIES_EMPTY
+	for r in rows:
+		var row := HBoxContainer.new()
+		row.add_theme_constant_override("separation", 10)
+		var icon := _crest_rect(_ROW_CREST_SCALE)
+		icon.texture = Crest.texture(r.crest)
+		row.add_child(icon)
+		var label := Label.new()
+		label.text = r.text
+		label.add_theme_font_size_override("font_size", _FONT_SIZE - 4)
+		label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		label.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+		row.add_child(label)
+		_families_box.add_child(row)
