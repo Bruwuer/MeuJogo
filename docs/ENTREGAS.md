@@ -206,3 +206,45 @@ Também entraram testes de horas recuperadas de uma vez e de recarregar o jogo s
 Ficaram para depois os pontos menores listados acima.
 
 Suíte: 409 testes passando.
+
+## Etapa 7 — Casas e ambições (2026-10-24)
+
+**O que mudou**
+- As famílias viraram Casas: tradição e valores, riqueza pelo trabalho, especialização no ofício, prestígio,
+  parentesco completo (pais, filhos, irmãos, avós, tios, primos, cônjuges, adoção) que sobrevive à morte.
+- Lotes 8×8 marcados por estacas; casa simples → casa de pedra → solar (modelos do Blender).
+- Objetivos próprios por pontuação (terra, melhorar a casa, aliança, superar rival, vingança, riqueza, herdeiro,
+  união), com prazo, sucesso e expectativa quebrada.
+- Vocações contra a tradição e desligamentos (amigável/neutro/hostil, às claras/escondido); casamentos
+  arranjados (aceitar, resistir, fugir com quem ama, casamento infeliz e separação); união de Casas; corrupção;
+  espiões; vingança; romances secretos; guardas que patrulham.
+- **Nada do reino aparece no HUD:** tudo vai para a crônica e para o log do ADM (`user://adm_log.txt`, F9/F10).
+- **As decisões acontecem de verdade (feitos):** a pessoa anda até o lugar numa janela de horas e só então o
+  efeito acontece. Segredos só vêm à tona por testemunhas de fora da Casa.
+
+**Decisões do fim da etapa** (seções 6 e 7 do design)
+- O motivo de território cansa: depois de um ataque o bando aceita o que viu; só construção nova o reacende.
+- Bando faminto sem caça na região muda a toca para longe do reino depois de 2 ataques por fome seguidos.
+- Feito vencido de quem estava na tela é descartado (nada acontece sem a caminhada).
+- Quem sai de uma Casa deixa a casa dela e leva os filhos menores.
+
+**Captura orgânica** (12 dias com o jogador longe + 3 dias assistindo, nada encenado): o reino sobreviveu
+(14 moradores, 4 Casas). Ataques caíram de 13 para 5 em 12 dias. Feitos vistos acontecendo sozinhos:
+estacas no lote (`29_deed_stake`), encontro secreto de madrugada (`30_deed_tryst`), a Casa trabalhando na
+obra (`31_deed_build_home`) e a cerimônia de união na sede (`32_deed_union`). Também `40_land_and_homes`,
+`41_player_hud_only`, `42_adm_log` e `43_adm_houses`.
+
+**Revisão final (subagente):** nenhum problema crítico. Corrigidos, cada um com teste que falhava antes:
+testemunhas da própria Casa (fuga e encontro), feitos vencidos cumpridos sem a caminhada, lote reservado que
+travava a Casa para sempre, Casa nova herdando a casa da antiga e deixando os filhos, fuga com amante que já
+tinha casado (ou criança escolhida como amante), e o texto "Casa ?" quando a Casa alvo some numa união.
+
+**Pendências** (pontos menores da revisão)
+- Constantes ainda soltas em `house_rules.gd`/`house_sim.gd` (pesos e chances) e em `PackSim._migrate`.
+- Nova toca não evita água nem o alcance de outro reino; espião de Casa que sumiu fica plantado para sempre.
+- `acquire_plot`/`upgrade` (sem uso) mudam o mundo na hora; `_is_work_day()` sempre verdadeiro; desejos
+  pessoais (`desire`) ainda não são sorteados.
+- `adm_log.txt` não é rotacionado; adoção não confere camas livres.
+- O primeiro quadro depois de 12 dias longe carrega a área inteira de uma vez (pico de ~9,7 s só na captura).
+
+Suíte: 525 testes passando.

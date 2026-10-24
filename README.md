@@ -70,5 +70,5 @@ O log do ADM com tudo o que acontece no reino fica em `%APPDATA%\Godot\app_userd
 
 ## Estado
 
-Etapas 1 a 6 no `main`. Etapa 7 (Casas e ambições) no branch `etapa-7`, quase pronta (falta a revisão
-final e o merge). Etapas 8 a 10 por fazer — ver o roadmap no `CLAUDE.md`.
+Etapas 1 a 7 no `main` (525 testes). Próxima: etapa 8 (Governo). Etapas 8 a 10 por fazer — ver o roadmap
+no `CLAUDE.md`.

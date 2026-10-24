@@ -56,7 +56,7 @@ do projeto), `CONTINUAR.md` (onde parou), `docs/ENTREGAS.md` (o que cada etapa e
 | 4 | Criaturas e combate: genoma de peças, comportamento, cruzamento, armas medievais, ataques com motivo | ✅ no `main` |
 | 5 | Pessoas: gerador de pessoas, chegada e decisão de ficar, necessidades, construção autônoma | ✅ no `main` |
 | 6 | Sociedade: famílias e brasões, relações, opinião sobre o jogador, aliados e inimigos internos | ✅ no `main` |
-| 7 | **Casas e ambições** (ver §4) | 🔶 quase pronta, branch `etapa-7` |
+| 7 | **Casas e ambições** (ver §4) | ✅ no `main` |
 | 8 | Governo: decisões com efeito, sucessão, governante NPC (corrupção, lealdade, culto ou inimizade) | a fazer |
 | 9 | Mundo vivo: reinos NPC, simulação resumida fora da tela, diplomacia e guerras, novos reinos | a fazer |
 | 10 | Acabamento: menu, salvar/carregar, som, balanceamento | a fazer |
@@ -69,7 +69,7 @@ melhoria de casa; união de Casas; casamento a serviço da família; quebra de e
 cônjuges, primos e tios com **vontade própria** — ex.: a Casa é referência em guerreiros, o filho não
 quer ser guerreiro e se desliga (amigável ou não, neutro ou não, às claras ou escondido).
 
-**Pronto (514 testes passando):**
+**Pronto (525 testes passando):**
 - Parentesco completo (pais, filhos, irmãos, avós, tios, primos, cônjuges; adoção) que sobrevive à morte.
 - Tradição e valores da Casa, riqueza por trabalho, especialização no ofício, prestígio.
 - Lotes 8×8 marcados por estacas; casa simples → casa de pedra → solar (modelos do Blender).
@@ -87,16 +87,9 @@ quer ser guerreiro e se desliga (amigável ou não, neutro ou não, às claras o
   ponto afastado; vingança de madrugada. **Segredos só vêm à tona por testemunhas** (adultos acordados
   de fora da Casa por perto; fora da tela, sorteio por quem está acordado).
 
-**Falta na etapa 7:**
-1. **Captura orgânica com feitos ao vivo.** Na última rodada (mundo sozinho, 12 dias com o jogador
-   longe + 3 dias assistindo) **o reino da captura morreu**: lobos, javalis e rastejantes atacaram todo
-   dia porque a vila nasceu perto das tocas (motivo de território que nunca acaba), as fazendas caíram,
-   o povo passou fome e foi embora — sobrou ninguém para fazer feitos. Já corrigido: estacas não contam
-   mais como construção para os bandos nem são atacadas. Próximo passo: rodar a captura com o jogador
-   presente (reino carregado, tempo acelerado) e/ou rever o equilíbrio do motivo de território (uma vila
-   perto de toca não pode ser atacada todo dia para sempre — o motivo deveria cansar ou ser defendido).
-2. Revisão final da etapa por subagente (modelo mais capaz), correções Critical/Important com teste
-   que falha antes, merge no `main`, atualizar `docs/ENTREGAS.md` e `CONTINUAR.md`.
+**Fechamento (2026-10-24):** o motivo de território cansa depois de um ataque, bando faminto sem caça muda a
+toca, e a revisão final corrigiu testemunhas, feitos vencidos, lotes travados, saídas de Casa e fugas com
+amante. Captura orgânica com o reino vivo e feitos acontecendo sozinhos. Detalhes em `docs/ENTREGAS.md`.
 
 ## 5. Como o trabalho é feito (fluxo)
 
@@ -129,12 +122,12 @@ Comandos (Windows, PowerShell):
 - Código: `scripts/` (core, world, people, creatures, combat, ui), `scenes/`, `shaders/`.
 - Testes: `tests/unit`, `tests/integration`, `tests/visual/capture.gd`.
 - Modelos: `assets/models/*.glb` (gerados por `tools/blender/*.py`).
-- Histórico git: `main` (etapas 1–6) e `etapa-7` (trabalho atual).
+- Histórico git: `main` (etapas 1–7).
 
 ## 8. Como levar o projeto inteiro (código + histórico)
 
-- **GitHub:** repositório privado `MeuJogo` (branches `main` e `etapa-7`). No outro computador:
-  `git clone <url>`, `cd MeuJogo`, `git checkout etapa-7` e siga o `README.md`.
+- **GitHub:** repositório `MeuJogo` (branch `main`). No outro computador: `git clone <url>`, `cd MeuJogo` e
+  siga o `README.md`.
 - **Google Drive:** pasta `MeuJogo` com os documentos (contexto, README, CLAUDE, CONTINUAR, ENTREGAS, designs).
 - **OneDrive** da máquina original, pasta `MeuJogo`: `MeuJogo-projeto-completo.zip` e `MeuJogo.bundle`
   (histórico do git: `git clone MeuJogo.bundle MeuJogo`).

@@ -19,12 +19,12 @@ primeiro e atualizá-lo ao concluir cada tarefa** (seção "Estado atual").
 
 ## Estado atual
 
-- Etapas 1 a 6: concluídas e no `main` (409 testes passando). Resumo em `docs/ENTREGAS.md`.
-- **Etapa 7 (Casas e ambições): EM ANDAMENTO** no branch `etapa-7`. O autor ampliou a sociedade (roadmap agora tem 10 etapas:
-  7 Casas e ambições, 8 Governo, 9 Mundo vivo, 10 Acabamento). Design: `docs/superpowers/specs/2026-10-24-etapa-7-casas-ambicoes-design.md`
-  (§5: nada de eventos no HUD, log do ADM, feitos encarnados com testemunhas). Plano: Tasks 1–15 prontas no ledger;
-  falta a Task 16 (capturas orgânicas, docs, revisão final por subagente opus, merge).
-- Etapas 8 a 10: não iniciadas (ver roadmap no `CLAUDE.md`).
+- Etapas 1 a 7: concluídas e no `main` (525 testes passando). Resumo em `docs/ENTREGAS.md`.
+- Etapa 7 (Casas e ambições) terminou em 2026-10-24: captura orgânica com o reino vivo, revisão final e
+  correções (design §6 e §7). Pendências menores listadas em `docs/ENTREGAS.md`.
+- **Próxima: etapa 8 (Governo)** — decisões com efeito, sucessão, governante NPC (corrupção, lealdade,
+  culto ou inimizade). Começar pelo design curto em `docs/superpowers/specs/`.
+- Etapas 9 e 10: não iniciadas (ver roadmap no `CLAUDE.md`).
 
 ## Execução automática
 

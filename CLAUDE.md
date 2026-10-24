@@ -126,7 +126,7 @@ docs/superpowers/     specs/ e plans/
 5. ✅ **Pessoas:** gerador de pessoas (nome, traços, opinião), chegada e decisão de ficar,
    necessidades, construção autônoma.
 6. ✅ **Sociedade:** famílias e brasões, relações, opinião sobre o jogador, aliados e inimigos internos.
-7. **Casas e ambições:** tradição e valores das Casas, riqueza, terras, especialização, melhoria de casa,
+7. ✅ **Casas e ambições:** tradição e valores das Casas, riqueza, terras, especialização, melhoria de casa,
    objetivos próprios, vocações e desejos pessoais, parentesco completo e adoção, casamentos arranjados,
    união de Casas, corrupção, infiltração, desligamentos (amigável/neutro/hostil, às claras/escondido), guardas.
 8. **Governo:** decisões com efeito, sucessão, governante NPC (corrupção, lealdade, culto ou inimizade).
