@@ -28,6 +28,8 @@ primeiro e atualizá-lo ao concluir cada tarefa** (seção "Estado atual").
 
 ## Execução automática
 
+**DESLIGADA pelo autor em 2026-10-24** (tarefa agendada removida). Não religar sem pedido dele.
+
 `tools/auto_continue.ps1` roda a cada 30 min (tarefa agendada "MeuJogo-Continuar"). Ele só inicia uma
 sessão nova se nenhum arquivo do projeto mudou nos últimos 20 min (ou seja, ninguém está trabalhando)
 e se não há outra execução em andamento. Log em `logs/auto_continue_*.log`.
