@@ -138,6 +138,7 @@ func _physics_process(delta: float) -> void:
 
 ## Shows a line (raids, destroyed buildings, deaths) for a few seconds; keeps the last four.
 func add_message(text: String) -> void:
+	_message_list = _message_list.filter(func(m: Array) -> bool: return m[0] != text) # repeats refresh
 	_message_list.append([text, _MESSAGE_SEC])
 	while _message_list.size() > _MAX_MESSAGES:
 		_message_list.pop_front()

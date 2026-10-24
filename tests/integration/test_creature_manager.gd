@@ -237,3 +237,17 @@ func test_active_cap_and_frame_budget() -> void:
 	await wait_physics_frames(60)
 	var avg_ms := (Time.get_ticks_usec() - t0) / 60.0 / 1000.0
 	assert_true(avg_ms < GameConstants.MAX_FRAME_MS, "%.1f ms per physics frame with %d creatures" % [avg_ms, mgr.active_count()])
+
+
+func test_node_freed_elsewhere_is_recreated() -> void:
+	var spot := _make()
+	for c in ChunkMath.chunks_in_radius(ChunkMath.world_to_chunk(spot), 4):
+		state.mark_visited(c)
+	var p := _pack_at("cervo", spot, 2)
+	await _load_around(spot)
+	var rec := state.pack_members(p.id)[0]
+	mgr.node_for(rec.id).free()
+	await get_tree().create_timer(0.8).timeout
+	await wait_frames(5)
+	assert_true(not state.creature(rec.id).is_empty(), "record lost")
+	assert_true(is_instance_valid(mgr.node_for(rec.id)), "node not recreated: active %d pending %d chunk loaded %s pos %s" % [mgr.active_count(), mgr.pending_spawns(), streamer.is_loaded(ChunkMath.world_to_chunk(state.creature(rec.id).pos)), state.creature(rec.id).pos])

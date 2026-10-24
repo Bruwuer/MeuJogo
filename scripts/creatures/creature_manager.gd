@@ -59,13 +59,14 @@ func active_count() -> int:
 
 
 func node_for(id: int) -> Creature:
-	return _nodes.get(id)
+	return _node(id)
 
 
 func active_creatures() -> Array[Creature]:
 	var out: Array[Creature] = []
-	for n: Creature in _nodes.values():
-		if is_instance_valid(n) and not n.is_dead():
+	for id in _nodes.keys():
+		var n := _node(id)
+		if n and not n.is_dead():
 			out.append(n)
 	return out
 
@@ -118,7 +119,9 @@ func _process(delta: float) -> void:
 func _sync(dt: float) -> void:
 	var grow := dt / (GameConstants.CUB_DAYS * GameConstants.DAY_LENGTH_SEC)
 	for id in _nodes.keys():
-		var n: Creature = _nodes[id]
+		var n := _node(id)
+		if n == null:
+			continue
 		if not is_instance_valid(n) or n.is_dead():
 			continue
 		var p := n.global_position
@@ -137,8 +140,8 @@ func _sync(dt: float) -> void:
 
 ## Writes every live creature back to its record (before saving).
 func sync_all() -> void:
-	for id in _nodes:
-		var n: Creature = _nodes[id]
+	for id in _nodes.keys():
+		var n := _node(id)
 		if is_instance_valid(n) and not n.is_dead():
 			n.sync_record()
 			_state.move_creature(id, n.global_position)
@@ -154,7 +157,7 @@ func _on_chunk_loaded(c: Vector2i) -> void:
 
 func _on_chunk_unloaded(c: Vector2i) -> void:
 	for id in _nodes.keys():
-		var n: Creature = _nodes[id]
+		var n := _node(id)
 		if is_instance_valid(n) and ChunkMath.world_to_chunk(n.global_position) == c:
 			n.sync_record()
 			_state.move_creature(id, n.global_position)
@@ -206,7 +209,7 @@ func _instantiate(rec: Dictionary) -> void:
 
 
 func _free_node(id: int) -> void:
-	var n: Creature = _nodes.get(id)
+	var n = _nodes.get(id)
 	_nodes.erase(id)
 	_mates.erase(id)
 	if is_instance_valid(n):
@@ -259,7 +262,7 @@ func brain_extras(n: Creature) -> Dictionary:
 	var pack := _state.pack(rec.pack_id)
 	if not pack.is_empty():
 		out.den_pos = pack.den
-		var leader: Creature = _nodes.get(pack.leader_id)
+		var leader: Creature = _node(pack.leader_id)
 		if is_instance_valid(leader) and leader != n and not leader.is_dead():
 			out.pack_leader_pos = leader.global_position
 		var raid := _raid_target(pack, n.global_position)
@@ -270,7 +273,7 @@ func brain_extras(n: Creature) -> Dictionary:
 		if bold and (pack.grudge >= GameConstants.HOSTILE_GRUDGE or pack.cubs_alarm >= GameConstants.HOSTILE_CUBS
 				or (g.diet == GameConstants.Diet.CARNIVORE and pack.hunger >= GameConstants.HOSTILE_HUNGER)):
 			out.hostile_to_player = true
-	var partner: Creature = _nodes.get(_mates.get(rec.id, -1))
+	var partner: Creature = _node(_mates.get(rec.id, -1))
 	if is_instance_valid(partner) and not partner.is_dead():
 		out.mate = { id = partner.record.id, pos = partner.global_position }
 	return out
@@ -351,7 +354,7 @@ func breed_tick() -> Array[Dictionary]:
 			ready.append(n)
 	for n in ready:
 		var id: int = n.record.id
-		var partner: Creature = _nodes.get(_mates.get(id, -1))
+		var partner: Creature = _node(_mates.get(id, -1))
 		if not is_instance_valid(partner) or not ready.has(partner):
 			_mates.erase(id)
 			partner = _find_partner(n, ready)
@@ -415,7 +418,7 @@ func _make_cub(a: Creature, b: Creature, now: float) -> Dictionary:
 
 
 func _on_creature_hurt(_amount: float, source: Object, id: int) -> void:
-	var n: Creature = _nodes.get(id)
+	var n := _node(id)
 	if n == null or n.is_dead() or not (source is Node and (source as Node).is_in_group("player")):
 		return
 	var pack := _state.pack(n.record.pack_id)
@@ -437,3 +440,16 @@ func _on_creature_died(n: Creature, source: Object) -> void:
 			var members := _state.pack_members(pack.id)
 			pack.leader_id = members[0].id if not members.is_empty() else -1
 	creature_killed.emit(rec, by_player)
+
+
+## The live node for a record id, or null. Nodes freed behind the manager's back are forgotten
+## (their record stays and gets a new node).
+func _node(id: int) -> Creature:
+	var n = _nodes.get(id)
+	if n == null and not _nodes.has(id):
+		return null
+	if n == null or not is_instance_valid(n):
+		_nodes.erase(id)
+		_mates.erase(id)
+		return null
+	return n

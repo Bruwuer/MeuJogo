@@ -12,6 +12,7 @@ var _world: World
 var _worst_ms := 0.0
 var _segment_ms := 0.0
 var _last_usec := 0
+var _village_spot := Vector3(-1, -1, -1)
 
 
 func _initialize() -> void:
@@ -69,6 +70,7 @@ func _run() -> void:
 	await _shot("08_dusk")
 
 	await _village(scatter)
+	await _creatures(scatter)
 	print("WORST_FRAME_MS %.1f" % _worst_ms)
 	print("WOOD %d" % _world.get_state().get_resource(GameConstants.Res.WOOD))
 	quit(0)
@@ -84,12 +86,14 @@ func _village(scatter: PropScatter) -> void:
 	state.add_resource(GameConstants.Res.WOOD, 400)
 	state.add_resource(GameConstants.Res.STONE, 400)
 	var spot := _flat_area(gen, 9.0)
+	_village_spot = spot
 	if spot.x < 0.0:
 		print("SKIPPED village: no flat area")
 		return
 	_set_time(DAY_TIME)
 	await _teleport(spot + Vector3(0, 0, -3))
 	_clear_area(scatter, spot, 13.0) # the player cleared the land first
+	_world.get_player().face(Vector3(0, 0, 1)) # axis-aligned ghost in front of the player
 	await _ghost_at(spot)
 	build.select(B.CABIN)
 	await _frames(10)
@@ -121,6 +125,94 @@ func _village(scatter: PropScatter) -> void:
 	await _frames(20)
 	await _shot("12_village_night")
 	_set_time(DAY_TIME)
+
+
+## Stage 4: the first wolves, a hybrid with its parents, sword and bow, and a raid with a motive.
+func _creatures(scatter: PropScatter) -> void:
+	var state := _world.get_state()
+	var mgr := _world.get_creature_manager()
+	var p := _world.get_player()
+	_set_time(DAY_TIME)
+	var wolves := state.pack(1)
+	if not wolves.is_empty() and wolves.species == "lobo":
+		await _teleport(wolves.den + Vector3(-5, 0, -5))
+		await _frames(60)
+		await _shot("13_first_wolves")
+
+	# A hybrid cub between its parents, in a cleared plain away from the village.
+	var gen := _world.get_generator()
+	var spot := _village_spot + Vector3(0, 0, 40)
+	_clear_area(scatter, spot, 10.0)
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 7
+	var pack := state.add_pack("lobo", spot)
+	var dad := Genome.random("lobo", rng)
+	var mom := Genome.random("uivante", rng)
+	var cub := Genome.cross(dad, mom, rng)
+	var recs := [
+		state.add_creature(dad, _ground(gen, spot + Vector3(-2.2, 0, 0)), pack.id),
+		state.add_creature(mom, _ground(gen, spot + Vector3(2.2, 0, 0)), pack.id),
+		state.add_creature(cub, _ground(gen, spot + Vector3(0, 0, 1.2)), pack.id, 0.5),
+	]
+	await _teleport(spot + Vector3(0, 0, -4))
+	await _frames(30)
+	for r in recs:
+		var n := mgr.node_for(r.id)
+		if n:
+			n.command(CreatureBrain.State.SLEEP, n.global_position)
+			n.rotation.y = PI
+	await _frames(10)
+	await _shot("14_hybrid_family")
+	for r in recs:
+		var n := mgr.node_for(r.id)
+		if n:
+			n.queue_free()
+		state.remove_creature(r.id)
+
+	# Sword swing at a wolf, then an arrow in flight.
+	var foe := state.add_creature(Genome.random("lobo", rng), _ground(gen, spot + Vector3(0, 0, 1.8)), pack.id)
+	await _teleport(spot)
+	p.face(Vector3(0, 0, 1))
+	await _frames(20)
+	var wolf := mgr.node_for(foe.id)
+	if wolf:
+		wolf.command(CreatureBrain.State.SLEEP, wolf.global_position)
+		wolf.rotation.y = PI
+	p.select_weapon(GameConstants.Weapon.SWORD)
+	p.attack()
+	await _physics(int(GameConstants.WEAPONS[GameConstants.Weapon.SWORD].hit_time * Engine.physics_ticks_per_second * 0.6))
+	await _shot("15_sword_swing")
+	await _physics(40)
+	p.select_weapon(GameConstants.Weapon.BOW)
+	state.add_resource(GameConstants.Res.ARROWS, 5)
+	p.face(Vector3(1, 0, 0))
+	await _frames(5)
+	p.attack()
+	await _physics(int((GameConstants.WEAPONS[GameConstants.Weapon.BOW].hit_time + 0.12) * Engine.physics_ticks_per_second))
+	await _shot("16_arrow_flight")
+	await _physics(60)
+	p.select_weapon(GameConstants.Weapon.SWORD)
+
+	# Starving wolves raid the village at night; the HUD tells why.
+	if _village_spot.x < 0.0:
+		print("SKIPPED raid: no village")
+		return
+	var raiders := state.add_pack("lobo", _village_spot + Vector3(0, 0, 26))
+	for i in 4:
+		state.add_creature(Genome.random("lobo", rng), _ground(gen, raiders.den + Vector3(i * 1.5, 0, 0)), raiders.id)
+	raiders.hunger = 1.0
+	await _teleport(_village_spot + Vector3(2.5, 0, 9.0))
+	_set_time(0.03)
+	await _frames(30)
+	var sim := _world.get_pack_sim()
+	sim.tick_hours(1.0)
+	await _physics(240)
+	await _shot("17_raid_night")
+	_set_time(DAY_TIME)
+
+
+func _ground(gen: TerrainGenerator, pos: Vector3) -> Vector3:
+	return Vector3(pos.x, gen.height_at(pos.x, pos.z) + 0.3, pos.z)
 
 
 ## Center of a square of half-size `half` whose ground varies less than 1 m, or (-1,-1,-1).

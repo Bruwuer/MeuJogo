@@ -73,3 +73,12 @@ func test_creature_manager_wired() -> void:
 	await wait_frames(30)
 	assert_true(w.get_state().all_packs().size() >= 1, "no pack in a new world")
 	assert_true(w.get_player().creature_source.is_valid(), "player cannot hit creatures")
+
+
+func test_repeated_message_shown_once() -> void:
+	var w: World = await _world()
+	var hud := w.get_hud()
+	hud.add_message("Os lobos atacam")
+	hud.add_message("outra")
+	hud.add_message("Os lobos atacam")
+	assert_eq(hud.messages_text(), "outra\nOs lobos atacam")
