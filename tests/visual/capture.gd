@@ -349,6 +349,9 @@ func _clear_spot_near(pos: Vector3) -> Vector3:
 		if clear:
 			return spot
 	return pos + cam_dir * 3.5
+
+
+func _ghost_at(target: Vector3) -> void:
 	var p := _world.get_player()
 	await _teleport(target - p.facing() * GameConstants.BUILD_GHOST_DISTANCE)
 
