@@ -221,3 +221,16 @@ func test_respawn_keeps_resources() -> void:
 	assert_true(Vector2(p.global_position.x - start.x, p.global_position.z - start.z).length() < 2.0,
 			"respawned at %s, spawn %s" % [p.global_position, start])
 	assert_eq(w.get_state().get_resource(R.WOOD), 7)
+
+
+func test_respawn_grace() -> void:
+	var p: Player = await _make()
+	p.health.damage(1000.0)
+	p.revive()
+	p.health.damage(30.0)
+	assert_near(p.health.hp, GameConstants.PLAYER_HP, 0.01, "hurt right after waking up")
+	Engine.time_scale = 4.0
+	await get_tree().create_timer(GameConstants.RESPAWN_GRACE_SEC + 0.5).timeout
+	Engine.time_scale = 1.0
+	p.health.damage(30.0)
+	assert_true(p.health.hp < GameConstants.PLAYER_HP, "grace never ends")

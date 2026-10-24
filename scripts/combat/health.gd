@@ -7,6 +7,8 @@ signal died(source: Object)
 
 var max_hp: float
 var hp: float
+## While true, damage is ignored (e.g. right after the player respawns).
+var invulnerable := false
 
 
 func _init(max_value := 100.0, current := -1.0) -> void:
@@ -16,7 +18,7 @@ func _init(max_value := 100.0, current := -1.0) -> void:
 
 ## Returns true when this hit killed it.
 func damage(amount: float, source: Object = null) -> bool:
-	if is_dead() or amount <= 0.0:
+	if is_dead() or invulnerable or amount <= 0.0:
 		return false
 	hp = maxf(0.0, hp - amount)
 	damaged.emit(amount, source)

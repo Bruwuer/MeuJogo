@@ -41,12 +41,13 @@ func setup(state: WorldState, gen: TerrainGenerator, scatter: PropScatter, strea
 	_library = library
 	_day_night = day_night
 	_sim = pack_sim
-	_player = player
+	setup_player(player)
 	_rng.seed = hash([state.seed, "creatures"])
 	streamer.chunk_loaded.connect(_on_chunk_loaded)
 	streamer.chunk_unloaded.connect(_on_chunk_unloaded)
 	if pack_sim:
-		pack_sim.kingdom_loaded = is_kingdom_loaded
+		pack_sim.raid_mode = raid_mode
+		pack_sim.building_destroyed.connect(_remove_from_chunk)
 		pack_sim.raid_started.connect(_on_raid_started)
 
 
@@ -77,6 +78,26 @@ func is_night() -> bool:
 
 func now_hours() -> float:
 	return _day_night.total_hours() if _day_night else _hours
+
+
+## The player creatures react to; when it can die, its death calms the pack that killed it.
+func setup_player(player: Node3D) -> void:
+	_player = player
+	var h = player.get("health") if player else null
+	if h is Health and not (h as Health).died.is_connected(_on_player_died):
+		(h as Health).died.connect(_on_player_died)
+
+
+## How a raid on `kingdom` happens: "live" when the kingdom is loaded and pack members have
+## nodes to march with, "offscreen" when the kingdom is not loaded, "none" when the pack is
+## frozen out of reach of a loaded kingdom (no phantom raid).
+func raid_mode(pack: Dictionary, kingdom: Dictionary) -> String:
+	if not is_kingdom_loaded(kingdom):
+		return "offscreen"
+	for rec in _state.pack_members(pack.id):
+		if _node(rec.id) != null:
+			return "live"
+	return "none"
 
 
 func is_kingdom_loaded(k: Dictionary) -> bool:
@@ -318,9 +339,7 @@ func damage_building(id: int, amount: float, attacker: Creature) -> void:
 		return
 	var pack := _state.pack(attacker.record.pack_id)
 	if _state.damage_building(id, amount):
-		var chunk := _streamer.get_chunk(ChunkMath.world_to_chunk(rec.pos))
-		if chunk:
-			chunk.remove_building(id)
+		_remove_from_chunk(rec)
 		var who := PackMotives.species_plural(pack.species) if not pack.is_empty() else "animais"
 		message.emit(GameConstants.BUILD_DESTROYED_MSG[rec.type] % who)
 		if not pack.is_empty():
@@ -439,6 +458,11 @@ func _on_creature_died(n: Creature, source: Object) -> void:
 		if pack.leader_id == rec.id:
 			var members := _state.pack_members(pack.id)
 			pack.leader_id = members[0].id if not members.is_empty() else -1
+	var hunter := source as Creature
+	if hunter and is_instance_valid(hunter) and hunter.genome.diet == GameConstants.Diet.CARNIVORE and hunter.record.pack_id != rec.pack_id:
+		var hunters := _state.pack(hunter.record.pack_id)
+		if not hunters.is_empty():
+			hunters.hunger = maxf(0.0, hunters.hunger - GameConstants.PACK_KILL_FEED)
 	creature_killed.emit(rec, by_player)
 
 
@@ -453,3 +477,22 @@ func _node(id: int) -> Creature:
 		_mates.erase(id)
 		return null
 	return n
+
+
+## A building destroyed by a raid disappears from its chunk if that chunk is loaded.
+func _remove_from_chunk(rec: Dictionary) -> void:
+	var chunk := _streamer.get_chunk(ChunkMath.world_to_chunk(rec.pos))
+	if chunk:
+		chunk.remove_building(rec.id)
+
+
+## The pack that killed the player has had its revenge (or its meal): grudge drops, raid ends.
+func _on_player_died(source: Object) -> void:
+	var killer := source as Creature
+	if killer == null or not is_instance_valid(killer):
+		return
+	var pack := _state.pack(killer.record.pack_id)
+	if pack.is_empty():
+		return
+	pack.grudge *= GameConstants.KILL_GRUDGE_KEEP
+	_end_raid(pack)

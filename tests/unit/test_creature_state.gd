@@ -64,3 +64,17 @@ func test_building_hp_and_seat_clamp() -> void:
 	assert_eq(s.save_to(_PATH), OK)
 	assert_near(WorldState.load_from(_PATH).building_hp(cabin.id), 1.0, 0.001)
 	DirAccess.remove_absolute(ProjectSettings.globalize_path(_PATH))
+
+
+## Live creatures write record.pos directly (the record is shared); the index must still follow.
+func test_index_follows_record_written_in_place() -> void:
+	var s := WorldState.new()
+	var a := s.add_creature(_genome(), Vector3(5, 0, 5), -1)
+	a.pos = Vector3(70, 0, 5) # what Creature.sync_record does
+	s.move_creature(a.id, a.pos)
+	assert_eq(s.creatures_in(Vector2i(0, 0)).size(), 0, "stale id in the old chunk")
+	assert_eq(s.creatures_in(Vector2i(2, 0)).size(), 1)
+	a.pos = Vector3(5, 0, 70)
+	s.remove_creature(a.id)
+	assert_eq(s.creatures_in(Vector2i(2, 0)).size(), 0, "removed creature still indexed")
+	assert_eq(s.creatures_in(Vector2i(0, 2)).size(), 0)

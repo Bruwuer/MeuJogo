@@ -251,3 +251,52 @@ func test_node_freed_elsewhere_is_recreated() -> void:
 	await wait_frames(5)
 	assert_true(not state.creature(rec.id).is_empty(), "record lost")
 	assert_true(is_instance_valid(mgr.node_for(rec.id)), "node not recreated: active %d pending %d chunk loaded %s pos %s" % [mgr.active_count(), mgr.pending_spawns(), streamer.is_loaded(ChunkMath.world_to_chunk(state.creature(rec.id).pos)), state.creature(rec.id).pos])
+
+
+func test_live_raid_needs_members_with_nodes() -> void:
+	var spot := _make()
+	for c in ChunkMath.chunks_in_radius(ChunkMath.world_to_chunk(spot), 6):
+		state.mark_visited(c)
+	var cabin := state.add_building(GameConstants.Building.CABIN, spot, 0)
+	var k := state.add_kingdom("Valdemar", Color.RED, cabin.pos, cabin.id)
+	var near := _pack_at("lobo", spot + Vector3(10, 0, 0), 2)
+	var far := _pack_at("lobo", spot + Vector3(120, 0, 0), 2, 300)
+	await _load_around(spot)
+	assert_eq(mgr.raid_mode(near, k), "live")
+	assert_eq(mgr.raid_mode(far, k), "none", "a pack frozen out of range cannot raid live")
+	var away := state.add_kingdom("Longe", Color.BLUE, spot + Vector3(400, 0, 0), -1)
+	assert_eq(mgr.raid_mode(near, away), "offscreen")
+
+
+func test_pack_feeds_when_member_kills_prey() -> void:
+	var spot := _make()
+	for c in ChunkMath.chunks_in_radius(ChunkMath.world_to_chunk(spot), 4):
+		state.mark_visited(c)
+	var wolves := _pack_at("lobo", spot, 1)
+	wolves.hunger = 0.9
+	var deer := _pack_at("cervo", spot + Vector3(0, 0, 3), 1, 50)
+	await _load_around(spot)
+	var hunter := mgr.node_for(state.pack_members(wolves.id)[0].id)
+	var prey := mgr.node_for(state.pack_members(deer.id)[0].id)
+	prey.health.damage(10000.0, hunter)
+	assert_true(wolves.hunger < 0.6, "pack still starving after a kill: %f" % wolves.hunger)
+
+
+func test_killing_the_player_ends_the_raid() -> void:
+	var spot := _make()
+	for c in ChunkMath.chunks_in_radius(ChunkMath.world_to_chunk(spot), 4):
+		state.mark_visited(c)
+	var p := load("res://scenes/player.tscn").instantiate() as Player
+	add_child(p)
+	p.global_position = spot + Vector3(0, 1, 0)
+	mgr.setup_player(p)
+	var cabin := state.add_building(GameConstants.Building.CABIN, spot + Vector3(-15, 0, 0), 0)
+	var k := state.add_kingdom("Valdemar", Color.RED, cabin.pos, cabin.id)
+	var wolves := _pack_at("lobo", spot + Vector3(4, 0, 0), 2)
+	wolves.grudge = 0.9
+	wolves.raid_kingdom = k.id
+	await _load_around(spot)
+	var killer := mgr.node_for(state.pack_members(wolves.id)[0].id)
+	p.health.damage(1000.0, killer)
+	assert_eq(wolves.raid_kingdom, -1, "raid goes on after killing the player")
+	assert_true(wolves.grudge < GameConstants.HOSTILE_GRUDGE, "still out for revenge: %f" % wolves.grudge)

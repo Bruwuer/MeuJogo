@@ -35,6 +35,7 @@ var _work_left := 0.0
 var _attack_left := 0.0
 var _hit_left := 0.0
 var _since_hurt := 0.0
+var _grace_left := 0.0
 var _anim: AnimationPlayer
 var _current_anim := ""
 var _holder: Node3D
@@ -82,6 +83,9 @@ func _unhandled_input(event: InputEvent) -> void:
 
 
 func _physics_process(delta: float) -> void:
+	if _grace_left > 0.0:
+		_grace_left -= delta
+		health.invulnerable = _grace_left > 0.0
 	if frozen:
 		return
 	_work_left = maxf(0.0, _work_left - delta)
@@ -216,6 +220,8 @@ func revive() -> void:
 	_attack_left = 0.0
 	_hit_left = 0.0
 	play_anim(GameConstants.ANIM_IDLE, true)
+	_grace_left = GameConstants.RESPAWN_GRACE_SEC
+	health.invulnerable = true
 
 
 func _resolve_hit() -> void:

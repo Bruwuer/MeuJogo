@@ -122,6 +122,8 @@ func test_sim_starts_raid_from_motive_only() -> void:
 	s.add_building(GameConstants.Building.FENCE, Vector3(106, 0, 100), 0)
 	s.add_kingdom("Valdemar", Color.RED, cabin.pos, cabin.id)
 	var p := s.add_pack("lobo", Vector3(160, 0, 100))
+	for c in ChunkMath.chunks_in_radius(ChunkMath.world_to_chunk(p.den), 4):
+		s.mark_visited(c) # every deer around is known: removing them empties the region
 	for i in 3:
 		s.add_creature(_genome("lobo", i), Vector3(160 + i, 0, 100), p.id)
 	for i in 10:
@@ -140,3 +142,53 @@ func test_sim_starts_raid_from_motive_only() -> void:
 	for i in 24:
 		sim.tick_hours(1.0)
 	assert_true(raids.size() >= 1 and raids[0] == "hunger", "starving pack never raided: %s" % [raids])
+
+
+func test_unvisited_land_counts_as_prey() -> void:
+	var s := WorldState.new()
+	var p := s.add_pack("lobo", Vector3(300, 0, 300))
+	for i in 3:
+		s.add_creature(_genome("lobo", i), Vector3(300 + i, 0, 300), p.id)
+	var sim := PackSim.new()
+	add_child(sim)
+	sim.setup(s, null)
+	for i in 24:
+		sim.tick_hours(1.0)
+	assert_true(p.hunger < 0.3, "wolves starve next to land nobody has visited yet: %f" % p.hunger)
+
+
+func test_offscreen_raid_reports_destroyed_buildings() -> void:
+	var s := WorldState.new()
+	var cabin := s.add_building(GameConstants.Building.CABIN, Vector3(100, 0, 100), 0)
+	s.add_building(GameConstants.Building.FENCE, Vector3(106, 0, 100), 0)
+	var k := s.add_kingdom("Valdemar", Color.RED, cabin.pos, cabin.id)
+	var p := s.add_pack("lobo", Vector3(140, 0, 100))
+	for i in 4:
+		s.add_creature(_genome("lobo", i), Vector3(140 + i, 0, 100), p.id)
+	var sim := PackSim.new()
+	add_child(sim)
+	sim.setup(s, null)
+	var gone := []
+	sim.building_destroyed.connect(func(rec: Dictionary) -> void: gone.append(rec.type))
+	sim.resolve_offscreen_raid(p, k)
+	assert_eq(gone, [GameConstants.Building.FENCE])
+
+
+func test_raid_skipped_when_pack_cannot_reach() -> void:
+	var s := WorldState.new()
+	var cabin := s.add_building(GameConstants.Building.CABIN, Vector3(100, 0, 100), 0)
+	s.add_kingdom("Valdemar", Color.RED, cabin.pos, cabin.id)
+	var p := s.add_pack("lobo", Vector3(160, 0, 100))
+	for i in 3:
+		s.add_creature(_genome("lobo", i), Vector3(160 + i, 0, 100), p.id)
+	p.hunger = 1.0
+	var sim := PackSim.new()
+	add_child(sim)
+	sim.setup(s, null)
+	sim.is_night_override = true
+	sim.raid_mode = func(_p: Dictionary, _k: Dictionary) -> String: return "none"
+	var raids := []
+	sim.raid_started.connect(func(_a: Dictionary, _b: Dictionary, m: String) -> void: raids.append(m))
+	sim.tick_hours(1.0)
+	assert_eq(raids, [], "phantom raid announced")
+	assert_eq(p.raid_kingdom, -1)

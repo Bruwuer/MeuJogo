@@ -6,6 +6,7 @@ extends Node
 ## once (buildings other than the seat take damage) and become messages for the player.
 
 signal raid_started(pack: Dictionary, kingdom: Dictionary, motive: String)
+signal building_destroyed(rec: Dictionary)
 
 const _RAID_MAX_HOURS := 6.0 ## A live raid that never ends on its own is called off after this.
 
@@ -15,8 +16,9 @@ var pending_messages: Array[String] = []
 var is_night_override := false
 ## Set by World: whose position triggers the cubs alarm.
 var player: Node3D
-## kingdom -> bool; true when the kingdom is loaded and its raid is simulated live.
-var kingdom_loaded: Callable = func(_k: Dictionary) -> bool: return false
+## (pack, kingdom) -> "live" (simulated by the creature nodes), "offscreen" (summarized now) or
+## "none" (the kingdom is loaded but the pack is frozen out of reach: no raid this hour).
+var raid_mode: Callable = func(_p: Dictionary, _k: Dictionary) -> String: return "offscreen"
 
 var _state: WorldState
 var _day_night: DayNight
@@ -90,6 +92,7 @@ func resolve_offscreen_raid(pack: Dictionary, kingdom: Dictionary) -> Array[Stri
 		var hit := minf(hp, strength)
 		strength -= hit
 		if _state.damage_building(b.id, hit):
+			building_destroyed.emit(b)
 			destroyed.append(GameConstants.BUILD_NAMES[b.type])
 	var plural := PackMotives.species_plural(pack.species)
 	if destroyed.is_empty():
@@ -118,11 +121,14 @@ func _maybe_raid(pack: Dictionary, members: Array) -> void:
 	var kingdom := _nearest_kingdom(pack.den)
 	if kingdom.is_empty():
 		return
+	var mode: String = raid_mode.call(pack, kingdom)
+	if mode == "none":
+		return
 	pack.raid_kingdom = kingdom.id
 	pack.raid_hour = now_hours()
 	var motive := PackMotives.dominant(pack)
 	raid_started.emit(pack, kingdom, motive)
-	if not kingdom_loaded.call(kingdom):
+	if mode == "offscreen":
 		resolve_offscreen_raid(pack, kingdom)
 
 
@@ -133,6 +139,12 @@ func _context(pack: Dictionary, members: Array) -> Dictionary:
 		if c.pack_id != pack.id and c.genome.diet == GameConstants.Diet.HERBIVORE \
 				and _flat_dist(c.pos, den) <= GameConstants.PREY_RADIUS:
 			prey += 1
+	# Land nobody has visited yet has no records, but it is not empty of game.
+	var reach := ceili(GameConstants.PREY_RADIUS / GameConstants.CHUNK_SIZE)
+	for c in ChunkMath.chunks_in_radius(ChunkMath.world_to_chunk(den), reach):
+		var center := ChunkMath.chunk_origin(c) + Vector3.ONE * GameConstants.CHUNK_SIZE * 0.5
+		if ChunkMath.is_playable(c) and not _state.visited(c) and _flat_dist(center, den) <= GameConstants.PREY_RADIUS:
+			prey += GameConstants.UNVISITED_CHUNK_PREY
 	var buildings := 0
 	for b: Dictionary in _state.all_buildings():
 		if _flat_dist(b.pos, den) <= GameConstants.TERRITORY_RADIUS:

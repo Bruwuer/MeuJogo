@@ -27,6 +27,7 @@ var _next_building_id := 1
 var _building_hp: Dictionary[int, float] = {} # only damaged buildings
 var _creatures: Dictionary[int, Dictionary] = {} # id -> {id, genome, pos, hp, age, pack_id, hunger}
 var _creatures_by_chunk: Dictionary[Vector2i, PackedInt32Array] = {} # derived index, not saved
+var _creature_chunk: Dictionary[int, Vector2i] = {} # id -> chunk it is indexed under (records move in place)
 var _next_creature_id := 1
 var _packs: Dictionary[int, Dictionary] = {} # id -> {id, species, den, motives..., leader_id}
 var _next_pack_id := 1
@@ -288,7 +289,7 @@ func remove_creature(id: int) -> Dictionary:
 		return {}
 	var rec: Dictionary = _creatures[id]
 	_creatures.erase(id)
-	_unindex_creature(id, rec.pos)
+	_unindex_creature(id)
 	return rec
 
 
@@ -299,7 +300,8 @@ func creature(id: int) -> Dictionary:
 func creatures_in(c: Vector2i) -> Array[Dictionary]:
 	var out: Array[Dictionary] = []
 	for id in _creatures_by_chunk.get(c, PackedInt32Array()):
-		out.append(_creatures[id])
+		if _creatures.has(id):
+			out.append(_creatures[id])
 	return out
 
 
@@ -314,12 +316,10 @@ func move_creature(id: int, pos: Vector3) -> void:
 	var rec: Dictionary = _creatures.get(id, {})
 	if rec.is_empty():
 		return
-	if ChunkMath.world_to_chunk(rec.pos) != ChunkMath.world_to_chunk(pos):
-		_unindex_creature(id, rec.pos)
-		rec.pos = pos
+	rec.pos = pos
+	if _creature_chunk.get(id) != ChunkMath.world_to_chunk(pos):
+		_unindex_creature(id)
 		_index_creature(rec)
-	else:
-		rec.pos = pos
 
 
 func add_pack(species: String, den: Vector3) -> Dictionary:
@@ -365,10 +365,14 @@ func _index_creature(rec: Dictionary) -> void:
 	var ids: PackedInt32Array = _creatures_by_chunk.get(c, PackedInt32Array())
 	ids.append(rec.id)
 	_creatures_by_chunk[c] = ids
+	_creature_chunk[rec.id] = c
 
 
-func _unindex_creature(id: int, pos: Vector3) -> void:
-	var c := ChunkMath.world_to_chunk(pos)
+func _unindex_creature(id: int) -> void:
+	if not _creature_chunk.has(id):
+		return
+	var c: Vector2i = _creature_chunk[id]
+	_creature_chunk.erase(id)
 	var ids: PackedInt32Array = _creatures_by_chunk.get(c, PackedInt32Array())
 	var i := ids.find(id)
 	if i >= 0:
