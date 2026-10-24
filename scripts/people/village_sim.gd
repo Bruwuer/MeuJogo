@@ -257,22 +257,26 @@ func _assign_homes(k: Dictionary) -> void:
 	for b in VillageRules.kingdom_buildings(_state, k):
 		if not b.get("site", false) and GameConstants.HOUSE_CAPACITY.has(b.type) and b.id != k.seat_id:
 			homes.append(b)
-	for p in homeless:
-		var best := {}
-		var best_rank := 99
-		for b in homes:
-			if SocietySim.room(_state, b) <= 0:
+	# Relatives first (spouse, parents, family; ranks 0-2, twice so a chain settles), then anyone.
+	for max_rank in [2, 2, 4]:
+		for p in homeless:
+			if p.home_id >= 0:
 				continue
-			var rank := _home_rank(p, b)
-			if rank < best_rank:
-				best = b
-				best_rank = rank
-		if best.is_empty():
-			return
-		p.home_id = best.id
-		if best.type == B.HOUSE and best.get("owner", -1) < 0 and SocietyRules.is_adult(p):
-			best.owner = p.id
-		families_changed.emit()
+			var best := {}
+			var best_rank: int = max_rank + 1
+			for b in homes:
+				if SocietySim.room(_state, b) <= 0:
+					continue
+				var rank := _home_rank(p, b)
+				if rank < best_rank:
+					best = b
+					best_rank = rank
+			if best.is_empty():
+				continue
+			p.home_id = best.id
+			if best.type == B.HOUSE and best.get("owner", -1) < 0 and SocietyRules.is_adult(p):
+				best.owner = p.id
+			families_changed.emit()
 
 
 ## 0 spouse's home, 1 a parent's, 2 a relative's, 3 an empty house, 4 any other.
@@ -340,12 +344,21 @@ func complete_site(rec: Dictionary) -> void:
 		return
 	var text: String = GameConstants.VILLAGE_MSG_DONE % [k.name, GameConstants.BUILD_NAMES[rec.type]]
 	if rec.type == B.HOUSE:
-		var homeless := _state.residents(k.id).filter(func(p: Dictionary) -> bool: return p.home_id < 0)
-		if not homeless.is_empty():
-			rec.owner = homeless[0].id
-			text = GameConstants.VILLAGE_MSG_HOUSE_DONE % PersonGen.full_name(homeless[0])
-			for i in mini(homeless.size(), GameConstants.HOUSE_CAPACITY[B.HOUSE]):
-				homeless[i].home_id = rec.id
+		var adults := _state.residents(k.id).filter(func(p: Dictionary) -> bool:
+			return p.home_id < 0 and SocietyRules.is_adult(p))
+		if not adults.is_empty():
+			# The adult with the most homeless relatives signs (a whole household moves in together).
+			var household := func(p: Dictionary) -> int:
+				return _state.residents(k.id).filter(func(o: Dictionary) -> bool:
+					return o.home_id < 0 and (o.id == p.spouse_id or (o.parents as Array).has(p.id))).size()
+			adults.sort_custom(func(a: Dictionary, b: Dictionary) -> bool:
+				var ha: int = household.call(a)
+				var hb: int = household.call(b)
+				return ha > hb or (ha == hb and a.id < b.id))
+			rec.owner = adults[0].id
+			adults[0].home_id = rec.id
+			text = GameConstants.VILLAGE_MSG_HOUSE_DONE % PersonGen.full_name(adults[0])
+			_assign_homes(k) # the signer's spouse and children first (family ranking)
 	_say(k, text)
 	site_finished.emit(rec)
 

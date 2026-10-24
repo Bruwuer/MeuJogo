@@ -312,7 +312,7 @@ func _make_families_panel(style: StyleBox) -> void:
 	_families.set_anchors_and_offsets_preset(Control.PRESET_CENTER_LEFT)
 	_families.offset_left = _MARGIN
 	_families.offset_right = _MARGIN + _FAMILIES_WIDTH
-	_families.offset_top = -160.0
+	_families.grow_vertical = Control.GROW_DIRECTION_BOTH # many families stay on screen
 	_families.add_theme_stylebox_override("panel", style)
 	_families.visible = false
 	_families_box = VBoxContainer.new()
@@ -400,3 +400,7 @@ func card_rect() -> Rect2:
 func hide_card() -> void:
 	_card_left = 0.0
 	_card.visible = false
+
+
+func families_rect() -> Rect2:
+	return _families.get_global_rect()

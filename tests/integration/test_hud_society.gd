@@ -156,3 +156,15 @@ func test_card_fits_on_screen() -> void:
 	assert_true(rect.size.y < 620.0, "short enough for a 720 p screen (%s)" % rect)
 	hud.hide_card()
 	assert_true(not hud.card_visible())
+
+
+func test_families_panel_stays_on_screen() -> void:
+	_make()
+	for i in 12:
+		var p := _person(20 + i, "Pessoa%d" % i, GameConstants.SURNAMES[i])
+		_family(p, 30 + i)
+	hud.toggle_families()
+	await wait_frames(3)
+	var rect := hud.families_rect()
+	var view := get_viewport().get_visible_rect()
+	assert_near(rect.get_center().y, view.get_center().y, 1.0, "centered on its anchor, grows up and down (%s)" % rect)

@@ -206,3 +206,50 @@ func test_traveler_approach_message() -> void:
 	k.next_traveler_hour = 0.0
 	sim.tick_hours(1.0)
 	assert_eq(_count(GameConstants.VILLAGE_MSG_APPROACH % k.name), 1, str(_said))
+
+
+func test_catch_up_hours_with_day_night() -> void:
+	var a := _setup()
+	var s: WorldState = a[0]
+	var k: Dictionary = a[1]
+	var sim: VillageSim = a[2]
+	var dn := DayNight.new()
+	var sun := DirectionalLight3D.new()
+	add_child(sun)
+	dn.setup(sun, Environment.new(), ProceduralSkyMaterial.new())
+	add_child(dn)
+	dn.set_process(false)
+	dn.day = 3
+	dn.time_of_day = 23.5 / 24.0
+	sim.setup(s, _gen, _scatter, dn)
+	_person(s, k, 1, -0.9)
+	s.add_resource(R.WOOD, 20)
+	sim.tick_hours(24.0) # a whole day caught up at once
+	assert_eq(_count("roubou"), 1, "each caught-up hour is its own hour: one theft that day (%s)" % str(_said))
+
+
+func test_reload_does_not_repeat_news() -> void:
+	var a := _setup()
+	var s: WorldState = a[0]
+	var k: Dictionary = a[1]
+	var sim: VillageSim = a[2]
+	_person(s, k, 1, 0.9, "Ferreira")
+	_person(s, k, 2, 0.8, "Ferreira")
+	s.add_stock(k, R.WOOD, 70)
+	_tick_to(sim, GameConstants.DEED_HOUR)
+	assert_eq(_count("A Casa Ferreira agora é sua aliada"), 1)
+	assert_eq(_count("lhe deu"), 1)
+	const PATH := "user://test_reload_news.bin"
+	s.save_to(PATH)
+	var l := WorldState.load_from(PATH)
+	DirAccess.remove_absolute(ProjectSettings.globalize_path(PATH))
+	var sim2 := VillageSim.new()
+	add_child(sim2)
+	sim2.setup(l, _gen, _scatter, null)
+	sim2.clock_hours = sim.clock_hours
+	sim2.is_kingdom_loaded = func(_k: Dictionary) -> bool: return true
+	sim2.is_player_in = func(_k: Dictionary) -> bool: return true
+	sim2.message.connect(func(t: String) -> void: _said.append(t))
+	sim2.tick_hours(2.0)
+	assert_eq(_count("A Casa Ferreira agora é sua aliada"), 1, "no repeated ally news after a reload")
+	assert_eq(_count("lhe deu"), 1, "no second gift the same day")

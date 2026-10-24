@@ -218,3 +218,52 @@ func test_kin_helps_stay() -> void:
 	r2.seed = 3
 	var without := VillageRules.stay_decision(traveler, snap, r2)
 	assert_near(with_kin.score - without.score, GameConstants.STAY_KIN, 0.0001)
+
+
+func test_finished_house_goes_to_an_adult_and_family() -> void:
+	var a := _setup()
+	var s: WorldState = a[0]
+	var k: Dictionary = a[1]
+	var sim: VillageSim = a[2]
+	var kid := _person(s, k, 1, 6.0, true, "Ferreira")
+	var stranger := _person(s, k, 2, 40.0, false, "Couto")
+	var mom := _person(s, k, 3, 30.0, true, "Ferreira")
+	var dad := _person(s, k, 4, 32.0, false, "Ferreira")
+	var kid2 := _person(s, k, 5, 4.0, false, "Ferreira")
+	for c in [kid, kid2]:
+		c.parents = [mom.id, dad.id]
+	mom.spouse_id = dad.id
+	dad.spouse_id = mom.id
+	var site := s.add_site(B.HOUSE, k.center + Vector3(0, 0, 12), 0, k, 0.0) if s.can_afford_stock(k, GameConstants.BUILD_COST[B.HOUSE]) else {}
+	if site.is_empty():
+		s.add_stock(k, GameConstants.Res.WOOD, 100)
+		s.add_stock(k, GameConstants.Res.STONE, 100)
+		site = s.add_site(B.HOUSE, k.center + Vector3(0, 0, 12), 0, k, 0.0)
+	sim.work_on_site(site.id, 100.0)
+	var house := s.building(site.id)
+	assert_true(SocietyRules.is_adult(s.person(house.owner)), "an adult signs the house")
+	assert_true(not _said_has("Ficou pronta a casa de %s" % PersonGen.full_name(kid)), str(_said))
+	for p in [mom, dad, kid, kid2]:
+		assert_eq(p.home_id, house.id, "%s lives with the family" % p.name)
+	assert_true(stranger.home_id != house.id, "the stranger does not split the family")
+
+
+func test_children_follow_a_parent_who_moves_in() -> void:
+	var a := _setup()
+	var s: WorldState = a[0]
+	var k: Dictionary = a[1]
+	var sim: VillageSim = a[2]
+	var widow := _person(s, k, 1, 30.0, true, "Ferreira")
+	var kid := _person(s, k, 2, 5.0, false, "Ferreira")
+	kid.parents = [widow.id, 99]
+	var groom := _person(s, k, 3, 32.0, false, "Couto")
+	var h1 := _house(s, k, -6.0, widow.id)
+	var h2 := _house(s, k, 6.0, groom.id)
+	widow.home_id = h1.id
+	kid.home_id = h1.id
+	groom.home_id = h2.id
+	widow.spouse_id = groom.id
+	groom.spouse_id = widow.id
+	sim.tick_hours(1.0)
+	assert_eq(widow.home_id, groom.home_id, "the couple lives together")
+	assert_eq(kid.home_id, widow.home_id, "the child goes with the mother")

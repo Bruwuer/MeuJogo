@@ -195,15 +195,27 @@ func _reunite(k: Dictionary) -> void:
 		if int(a.home_id) >= 0 and a.home_id == b.home_id:
 			continue
 		if int(b.home_id) >= 0 and room(_state, _state.building(b.home_id)) > 0:
-			_move_home(a, b.home_id)
+			_move_with_children(a, b.home_id)
 		elif int(a.home_id) >= 0 and room(_state, _state.building(a.home_id)) > 0:
-			_move_home(b, a.home_id)
+			_move_with_children(b, a.home_id)
 		else:
 			for h in VillageRules.kingdom_buildings(_state, k):
 				if h.type == B.HOUSE and not h.get("site", false) and room(_state, h) >= 2:
-					_move_home(a, h.id)
-					_move_home(b, h.id)
+					_move_with_children(a, h.id)
+					_move_with_children(b, h.id)
 					break
+
+
+## Moves `p` and, while there is room, p's minor children who lived with p.
+func _move_with_children(p: Dictionary, home_id: int) -> void:
+	var old: int = p.home_id
+	_move_home(p, home_id)
+	if old < 0:
+		return
+	for c in _state.all_people():
+		if c.home_id == old and c.status == "resident" and not SocietyRules.is_adult(c) \
+				and (c.parents as Array).has(p.id) and room(_state, _state.building(home_id)) > 0:
+			_move_home(c, home_id)
 
 
 func _move_home(p: Dictionary, home_id: int) -> void:
