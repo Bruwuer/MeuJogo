@@ -22,7 +22,7 @@ primeiro e atualizá-lo ao concluir cada tarefa** (seção "Estado atual").
 - Etapas 1 a 4: concluídas e no `main` (262 testes passando). Resumo em `docs/ENTREGAS.md`.
 - **Em andamento: Etapa 5 (pessoas)** no branch `etapa-5`. Design (`docs/superpowers/specs/2026-10-24-etapa-5-pessoas-design.md`,
   revisado) e plano (`docs/superpowers/plans/2026-10-24-etapa-5-pessoas.md`) prontos. Ledger em `.superpowers/sdd/etapa-5/progress.md`
-  (fora do git; se sumir, refaça a partir do `git log` do branch). Tarefas 1–8 prontas (330 testes). Próxima: tarefa 9 (capturas e docs), depois revisão final.
+  (fora do git; se sumir, refaça a partir do `git log` do branch). Tarefas 1–9 prontas (334 testes, capturas 18–22 inspecionadas). Próxima: revisão final por subagente (opus), correções, merge no main.
   Pedidos do autor da etapa 4 continuam valendo: combate e construção só por teclado; ataques ao reino só com motivo.
 - Etapas 6 a 9: não iniciadas (ver roadmap no `CLAUDE.md`).
 

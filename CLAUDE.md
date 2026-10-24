@@ -40,6 +40,7 @@ scripts/world/        chunks, terreno, spawn, cena do mundo
 scripts/actors/       jogador e entrada
 scripts/combat/       vida, armas (Combat), flechas
 scripts/creatures/    genoma, corpo por peças, cérebro, criatura, bandos (motivos, PackSim), gerenciador
+scripts/people/       PersonGen, VillageRules, VillageSim (horário), Person + PersonBrain, PeopleManager
 scripts/camera/       câmera isométrica
 scripts/ui/           HUD
 shaders/              prop_occlusion.gdshader (árvores/rochas somem na frente do jogador)
@@ -79,6 +80,9 @@ docs/superpowers/     specs/ e plans/
 12. Só existe UM carregador de modelos (`ModelLibrary`, sequencial): cargas paralelas causam corrida no renderizador.
 13. Criaturas: registros em `WorldState`; só têm nó dentro dos chunks carregados (teto `CREATURE_MAX_ACTIVE`).
     Ataques ao reino só por motivo do bando (fome, território, rancor, filhotes), nunca "porque é noite".
+14. Pessoas: registros em `WorldState` (como as criaturas); só têm nó nos chunks carregados (teto `PEOPLE_MAX_ACTIVE`).
+    Quem tem nó trabalha de verdade; quem não tem é resumido pelo `VillageSim` (sem trabalho em dobro).
+    O reino tem estoque próprio. Construções dos moradores (dono >= 0 ou `OWNER_KINGDOM`) não são demolidas pelo jogador.
 
 ## Comandos
 
@@ -87,7 +91,8 @@ docs/superpowers/     specs/ e plans/
 - Capturas de tela: `powershell -ExecutionPolicy Bypass -File tools/capture.ps1` (saem em `captures/`, inclui a galeria de criaturas)
 - Abrir o editor: `powershell -ExecutionPolicy Bypass -File tools/godot.ps1 -e`
 - Começar um mundo novo (apaga o save): `powershell -ExecutionPolicy Bypass -File tools/new_world.ps1`
-- Controles: WASD anda, Shift corre, E coleta (árvore 4 golpes = 3 madeira, rocha 5 = 2 pedra, arbusto 1 = 2 frutas)
+- Controles: WASD anda, Shift corre, E fala com quem está perto ou coleta (árvore 4 golpes = 3 madeira,
+  rocha 5 = 2 pedra, arbusto 1 = 2 frutas), G doa ao reino (até 10 de madeira, pedra e frutas)
 - Construção: B liga/desliga, 1–5 escolhe (Cabana, Fogueira, Depósito, Cerca, Poço), R gira, clique ou E constrói,
   Esc ou clique direito sai; X demole (devolve 50 %). A primeira Cabana funda o reino.
 - Combate (só teclado): Espaço ataca para onde o personagem olha, 1/2/3 escolhem Espada/Lança/Arco, Q troca,
@@ -102,7 +107,7 @@ docs/superpowers/     specs/ e plans/
 3. ✅ **Construção:** inventário, coleta, construções pré-feitas com custo realista, fundação do reino.
 4. ✅ **Criaturas e combate:** genoma de peças (animais reais + inventadas), comportamento, cruzamento
    com herança, brigas entre espécies, armas medievais, ataques ao reino.
-5. **Pessoas:** gerador de pessoas (nome, traços, opinião), chegada e decisão de ficar,
+5. ✅ **Pessoas:** gerador de pessoas (nome, traços, opinião), chegada e decisão de ficar,
    necessidades, construção autônoma.
 6. **Sociedade:** famílias e brasões, relações, opinião sobre o jogador, aliados e inimigos internos.
 7. **Governo:** decisões com efeito, sucessão, governante NPC (corrupção, lealdade, culto ou inimizade).

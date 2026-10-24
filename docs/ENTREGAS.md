@@ -65,3 +65,57 @@ ataque, os ataques "fantasmas" anunciados sem bando por perto, a fome do bando q
 as construções destruídas à distância que continuavam visíveis.
 Ficaram para depois três pontos menores: o filhote que cresce mantém a colisão pequena, um cadáver pode
 cair se o chunk descarregar, e com 40 criaturas ativas uma criatura próxima não toma a vaga de uma distante.
+
+## Etapa 5 — Pessoas (2026-10-24)
+
+**O que mudou**
+- **Gerador de pessoas:** nome e sobrenome medievais portugueses, idade, dois traços de pares opostos
+  (trabalhador/preguiçoso, corajoso/medroso, generoso/ganancioso, sociável/solitário, devoto/cético),
+  profissão (lenhador, pedreiro, agricultor, coletor, construtor, comerciante), cores de pele, cabelo e
+  roupa, altura e opinião inicial sobre você (puxada pelos traços e pela sua fama).
+- **Viajantes:** com o reino fundado, chega um viajante 1 hora depois e então a cada 6 horas (4 com um
+  Comércio), até 12 moradores. Ele surge a 60–90 m, anda até a sede, olha o reino e decide. O HUD diz o
+  motivo: "Ana Ferreira decidiu ficar: há comida guardada" ou "Bento do Vale seguiu viagem: não há onde
+  morar". As duas primeiras pessoas sempre ficam.
+- **Necessidades:** comem 2 vezes por dia do estoque do reino (Comida antes de Frutas), dormem das 21h às
+  6h (em casa ou junto à fogueira), e o contentamento sobe ou desce a cada hora. Quem passa um dia inteiro
+  infeliz vai embora com aviso ("Carla deixou o Reino de X: passava fome").
+- **Estoque do reino:** separado do seu inventário. Começa com 20 de madeira e 24 frutas. **G** doa até 10
+  de cada recurso e melhora a opinião de quem está perto.
+- **Trabalho de verdade:** cada um trabalha na profissão quando o estoque precisa (madeira até 60, pedra até
+  30, frutas se a comida dura menos de 3 dias); senão ajuda na obra ou busca o que falta. Cortar, quebrar e
+  colher removem o objeto do mapa e a pessoa leva o que pegou ao Depósito ou à sede.
+- **Construção autônoma:** uma obra por vez, nesta ordem: Fazenda se a comida está acabando, Casa para os
+  sem-teto, Fazenda se a produção não cobre o consumo, Comércio (4 moradores), Poço (3) e Depósito. O lugar
+  é escolhido em espiral perto da sede, com corredor livre e longe de tocas quando possível. A obra aparece
+  como canteiro (andaime e a construção subindo). A casa pronta é "assinada" pelo primeiro sem-teto.
+- **Novos modelos do Blender:** Casa (3 moradores), Fazenda (lavoura que se atravessa), Comércio
+  (barraca listrada) e o andaime.
+- **Falar:** **E** perto de alguém (tem prioridade sobre a coleta) abre um cartão com nome, idade, reino,
+  profissão, traços, o que está fazendo, do que precisa e o que acha de você.
+- **Opinião sobre você:** sobe com doações e quando você mata um atacante dentro do reino; volta devagar
+  para o neutro enquanto você está longe. A média vira a sua fama, que pesa nos próximos viajantes.
+- **Medo:** fogem de carnívoros por perto e se escondem em casa durante ataques. Herbívoros fogem das
+  pessoas. As criaturas ainda não atacam pessoas, e obras não são alvo de ataque.
+- **Mundo sem você:** o `VillageSim` roda a cada hora para todos os reinos. Com o reino longe, o trabalho é
+  resumido (inclusive removendo árvores e rochas de verdade) e as notícias ficam para a volta (as 3 últimas
+  e quantas mais aconteceram).
+- **HUD:** dentro do reino, a linha "Moradores: 5 · Estoque: Madeira 12, Pedra 3, Comida 8, Frutas 4".
+- **Persistência:** pessoas, estoque, donos e progresso das obras, e a fama vão para o save. Saves da
+  etapa 4 continuam abrindo.
+
+**Decisões principais** (lista completa no ledger da etapa e na seção 5 do design)
+- Você não pode demolir casas ou obras dos moradores.
+- Quem tem nó trabalha de verdade; quem não tem é resumido pelo `VillageSim`, sem trabalho em dobro. Ao
+  perder o nó, o que a pessoa carregava vai para o estoque.
+- Um reino fundado dentro do território de uma toca também constrói (o lugar fora do território é só a
+  preferência), senão ele nunca cresceria.
+- Pessoas desviam por raios no joelho e no peito; se ficam sem progresso, dão um passo de lado e, presas por
+  6 s, aparecem no destino. Isso veio das capturas, onde moradores encalhavam no degrau da base da sede.
+
+**Pendências**
+- Criaturas usam só raios na altura do corpo e podem encalhar em bases baixas como as pessoas encalhavam.
+- O balanceamento (ritmo de chegada, comida, tempo das obras) precisa de horas de jogo de verdade.
+
+**Capturas:** `18_traveler_arrives`, `19_village_working`, `20_site_rising`, `21_person_card` e
+`22_village_night`.
