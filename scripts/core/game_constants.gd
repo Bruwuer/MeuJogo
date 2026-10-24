@@ -125,6 +125,16 @@ const BUILD_SCENES := {
 	Building.FLAG: "res://assets/models/flag.glb",
 }
 const BUILD_REFUND := 0.5 ## Share of the cost returned on demolish (rounded down).
+const BUILD_MAX_HEIGHT_DIFF := 1.2 ## Max ground height difference under a footprint.
+const BUILD_SAMPLE_STEP := 0.5 ## Ground sampling step under a footprint.
+const BUILD_GRID := 0.5 ## Placement snap on X/Z.
+const BUILD_TOUCH_TOLERANCE := 0.1 ## Footprints may share edges up to this overlap per side.
+const BUILD_BUSH_CLEAR_RADIUS := 0.5 ## Bushes this close to a footprint are cleared on build.
+const BUILD_MSG_OUTSIDE := "Fora do mapa"
+const BUILD_MSG_SLOPE := "Terreno muito inclinado"
+const BUILD_MSG_PROP := "Há uma árvore ou rocha no caminho"
+const BUILD_MSG_OCCUPIED := "Ocupado por outra construção"
+const BUILD_MSG_MISSING := "Falta %s (%d/%d)" ## resource name in lower case, have, need
 
 # Kingdoms
 const KINGDOM_RADIUS := 40.0
