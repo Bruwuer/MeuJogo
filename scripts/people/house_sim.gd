@@ -641,7 +641,7 @@ func _goals(k: Dictionary, rng: RandomNumberGenerator) -> void:
 			elif _hour > float(goal.get("deadline_hour", INF)) and not _still_at_it(f, goal):
 				_goal_end(k, f, false)
 		if (f.goal as Dictionary).is_empty():
-			var g := HouseRules.pick_goal(f, goal_ctx(k, f), rng)
+			var g := with_target_name(_state, HouseRules.pick_goal(f, goal_ctx(k, f), rng))
 			if not g.is_empty():
 				g.deadline_hour = _hour + GameConstants.GOAL_DAYS * 24.0
 				g.start_level = house_level_of(f)
@@ -728,8 +728,16 @@ static func goal_text_of(state: WorldState, g: Dictionary) -> String:
 	var text: String = GameConstants.GOAL_TEXTS[int(g.kind)]
 	if text.contains("%s"):
 		var target := state.family(int(g.get("target_id", -1)))
-		text = text % (target.surname if not target.is_empty() else "?")
+		text = text % (target.surname if not target.is_empty() else g.get("target_name", "?"))
 	return text
+
+
+## Stores the target House's name in the goal, so its text survives the House (a union absorbs it).
+static func with_target_name(state: WorldState, g: Dictionary) -> Dictionary:
+	var target := state.family(int(g.get("target_id", -1)))
+	if not target.is_empty():
+		g.target_name = target.surname
+	return g
 
 
 ## Everything HouseRules.goal_scores needs to know about a House.

@@ -139,3 +139,14 @@ func test_goal_picked_when_missing() -> void:
 	house.tick_hour(k, _daily(1))
 	assert_true(not f.goal.is_empty(), "a poor House sets itself a goal")
 	assert_true(f.goal.has("deadline_hour"))
+
+
+func test_goal_keeps_the_target_name_when_the_house_is_gone() -> void:
+	var f := _house("Leal", 10.0)
+	var gone := _house("Brito", 10.0, Vector3(12, 0, 0))
+	f.goal = {kind = G.ALLIANCE, target_id = gone.id, target_name = "Brito"}
+	s.remove_family(gone.id)
+	assert_eq(house.goal_text(f.goal), "aliança por casamento com a Casa Brito")
+	f.goal = {}
+	assert_eq(HouseSim.with_target_name(s, {kind = G.SURPASS, target_id = f.id}).get("target_name", ""), "Leal",
+			"a goal remembers whom it is about when it is set")

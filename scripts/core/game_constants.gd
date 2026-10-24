@@ -367,6 +367,9 @@ const RAID_COOLDOWN_HOURS := 24.0
 const RAID_SATED_HUNGER := 0.35 ## Hunger lost after a raid (they raid food stores).
 const RAID_GRUDGE_KEEP := 0.5 ## Share of grudge left after a raid.
 const OFFSCREEN_RAID_HITS := 8.0 ## Bites per raider when a raid on an unloaded kingdom is summarized.
+const PACK_MIGRATE_AFTER_RAIDS := 2 ## Hunger raids in a row with no game around before a pack moves its den.
+const PACK_MIGRATE_MARGIN := 30.0 ## The new den is this far beyond RAID_RANGE from the kingdom.
+const PACK_MIGRATE_MSG := "Os %s deixaram a toca perto do Reino de %s: a caça acabou e partiram atrás de outra"
 ## Text shown when a pack raids: (species plural in lower case, kingdom name).
 const RAID_MESSAGES := {
 	hunger = "Os %s famintos rondam o Reino de %s: a caça acabou na região",

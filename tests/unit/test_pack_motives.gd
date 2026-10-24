@@ -180,6 +180,36 @@ func test_village_near_a_den_is_not_raided_every_day() -> void:
 	sim.queue_free()
 
 
+func test_starving_pack_moves_its_den_away() -> void:
+	var s := WorldState.new()
+	var cabin := s.add_building(GameConstants.Building.CABIN, Vector3(300, 0, 300), 0)
+	var k := s.add_kingdom("Valdemar", Color.RED, cabin.pos, cabin.id)
+	s.add_building(GameConstants.Building.FARM, Vector3(310, 0, 300), 0)
+	var p := s.add_pack("rastejante", Vector3(360, 0, 300))
+	for c in ChunkMath.chunks_in_radius(ChunkMath.world_to_chunk(p.den), 6):
+		s.mark_visited(c) # the region is known and empty of game
+	for i in 2:
+		s.add_creature(_genome("rastejante", i), Vector3(360 + i, 0, 300), p.id)
+	var sim := PackSim.new()
+	add_child(sim)
+	sim.setup(s, null)
+	sim.is_night_override = true
+	var raids := []
+	sim.raid_started.connect(func(_a: Dictionary, _b: Dictionary, m: String) -> void: raids.append(m))
+	for i in 24 * 10:
+		sim.tick_hours(1.0)
+	assert_true(raids.size() >= 1 and raids[0] == "hunger", "a starving pack never raided: %s" % [raids])
+	assert_true(raids.size() <= GameConstants.PACK_MIGRATE_AFTER_RAIDS, "raided %d times in 10 days" % raids.size())
+	var den: Vector3 = s.pack(p.id).den
+	assert_true(PackSim._flat_dist(den, k.center) > GameConstants.RAID_RANGE, "the den stayed near the kingdom: %s" % den)
+	assert_true(ChunkMath.is_playable(ChunkMath.world_to_chunk(den)), "the new den is inside the map")
+	for m in s.pack_members(p.id):
+		assert_true(PackSim._flat_dist(m.pos, den) < 10.0, "a member stayed behind")
+	assert_true(s.chronicle(k.id, 50).any(func(e: Dictionary) -> bool: return (e.text as String).contains("toca")),
+			"the move goes to the ADM log")
+	sim.queue_free()
+
+
 func test_unvisited_land_counts_as_prey() -> void:
 	var s := WorldState.new()
 	var p := s.add_pack("lobo", Vector3(300, 0, 300))

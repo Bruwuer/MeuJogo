@@ -148,3 +148,21 @@ como resumo na hora em que começa (mesmo efeito). Feitos:
 acordados e visíveis de fora da Casa, a até `DEED_WITNESS_RADIUS`, no fim do feito secreto; no
 resumo, chance por pessoa acordada naquela hora (guardas de vigia à noite). Acabou a descoberta
 diária por sorte. Fugitivos ainda são notados pela família na manhã seguinte.
+
+## 6. Adendo (2026-10-24): o motivo de território cansa
+
+Na captura orgânica o reino nasceu perto de tocas e foi atacado todo dia até morrer: o motivo de
+território era só "quantas construções há perto da toca", e isso nunca baixa.
+
+**Ruling:** depois de um ataque, o bando aceita as construções que viu (`territory_accepted`); só
+o que for erguido depois reacende o motivo (`TERRITORY_PER_BUILDING` por construção nova). Uma vila
+perto de uma toca é contestada uma vez e volta a ser só quando cresce de novo para o lado do bando.
+Fome, rancor e filhotes continuam como antes. Saves antigos: o campo ausente vale 0.
+
+**Ruling (fome):** a segunda captura mostrou o mesmo defeito com a fome: um bando sem caça por perto
+atacava a cada 24 h para sempre. Depois de `PACK_MIGRATE_AFTER_RAIDS` ataques por fome seguidos sem
+caça na região, o bando muda a toca para fora do alcance do reino (`RAID_RANGE + PACK_MIGRATE_MARGIN`),
+do lado oposto quando o mapa deixa, e isso vai para o log do ADM.
+
+**Ruling (texto):** o objetivo guarda o nome da Casa alvo (`target_name`), para o texto não virar
+"Casa ?" quando ela some numa união.

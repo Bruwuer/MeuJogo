@@ -55,7 +55,13 @@ func tick_hours(hours: float) -> void:
 		if members.is_empty():
 			_state.remove_pack(pack.id)
 			continue
-		PackMotives.update(pack, _context(pack, members), hours)
+		var ctx := _context(pack, members)
+		PackMotives.update(pack, ctx, hours)
+		if int(ctx.prey_count) >= GameConstants.PREY_ENOUGH:
+			pack.hunger_raids = 0
+		if pack.raid_kingdom == -1 and int(pack.get("hunger_raids", 0)) >= GameConstants.PACK_MIGRATE_AFTER_RAIDS:
+			_migrate(pack, members)
+			continue
 		if pack.raid_kingdom != -1:
 			if now_hours() - pack.get("raid_hour", 0.0) > _RAID_MAX_HOURS:
 				PackMotives.after_raid(pack, now_hours())
@@ -122,6 +128,7 @@ func _maybe_raid(pack: Dictionary, members: Array) -> void:
 	kingdom.last_raid_hour = now_hours() # villagers fear a raided kingdom for a while
 	pack.raid_hour = now_hours()
 	var motive := PackMotives.dominant(pack)
+	pack.hunger_raids = int(pack.get("hunger_raids", 0)) + 1 if motive == "hunger" else 0
 	raid_started.emit(pack, kingdom, motive)
 	if mode == "offscreen":
 		resolve_offscreen_raid(pack, kingdom)
@@ -147,6 +154,31 @@ func _context(pack: Dictionary, members: Array) -> Dictionary:
 	var cubs := members.filter(func(m: Dictionary) -> bool: return float(m.age) < 1.0).size()
 	var near := is_instance_valid(player) and _flat_dist(player.global_position, den) <= GameConstants.CUB_ALARM_RADIUS
 	return { prey_count = prey, buildings_in_territory = buildings, player_near_den = near, cubs = cubs }
+
+
+## Raiding did not bring the game back: the pack leaves for a den out of the kingdom's reach,
+## on the side away from it when the map allows. Members walk there (records move at once).
+func _migrate(pack: Dictionary, members: Array) -> void:
+	pack.hunger_raids = 0
+	var kingdom := _nearest_kingdom(pack.den)
+	if kingdom.is_empty():
+		return
+	var center: Vector3 = kingdom.center
+	var away := Vector3(pack.den.x - center.x, 0.0, pack.den.z - center.z)
+	if away.length() < 0.01:
+		away = Vector3.RIGHT
+	away = away.normalized()
+	var dist := GameConstants.RAID_RANGE + GameConstants.PACK_MIGRATE_MARGIN
+	for step in 12: # turn 30 degrees at a time until the spot is on the map
+		var turn := 30.0 * floorf((step + 1) / 2.0) * (1.0 if step % 2 == 0 else -1.0)
+		var spot := Vector3(center.x, pack.den.y, center.z) + away.rotated(Vector3.UP, deg_to_rad(turn)) * dist
+		if ChunkMath.is_playable(ChunkMath.world_to_chunk(spot)):
+			pack.den = spot
+			for i in members.size(): # a small ring around the new den
+				var a := TAU * i / maxf(1.0, members.size())
+				_state.move_creature(members[i].id, spot + Vector3(cos(a), 0.0, sin(a)) * 2.0)
+			_state.chronicle_add(now_hours(), GameConstants.PACK_MIGRATE_MSG % [PackMotives.species_plural(pack.species), kingdom.name], kingdom.id)
+			return
 
 
 func _nearest_kingdom(pos: Vector3) -> Dictionary:
