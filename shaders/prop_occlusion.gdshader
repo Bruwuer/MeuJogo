@@ -5,6 +5,7 @@ shader_type spatial;
 render_mode cull_back, diffuse_burley, specular_schlick_ggx;
 
 global uniform vec3 player_world_pos;
+global uniform vec3 main_camera_pos; // lets shadow passes (rendered from the light) skip the fade
 uniform vec4 albedo : source_color = vec4(1.0);
 uniform float roughness = 0.9;
 uniform float fade_radius = 0.17; // fraction of the screen height
@@ -18,7 +19,8 @@ void fragment() {
 	ALBEDO = albedo.rgb;
 	ROUGHNESS = roughness;
 	vec4 player_view = VIEW_MATRIX * vec4(player_world_pos, 1.0);
-	if (-VERTEX.z < -player_view.z - depth_margin) {
+	bool main_view = distance(CAMERA_POSITION_WORLD, main_camera_pos) < 1.0;
+	if (main_view && -VERTEX.z < -player_view.z - depth_margin) {
 		vec4 clip = PROJECTION_MATRIX * player_view;
 		vec2 player_uv = clip.xy / clip.w * 0.5 + 0.5;
 		vec2 d = (SCREEN_UV - player_uv) * vec2(VIEWPORT_SIZE.x / VIEWPORT_SIZE.y, 1.0);

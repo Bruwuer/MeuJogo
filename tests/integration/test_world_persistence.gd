@@ -80,3 +80,36 @@ func test_harvest_persists_across_save_and_reload() -> void:
 func test_no_save_when_path_empty() -> void:
 	var w: World = await _make_world(1337, "")
 	assert_true(w.save_now() != OK)
+
+
+func test_restored_position_snaps_to_ground() -> void:
+	var s := WorldState.new()
+	s.seed = 1337
+	s.player_position = Vector3(300, -80, 300) # far below the terrain
+	s.has_player_position = true
+	s.save_to(_path)
+	var w: World = await _make_world(-1, _path)
+	await wait_physics_frames(60)
+	var p := w.get_player().global_position
+	assert_true(absf(p.y - w.get_generator().height_at(p.x, p.z)) < 0.5, "player at y=%.1f, ground %.1f" % [p.y, w.get_generator().height_at(p.x, p.z)])
+
+
+func test_unreadable_save_is_moved_aside() -> void:
+	var f := FileAccess.open(_path, FileAccess.WRITE)
+	f.store_buffer("MJSVgarbage-that-is-not-a-variant".to_ascii_buffer())
+	f.close()
+	var w: World = await _make_world(-1, _path)
+	assert_true(FileAccess.file_exists(_path + ".corrupt"), "unreadable save was not preserved")
+	assert_true(w.is_world_ready())
+	DirAccess.remove_absolute(ProjectSettings.globalize_path(_path + ".corrupt"))
+
+
+func test_shader_globals_follow_player_and_camera() -> void:
+	var w: World = await _make_world(1337, "")
+	await wait_frames(3)
+	# The dummy renderer cannot read globals back, so check the values World pushes each frame.
+	var g := w.shader_globals()
+	assert_true(g[&"main_camera_pos"].distance_to(w.get_camera().global_position) < 1.0, "main_camera_pos wrong")
+	assert_true(g[&"player_world_pos"].distance_to(w.get_player().global_position) < 1.5, "player_world_pos wrong")
+	for param in g:
+		assert_true(RenderingServer.global_shader_parameter_get_list().has(param), "%s not registered" % param)

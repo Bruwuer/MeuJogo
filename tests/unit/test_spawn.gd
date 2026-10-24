@@ -53,3 +53,36 @@ func test_spawn_seeded_deterministic() -> void:
 
 func test_spawn_varies_with_seed() -> void:
 	assert_true(_pick(1) != _pick(2))
+
+
+func test_nearest_clear_moves_out_of_a_rock() -> void:
+	var gen := TerrainGenerator.new(GameConstants.WORLD_SEED)
+	var scatter := PropScatter.new(gen, GameConstants.WORLD_SEED)
+	var rock := {}
+	for cy in range(2, 20):
+		for p in scatter.build_chunk_props(Vector2i(10, cy)):
+			if p.type == GameConstants.Prop.ROCK:
+				rock = p
+				break
+		if not rock.is_empty():
+			break
+	assert_true(not rock.is_empty(), "no rock found")
+	if rock.is_empty():
+		return
+	var inside: Vector3 = rock.pos + Vector3(0, -30, 0) # inside the rock and under the ground
+	var p := SpawnPicker.nearest_clear(gen, scatter, inside)
+	var r: float = GameConstants.PROP_COLLISION_RADIUS[GameConstants.Prop.ROCK] * rock.scale
+	assert_true(Vector2(p.x - rock.pos.x, p.z - rock.pos.z).length() >= r, "still inside the rock")
+	assert_near(p.y, gen.height_at(p.x, p.z), 0.001, "not on the ground")
+
+
+func test_nearest_clear_keeps_a_clear_point() -> void:
+	var gen := TerrainGenerator.new(GameConstants.WORLD_SEED)
+	var scatter := PropScatter.new(gen, GameConstants.WORLD_SEED)
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 3
+	var spawn := SpawnPicker.pick(gen, scatter, rng)
+	var p := SpawnPicker.nearest_clear(gen, scatter, spawn + Vector3(0, 40, 0))
+	assert_near(p.x, spawn.x, 0.001)
+	assert_near(p.z, spawn.z, 0.001)
+	assert_near(p.y, gen.height_at(p.x, p.z), 0.001)

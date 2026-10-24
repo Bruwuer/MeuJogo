@@ -57,15 +57,9 @@ func test_corrupt_file_returns_null() -> void:
 
 func test_version_mismatch_drops_removed_only() -> void:
 	_filled().save_to(_path)
-	var f := FileAccess.open(_path, FileAccess.READ)
-	f.get_buffer(WorldState.MAGIC.length())
-	var data: Dictionary = f.get_var()
-	f.close()
+	var data: Dictionary = WorldState.read_payload(_path)
 	data.version = GameConstants.WORLDGEN_VERSION - 1
-	f = FileAccess.open(_path, FileAccess.WRITE)
-	f.store_buffer(WorldState.MAGIC.to_ascii_buffer())
-	f.store_var(data)
-	f.close()
+	WorldState.write_payload(_path, data)
 	var s := WorldState.load_from(_path)
 	assert_true(s != null)
 	if s == null:
@@ -89,3 +83,26 @@ func test_save_overwrites_existing() -> void:
 	s.seed = 1
 	assert_eq(s.save_to(_path), OK)
 	assert_eq(WorldState.load_from(_path).seed, 1)
+
+
+func test_load_falls_back_to_tmp_when_main_missing() -> void:
+	# Simulates a crash after the old save was removed but before the new one was renamed in.
+	_filled().save_to(_path)
+	DirAccess.rename_absolute(ProjectSettings.globalize_path(_path), ProjectSettings.globalize_path(_path + ".tmp"))
+	var s := WorldState.load_from(_path)
+	assert_true(s != null and s.seed == 4242, "save lost when only .tmp survived")
+
+
+func test_load_falls_back_to_bak() -> void:
+	_filled().save_to(_path)
+	DirAccess.rename_absolute(ProjectSettings.globalize_path(_path), ProjectSettings.globalize_path(_path + ".bak"))
+	var s := WorldState.load_from(_path)
+	assert_true(s != null and s.seed == 4242, "save lost when only .bak survived")
+	DirAccess.remove_absolute(ProjectSettings.globalize_path(_path + ".bak"))
+
+
+func test_save_leaves_no_side_files() -> void:
+	_filled().save_to(_path)
+	_filled().save_to(_path)
+	assert_true(FileAccess.file_exists(_path))
+	assert_true(not FileAccess.file_exists(_path + ".tmp") and not FileAccess.file_exists(_path + ".bak"))

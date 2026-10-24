@@ -35,6 +35,8 @@ var _autosave_left := GameConstants.AUTOSAVE_SEC
 
 func _ready() -> void:
 	_state = WorldState.load_from(save_path) if save_path != "" else null
+	if _state == null and save_path != "" and WorldState.any_file_exists(save_path):
+		_set_aside_unreadable_save()
 	if _state == null:
 		_state = WorldState.new()
 		_state.seed = world_seed if world_seed >= 0 else randi()
@@ -53,7 +55,8 @@ func _ready() -> void:
 	_add_edge_walls()
 
 	if _state.has_player_position:
-		_spawn = _state.player_position + Vector3.UP * (_RESTORE_DROP - _SPAWN_DROP)
+		# Terrain or props may have changed since the save: re-ground and step out of obstacles.
+		_spawn = SpawnPicker.nearest_clear(_gen, scatter, _state.player_position) + Vector3.UP * (_RESTORE_DROP - _SPAWN_DROP)
 	else:
 		var rng := RandomNumberGenerator.new()
 		if spawn_seed >= 0:
@@ -95,13 +98,38 @@ func _physics_process(_delta: float) -> void:
 
 
 func _process(delta: float) -> void:
-	RenderingServer.global_shader_parameter_set(&"player_world_pos", _player.global_position + Vector3.UP * _PLAYER_CENTER)
+	var globals := shader_globals()
+	for param in globals:
+		RenderingServer.global_shader_parameter_set(param, globals[param])
 	if not _is_ready or save_path == "":
 		return
 	_autosave_left -= delta
 	if _autosave_left <= 0.0:
 		_autosave_left = GameConstants.AUTOSAVE_SEC
-		save_now()
+		var err := save_now()
+		if err != OK:
+			push_warning("World: autosave failed (%s)" % error_string(err))
+
+
+## Values for the project shader globals used by the prop occlusion shader. Interpolated
+## transforms match what is drawn this frame (physics interpolation is on).
+func shader_globals() -> Dictionary[StringName, Vector3]:
+	return {
+		&"player_world_pos": _player.get_global_transform_interpolated().origin + Vector3.UP * _PLAYER_CENTER,
+		&"main_camera_pos": _camera.get_global_transform_interpolated().origin,
+	}
+
+
+## Keeps an unreadable save as `.corrupt` instead of silently overwriting it with a new world.
+func _set_aside_unreadable_save() -> void:
+	for suffix in ["", ".bak", ".tmp"]:
+		if FileAccess.file_exists(save_path + suffix):
+			var corrupt := ProjectSettings.globalize_path(save_path + ".corrupt")
+			if FileAccess.file_exists(save_path + ".corrupt"):
+				DirAccess.remove_absolute(corrupt)
+			DirAccess.rename_absolute(ProjectSettings.globalize_path(save_path + suffix), corrupt)
+			push_warning("World: save at %s was unreadable, kept as %s" % [save_path, corrupt])
+			return
 
 
 func _notification(what: int) -> void:

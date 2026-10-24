@@ -1,8 +1,11 @@
 class_name SpawnPicker
 extends RefCounted
-## Picks a random spawn point on gentle ground, away from the map edge and from solid props.
+## Picks spawn points on gentle ground, away from the map edge and from solid props.
 
 const _PROP_SEARCH_EXTRA := 2.0 ## Covers the largest scaled collision radius.
+const _RING_STEP := 1.5 ## nearest_clear: distance between search rings (m).
+const _RING_MAX := 30.0 ## nearest_clear: give up beyond this radius.
+const _EDGE_KEEP := 1.0 ## nearest_clear: stay this far inside the playable square.
 
 
 static func pick(gen: TerrainGenerator, scatter: PropScatter, rng: RandomNumberGenerator) -> Vector3:
@@ -15,6 +18,25 @@ static func pick(gen: TerrainGenerator, scatter: PropScatter, rng: RandomNumberG
 		if gen.slope_deg_at(x, z) <= GameConstants.SPAWN_MAX_SLOPE_DEG and _clear_of_props(scatter, p):
 			return p
 	var c := ChunkMath.playable_size() * 0.5
+	return Vector3(c, gen.height_at(c, c), c)
+
+
+## The closest valid point to `pos` (searching outward in rings), placed on the ground.
+## Used when restoring a saved position whose terrain or props may have changed.
+static func nearest_clear(gen: TerrainGenerator, scatter: PropScatter, pos: Vector3) -> Vector3:
+	var size := ChunkMath.playable_size()
+	var r := 0.0
+	while r <= _RING_MAX:
+		var samples := 1 if r == 0.0 else int(ceil(TAU * r / _RING_STEP))
+		for i in samples:
+			var a := TAU * i / samples
+			var x := clampf(pos.x + cos(a) * r, _EDGE_KEEP, size - _EDGE_KEEP)
+			var z := clampf(pos.z + sin(a) * r, _EDGE_KEEP, size - _EDGE_KEEP)
+			var p := Vector3(x, gen.height_at(x, z), z)
+			if gen.slope_deg_at(x, z) <= GameConstants.SPAWN_MAX_SLOPE_DEG and _clear_of_props(scatter, p):
+				return p
+		r += _RING_STEP
+	var c := size * 0.5
 	return Vector3(c, gen.height_at(c, c), c)
 
 
