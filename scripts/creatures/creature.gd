@@ -58,7 +58,7 @@ func setup(rec: Dictionary, library: ModelLibrary, mgr: Node) -> void:
 	body.build(genome, library)
 	_add_collision()
 	collision_layer = GameConstants.LAYER_CREATURES
-	collision_mask = GameConstants.LAYER_TERRAIN | GameConstants.LAYER_OBSTACLES | GameConstants.LAYER_CREATURES
+	collision_mask = GameConstants.LAYER_TERRAIN | GameConstants.LAYER_OBSTACLES
 	floor_snap_length = _FLOOR_SNAP
 	platform_floor_layers = GameConstants.LAYER_TERRAIN | GameConstants.LAYER_OBSTACLES
 	health = Health.new(float(genome.max_hp), float(record.get("hp", genome.max_hp)))
@@ -323,12 +323,12 @@ func _on_died(source: Object) -> void:
 	tw.tween_callback(queue_free)
 
 
+## One sphere around the torso: cheap against the terrain trimesh. Creatures do not collide with
+## each other (the player still bumps into them); obstacles are steered around by rays.
 func _add_collision() -> void:
 	var shape := CollisionShape3D.new()
-	var capsule := CapsuleShape3D.new()
-	capsule.radius = maxf(0.15, body.standing_height() * 0.5)
-	capsule.height = maxf(capsule.radius * 2.0, float(genome.size) * 1.1)
-	shape.shape = capsule
-	shape.rotation.x = PI * 0.5 # lying along the body (front +Z)
-	shape.position.y = capsule.radius
+	var sphere := SphereShape3D.new()
+	sphere.radius = maxf(0.15, body.standing_height() * 0.5)
+	shape.shape = sphere
+	shape.position.y = sphere.radius
 	add_child(shape)

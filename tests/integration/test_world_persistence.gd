@@ -150,3 +150,23 @@ func test_buildings_persist_across_save_and_reload() -> void:
 		var c := b.get_streamer().get_chunk(ChunkMath.world_to_chunk(rec.pos))
 		assert_true(c != null and c.has_building(id), "building %d missing after reload" % id)
 	assert_true(chunk != null)
+
+
+func test_creatures_and_packs_persist_across_save() -> void:
+	var a: World = await _make_world(GameConstants.WORLD_SEED, _path)
+	await wait_frames(30)
+	var creatures := a.get_state().all_creatures()
+	assert_true(creatures.size() >= 3, "a new world should have at least the first wolf pack")
+	var packs := a.get_state().all_packs().filter(func(p: Dictionary) -> bool: return p.species == "lobo")
+	assert_true(not packs.is_empty(), "no wolf pack")
+	packs[0].grudge = 0.42
+	var ids := creatures.map(func(c: Dictionary) -> int: return c.id)
+	assert_eq(a.save_now(), OK)
+	a.free()
+	var b: World = await _make_world(GameConstants.WORLD_SEED, _path)
+	var again := b.get_state().all_creatures().map(func(c: Dictionary) -> int: return c.id)
+	for id in ids:
+		assert_true(again.has(id), "creature %d lost across save" % id)
+	assert_near(b.get_state().pack(packs[0].id).grudge, 0.42, 0.001)
+	var wolves := b.get_state().all_packs().filter(func(p: Dictionary) -> bool: return p.species == "lobo")
+	assert_eq(wolves.size(), packs.size() if packs.size() > 0 else 1, "first wolves added again on reload")

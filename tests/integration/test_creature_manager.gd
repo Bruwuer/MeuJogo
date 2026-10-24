@@ -42,6 +42,11 @@ func _load_around(pos: Vector3) -> void:
 			break
 	await wait_physics_frames(2)
 	assert_true(_all_loaded(pos), "chunks never loaded around %s" % pos)
+	await wait_frames(2)
+	for i in 120:
+		if mgr.pending_spawns() == 0:
+			break
+		await get_tree().process_frame
 
 
 func _all_loaded(pos: Vector3) -> bool:

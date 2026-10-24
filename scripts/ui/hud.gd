@@ -12,6 +12,9 @@ const _PROMPT_BOTTOM := 90.0
 const _BUILD_BOTTOM := 130.0
 const _WIDE := 520.0
 const _REASON_COLOR := Color(1.0, 0.45, 0.4)
+const _MESSAGE_COLOR := Color(1.0, 0.88, 0.6)
+const _MAX_MESSAGES := 4
+const _MESSAGE_SEC := 8.0
 
 var _state: WorldState
 var _harvest: HarvestSystem
@@ -27,6 +30,10 @@ var _reason: Label
 var _hint: Label
 var _toast: Label
 var _toast_left := 0.0
+var _health: Label
+var _weapon: Label
+var _messages: Label
+var _message_list: Array = [] # [text, seconds left], oldest first
 
 
 func setup(state: WorldState, harvest: HarvestSystem, day_night: DayNight, player: Node3D,
@@ -62,12 +69,21 @@ func setup(state: WorldState, harvest: HarvestSystem, day_night: DayNight, playe
 	_hint = _make_label("Hint", Control.PRESET_BOTTOM_LEFT, HORIZONTAL_ALIGNMENT_LEFT)
 	_hint.offset_left = _MARGIN
 	_hint.offset_top = -_MARGIN - _FONT_SIZE * 1.5
-	_hint.text = "B construir · X demolir"
+	_hint.text = "B construir · X demolir · Espaço ataca · H come · F flechas"
 	_toast = _make_label("Toast", Control.PRESET_CENTER, HORIZONTAL_ALIGNMENT_CENTER)
 	_toast.add_theme_font_size_override("font_size", _TOAST_FONT_SIZE)
 	_center_h(_toast, _WIDE * 2.0)
 	_toast.offset_top = -120.0
 	_toast.visible = false
+	_health = _make_label("Health", Control.PRESET_TOP_LEFT, HORIZONTAL_ALIGNMENT_LEFT)
+	_health.position = Vector2(_MARGIN, _MARGIN + _FONT_SIZE * 1.5)
+	_weapon = _make_label("Weapon", Control.PRESET_TOP_LEFT, HORIZONTAL_ALIGNMENT_LEFT)
+	_weapon.position = Vector2(_MARGIN, _MARGIN + _FONT_SIZE * 3.0)
+	_messages = _make_label("Messages", Control.PRESET_TOP_LEFT, HORIZONTAL_ALIGNMENT_LEFT)
+	_messages.position = Vector2(_MARGIN, _MARGIN + _FONT_SIZE * 5.0)
+	_messages.add_theme_color_override("font_color", _MESSAGE_COLOR)
+	if _player.has_signal("message"):
+		_player.message.connect(add_message)
 	_state.resources_changed.connect(_refresh_resources)
 	if _build:
 		_build.kingdom_founded.connect(_on_kingdom_founded)
@@ -100,6 +116,7 @@ func _physics_process(delta: float) -> void:
 	if _toast_left > 0.0:
 		_toast_left -= delta
 		_toast.visible = _toast_left > 0.0
+	_update_combat(delta)
 
 	var building := _build != null and _build.active
 	_build_line.visible = building
@@ -117,6 +134,32 @@ func _physics_process(delta: float) -> void:
 	_prompt.visible = not target.is_empty()
 	if _prompt.visible:
 		_prompt.text = GameConstants.HARVEST_PROMPTS[target.prop.type]
+
+
+## Shows a line (raids, destroyed buildings, deaths) for a few seconds; keeps the last four.
+func add_message(text: String) -> void:
+	_message_list.append([text, _MESSAGE_SEC])
+	while _message_list.size() > _MAX_MESSAGES:
+		_message_list.pop_front()
+	_messages.text = messages_text()
+
+
+func messages_text() -> String:
+	return "\n".join(PackedStringArray(_message_list.map(func(m: Array) -> String: return m[0])))
+
+
+func _update_combat(delta: float) -> void:
+	var p := _player as Player
+	if p:
+		_health.text = "Vida: %d/%d" % [ceili(p.health.hp), roundi(p.health.max_hp)]
+		_weapon.text = "%s · Q troca · Flechas: %d" % [GameConstants.WEAPONS[p.weapon].name,
+				_state.get_resource(GameConstants.Res.ARROWS)]
+	var before := _message_list.size()
+	for m: Array in _message_list:
+		m[1] -= delta
+	_message_list = _message_list.filter(func(m: Array) -> bool: return m[1] > 0.0)
+	if _message_list.size() != before:
+		_messages.text = messages_text()
 
 
 func _on_kingdom_founded(kingdom: Dictionary) -> void:

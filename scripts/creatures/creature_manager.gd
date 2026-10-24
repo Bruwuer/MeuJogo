@@ -29,6 +29,7 @@ var _rng := RandomNumberGenerator.new()
 var _sync_left := 0.0
 var _breed_left := GameConstants.BREED_CHECK_SEC
 var _hours := 0.0 ## Own clock when there is no DayNight.
+var _queue: Array[int] = [] # record ids waiting for a node
 
 
 func setup(state: WorldState, gen: TerrainGenerator, scatter: PropScatter, streamer: ChunkStreamer,
@@ -47,6 +48,10 @@ func setup(state: WorldState, gen: TerrainGenerator, scatter: PropScatter, strea
 	if pack_sim:
 		pack_sim.kingdom_loaded = is_kingdom_loaded
 		pack_sim.raid_started.connect(_on_raid_started)
+
+
+func pending_spawns() -> int:
+	return _queue.size()
 
 
 func active_count() -> int:
@@ -97,6 +102,7 @@ func ensure_first_wolves(spawn: Vector3) -> Dictionary:
 func _process(delta: float) -> void:
 	if not _day_night:
 		_hours += delta / GameConstants.DAY_LENGTH_SEC * 24.0
+	_spawn_queued()
 	_sync_left -= delta
 	if _sync_left <= 0.0:
 		_sync_left = GameConstants.CREATURE_SYNC_SEC
@@ -129,6 +135,15 @@ func _sync(dt: float) -> void:
 	_fill()
 
 
+## Writes every live creature back to its record (before saving).
+func sync_all() -> void:
+	for id in _nodes:
+		var n: Creature = _nodes[id]
+		if is_instance_valid(n) and not n.is_dead():
+			n.sync_record()
+			_state.move_creature(id, n.global_position)
+
+
 func _on_chunk_loaded(c: Vector2i) -> void:
 	if not _state.visited(c):
 		_state.mark_visited(c)
@@ -149,9 +164,10 @@ func _on_chunk_unloaded(c: Vector2i) -> void:
 			_free_node(rec.id)
 
 
-## Instantiates waiting records in loaded chunks, nearest to the player first, up to the cap.
+## Queues waiting records in loaded chunks, nearest to the player first; _process creates a few
+## nodes per frame so streaming never stalls on a burst of creatures.
 func _fill() -> void:
-	if _nodes.size() >= GameConstants.CREATURE_MAX_ACTIVE or not _library.is_ready():
+	if _nodes.size() >= GameConstants.CREATURE_MAX_ACTIVE:
 		return
 	var waiting: Array[Dictionary] = []
 	for rec in _state.all_creatures():
@@ -160,10 +176,22 @@ func _fill() -> void:
 	var center := _player.global_position if is_instance_valid(_player) else Vector3.ZERO
 	waiting.sort_custom(func(a: Dictionary, b: Dictionary) -> bool:
 		return center.distance_squared_to(a.pos) < center.distance_squared_to(b.pos))
-	for rec in waiting:
+	_queue.assign(waiting.map(func(r: Dictionary) -> int: return r.id))
+
+
+func _spawn_queued() -> void:
+	if _queue.is_empty() or not _library.is_ready():
+		return
+	var made := 0
+	while not _queue.is_empty() and made < GameConstants.CREATURES_SPAWNED_PER_FRAME:
 		if _nodes.size() >= GameConstants.CREATURE_MAX_ACTIVE:
-			break
+			_queue.clear()
+			return
+		var rec := _state.creature(_queue.pop_front())
+		if rec.is_empty() or _nodes.has(rec.id) or not _streamer.is_loaded(ChunkMath.world_to_chunk(rec.pos)):
+			continue
 		_instantiate(rec)
+		made += 1
 
 
 func _instantiate(rec: Dictionary) -> void:

@@ -99,6 +99,7 @@ const KNOCKBACK_DECAY := 8.0 ## Per second.
 const RESPAWN_MSG_SEAT := "Você caiu e despertou na sede do reino"
 const RESPAWN_MSG_SPAWN := "Você caiu e despertou onde tudo começou"
 const NO_ARROWS_MSG := "Sem flechas · F faz 5 com 1 madeira"
+const KILL_MSG := "Você abateu: %s"
 
 # Camera
 const CAM_YAW_DEG := 45.0
@@ -288,6 +289,7 @@ const SPECIES := {
 
 # Creature behaviour
 const CREATURE_MAX_ACTIVE := 40 ## Creature nodes alive at once (only in loaded chunks).
+const CREATURES_SPAWNED_PER_FRAME := 2 ## Creature nodes created per frame at most.
 const BRAIN_TICK := 0.2 ## Seconds between brain decisions.
 const HUNT_HUNGER := 0.5 ## Carnivores hunt prey above this hunger.
 const FLEE_HP_RATIO := 0.25 ## Below this share of health any creature flees.

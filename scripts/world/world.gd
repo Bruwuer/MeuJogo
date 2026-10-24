@@ -33,6 +33,8 @@ var _hud: Hud
 var _build: BuildSystem
 var _spawn: Vector3
 var _scatter: PropScatter
+var _pack_sim: PackSim
+var _creatures: CreatureManager
 var _is_ready := false
 var _autosave_left := GameConstants.AUTOSAVE_SEC
 
@@ -59,6 +61,7 @@ func _ready() -> void:
 	_add_environment()
 	_add_edge_walls()
 
+	var new_world := not _state.has_player_position
 	if _state.has_player_position:
 		# Terrain or props may have changed since the save: re-ground and step out of obstacles.
 		_spawn = SpawnPicker.nearest_clear(_gen, scatter, _state.player_position) + Vector3.UP * (_RESTORE_DROP - _SPAWN_DROP)
@@ -80,6 +83,7 @@ func _ready() -> void:
 	_player.state = _state
 	_player.library = library
 	_player.died.connect(_respawn)
+	respawned.connect(func(text: String) -> void: _hud.add_message(text))
 	add_child(_player)
 	_player.global_position = _spawn + Vector3.UP * _SPAWN_DROP
 	_player.reset_physics_interpolation()
@@ -100,6 +104,7 @@ func _ready() -> void:
 
 	_hud.setup(_state, _harvest, _day_night, _player, _build)
 
+	_add_creatures(scatter, library, new_world)
 	_streamer.chunk_loaded.connect(_on_chunk_loaded)
 	_streamer.update_center(_spawn)
 
@@ -114,6 +119,7 @@ func _process(delta: float) -> void:
 	var globals := shader_globals()
 	for param in globals:
 		RenderingServer.global_shader_parameter_set(param, globals[param])
+	_flush_offscreen_messages()
 	if not _is_ready or save_path == "":
 		return
 	_autosave_left -= delta
@@ -154,11 +160,41 @@ func _notification(what: int) -> void:
 func save_now() -> Error:
 	if save_path == "":
 		return ERR_UNAVAILABLE
+	_creatures.sync_all()
 	_state.player_position = _player.global_position
 	_state.has_player_position = true
 	_state.time_of_day = _day_night.time_of_day
 	_state.day = _day_night.day
 	return _state.save_to(save_path)
+
+
+## Packs (hourly motives, raids) and the creature nodes in loaded chunks. A new world gets its
+## first wolf pack near the spawn.
+func _add_creatures(scatter: PropScatter, library: ModelLibrary, new_world: bool) -> void:
+	_pack_sim = PackSim.new()
+	_pack_sim.name = "PackSim"
+	add_child(_pack_sim)
+	_pack_sim.setup(_state, _day_night)
+	_pack_sim.player = _player
+	_creatures = CreatureManager.new()
+	_creatures.name = "Creatures"
+	add_child(_creatures)
+	_creatures.setup(_state, _gen, scatter, _streamer, library, _day_night, _pack_sim, _player)
+	_creatures.message.connect(_hud.add_message)
+	_creatures.creature_killed.connect(func(rec: Dictionary, by_player: bool) -> void:
+		if by_player:
+			_hud.add_message(GameConstants.KILL_MSG % Genome.display_name(rec.genome)))
+	_player.creature_source = _creatures.active_creatures
+	if new_world:
+		_creatures.ensure_first_wolves(_spawn)
+
+
+## Raids that happened while the player was away are told once the player is back in a kingdom.
+func _flush_offscreen_messages() -> void:
+	if _pack_sim.pending_messages.is_empty() or _state.kingdom_at(_player.global_position).is_empty():
+		return
+	for text in _pack_sim.take_messages():
+		_hud.add_message(text)
 
 
 ## Death never costs buildings or resources: the player wakes up in front of the seat cabin of
@@ -274,3 +310,11 @@ func _add_edge_walls() -> void:
 		body.add_child(shape)
 		body.position = w[0]
 		add_child(body)
+
+
+func get_creature_manager() -> CreatureManager:
+	return _creatures
+
+
+func get_pack_sim() -> PackSim:
+	return _pack_sim
