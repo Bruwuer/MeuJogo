@@ -166,3 +166,18 @@ do lado oposto quando o mapa deixa, e isso vai para o log do ADM.
 
 **Ruling (texto):** o objetivo guarda o nome da Casa alvo (`target_name`), para o texto não virar
 "Casa ?" quando ela some numa união.
+
+## 7. Revisão final (2026-10-24): correções
+
+- **Ruling (testemunhas):** a Casa de quem foge e as Casas dos dois amantes nunca são testemunhas
+  (lista `quiet` de Casas no feito; saves antigos com um número só continuam valendo).
+- **Ruling (feito vencido):** quem estava na tela e não chegou ao lugar a tempo **não** cumpre o feito
+  (ele é descartado); só quem está fora da tela tem o feito resumido. Nada acontece sem a caminhada.
+- **Ruling (lote):** se o feito das estacas se perde (cerimônia, morte, feito descartado), a reserva do
+  lote é desfeita e a Casa tenta de novo; antes ela ficava travada para sempre.
+- **Ruling (saída da Casa):** quem sai, às claras ou escondido, deixa a casa da Casa antiga (vai morar
+  em outra), e os filhos menores vão junto quando nenhum dos pais fica.
+- **Ruling (fuga com amante):** só casa se os dois ainda estiverem solteiros, forem adultos, homem e
+  mulher; criança nunca é escolhida como amante. O casamento arranjado também confere homem e mulher.
+- **Ruling (território):** o que o bando aceitou e caiu num ataque deixa de ser aceito; reconstruir
+  reacende o motivo.

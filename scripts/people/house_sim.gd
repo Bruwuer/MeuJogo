@@ -127,7 +127,7 @@ func _vocations(k: Dictionary, rng: RandomNumberGenerator) -> void:
 ## out to the edge of the territory at night. `depart` happens when the deed is done.
 func leave(k: Dictionary, f: Dictionary, p: Dictionary, style: Dictionary, data := {}) -> void:
 	var d := data.duplicate()
-	d.merge({style = style, family_id = f.id, secret = bool(style.secret), quiet = -1}, true)
+	d.merge({style = style, family_id = f.id, secret = bool(style.secret), quiet = [f.id]}, true)
 	if style.secret:
 		var w := Deeds.next_window(_hour, GameConstants.DEED_NIGHT.x, GameConstants.DEED_NIGHT.y)
 		plan_deed(p, Deeds.make("runaway", _edge_spot(k, p), GameConstants.PERSON_ARRIVE * 2.0, w.x, w.y,
@@ -187,13 +187,18 @@ func depart(k: Dictionary, f: Dictionary, p: Dictionary, style: Dictionary, hour
 	var spouse := _state.person(int(p.get("spouse_id", -1)))
 	if not spouse.is_empty() and spouse.get("family_id", -1) == f.id:
 		movers.append(spouse)
+	# Minor children go with them when no parent of theirs stays behind.
+	var mover_ids := movers.map(func(m: Dictionary) -> int: return m.id)
+	for c in _state.family_members(f.id):
+		if not SocietyRules.is_adult(c) and (c.parents as Array).has(p.id) and (c.parents as Array).all(func(id: int) -> bool:
+				return mover_ids.has(id) or _state.person(id).get("status", "") != "resident"):
+			movers.append(c)
 	var old_name := PersonGen.full_name(p)
 	for m in movers:
 		m.family_id = nf.id
 		m.surname = surname
-		if style.secret:
-			m.home_id = -1
-			m.inside = -1
+		m.home_id = -1 # the new House leaves the old House's home (and its prestige) behind
+		m.inside = -1
 	if hostile:
 		f.rival_id = nf.id
 		nf.rival_id = f.id
@@ -229,14 +234,18 @@ func _discoveries(k: Dictionary) -> void:
 # --- Deeds ----------------------------------------------------------------------------------
 
 ## Deeds of people without a node are settled at their start hour (a summary); deeds past their
-## window are settled anyway, unseen.
+## window are settled unseen when nobody watched, and dropped when the person was on screen and
+## never got there (nothing happens without the walk).
 func _deeds(k: Dictionary) -> void:
 	for p in _state.residents(k.id):
 		var deed: Dictionary = p.get("deed", {})
 		if deed.is_empty():
 			continue
 		if Deeds.expired(deed, _hour):
-			complete_deed(k, p, [])
+			if has_node.call(p.id):
+				p.deed = {}
+			else:
+				complete_deed(k, p, [])
 		elif Deeds.is_due(deed, _hour) and not has_node.call(p.id):
 			complete_deed(k, p, _offscreen_seen(k, p, deed))
 
@@ -335,13 +344,13 @@ func _offscreen_seen(k: Dictionary, p: Dictionary, deed: Dictionary) -> Array:
 	if not (deed.data as Dictionary).get("secret", false):
 		return []
 	var party: Array = deed.data.get("party", [])
-	var quiet := int(deed.data.get("quiet", p.get("family_id", -1)))
+	var quiet := quiet_families(deed.data, p)
 	var h := fmod(_hour, 24.0)
 	var asleep := h >= GameConstants.SLEEP_START_HOUR or h < GameConstants.SLEEP_END_HOUR
 	var awake := _state.residents(k.id).filter(func(o: Dictionary) -> bool:
 		if o.id == p.id or party.has(o.id) or not SocietyRules.is_adult(o):
 			return false
-		if quiet >= 0 and int(o.get("family_id", -1)) == quiet:
+		if quiet.has(int(o.get("family_id", -1))):
 			return false
 		var guard := int(o.profession) == GameConstants.Profession.GUARD and VillageRules.guard_on_duty(h)
 		return guard or not asleep)
@@ -350,6 +359,17 @@ func _offscreen_seen(k: Dictionary, p: Dictionary, deed: Dictionary) -> Array:
 	if awake.is_empty() or rng.randf() >= Deeds.seen_chance(awake.size()):
 		return []
 	return [awake[rng.randi() % awake.size()].id]
+
+
+## The Houses whose members are never witnesses of `p`'s deed (outsiders only, rule 17).
+## Old saves stored a single id, -1 meaning none: that is read as the doer's own House.
+static func quiet_families(data: Dictionary, p: Dictionary) -> Array:
+	var q: Variant = data.get("quiet", -1)
+	if q is Array:
+		return q
+	if int(q) >= 0:
+		return [int(q)]
+	return [int(p.get("family_id", -1))]
 
 
 # --- Adoption -------------------------------------------------------------------------------
@@ -520,6 +540,13 @@ func claim_plot(k: Dictionary, f: Dictionary) -> bool:
 	return true
 
 
+## Someone of the kingdom still holds the deed to stake House `f`'s claimed plot.
+func _stake_under_way(f: Dictionary) -> bool:
+	return _state.residents(int(f.kingdom_id)).any(func(p: Dictionary) -> bool:
+		var d: Dictionary = p.get("deed", {})
+		return d.get("kind", "") == "stake" and int((d.get("data", {}) as Dictionary).get("family_id", -1)) == f.id)
+
+
 ## The stakes are in: the plot is the House's if it is still free and the House can pay.
 func _staked(k: Dictionary, f: Dictionary, rect: Rect2) -> void:
 	f.claim = Rect2()
@@ -657,7 +684,9 @@ func _pursue(k: Dictionary, f: Dictionary) -> void:
 	match int((f.goal as Dictionary).get("kind", -1)):
 		G.LAND:
 			if (f.get("claim", Rect2()) as Rect2).size != Vector2.ZERO: # the head is on the way to stake it
-				return
+				if _stake_under_way(f):
+					return
+				f.claim = Rect2() # the stake deed was lost (replaced, dropped, the head died): try again
 			if not claim_plot(k, f):
 				for other in _state.families_of(k.id):
 					if other.id != f.id and float(other.wealth) < GameConstants.WEALTH_POOR and buy_plot(k, f, other):
@@ -685,7 +714,7 @@ func _still_at_it(f: Dictionary, goal: Dictionary) -> bool:
 		GameConstants.Goal.UPGRADE:
 			return _head_home(f).has("upgrade")
 		GameConstants.Goal.LAND:
-			return (f.get("claim", Rect2()) as Rect2).size != Vector2.ZERO
+			return (f.get("claim", Rect2()) as Rect2).size != Vector2.ZERO and _stake_under_way(f)
 	return false
 
 
@@ -872,7 +901,7 @@ func _ceremony(k: Dictionary, kind: String, party: Array[Dictionary], data: Dict
 ## The wedding took place: dowry, alliance, the marriage (maybe an unhappy one).
 func _wed(k: Dictionary, f: Dictionary, person: Dictionary, partner: Dictionary) -> void:
 	if partner.is_empty() or partner.status != "resident" or int(person.get("spouse_id", -1)) >= 0 \
-			or int(partner.get("spouse_id", -1)) >= 0:
+			or int(partner.get("spouse_id", -1)) >= 0 or bool(person.female) == bool(partner.female):
 		return
 	var other := _state.family(int(partner.get("family_id", -1)))
 	var dowry := minf(float(GameConstants.DOWRY), maxf(0.0, float(f.wealth)))
@@ -893,8 +922,10 @@ func _wed(k: Dictionary, f: Dictionary, person: Dictionary, partner: Dictionary)
 ## The lover of a runaway leaves too, and they marry away from their Houses.
 func _elope(k: Dictionary, person: Dictionary, lover_id: int) -> void:
 	var lover := _state.person(lover_id)
-	if lover.is_empty() or lover.status != "resident":
-		return
+	if lover.is_empty() or lover.status != "resident" or int(lover.get("spouse_id", -1)) >= 0 \
+			or int(person.get("spouse_id", -1)) >= 0 or not SocietyRules.is_adult(lover) \
+			or bool(lover.female) == bool(person.female):
+		return # the lover married meanwhile (or never could): the runaway leaves alone
 	var nf := _state.family(int(person.family_id))
 	var lf := _state.family(int(lover.get("family_id", -1)))
 	if not lf.is_empty() and lf.id != nf.id:
@@ -992,7 +1023,7 @@ func send_spy(k: Dictionary, f: Dictionary, rival: Dictionary) -> bool:
 func plan_spy_report(k: Dictionary, spy: Dictionary) -> void:
 	var own := _state.family(int(spy.secret.get("for_id", -1)))
 	if not own.is_empty():
-		_night_deed(spy, "spy_report", _door_of_house(k, own), {quiet = own.id})
+		_night_deed(spy, "spy_report", _door_of_house(k, own), {quiet = [own.id]})
 
 
 ## The two secret lovers meet at night at a spot far from the houses.
@@ -1005,8 +1036,9 @@ func plan_tryst(k: Dictionary, a: Dictionary) -> void:
 	var dir := Vector3.FORWARD.rotated(Vector3.UP, rng.randf() * TAU)
 	var spot: Vector3 = k.center + dir * float(k.radius) * 0.85
 	spot.y = _gen.height_at(spot.x, spot.z) if _gen else k.center.y
-	_night_deed(a, "tryst", spot, {with = b.id, quiet = -1, party = [b.id]}, GameConstants.DEED_TRYST_SEC)
-	_night_deed(b, "tryst", spot + Vector3(0.8, 0, 0), {follow = a.id, quiet = -1, party = [a.id]}, GameConstants.DEED_TRYST_SEC)
+	var quiet := [int(a.get("family_id", -1)), int(b.get("family_id", -1))] # neither lover's House is a witness
+	_night_deed(a, "tryst", spot, {with = b.id, quiet = quiet, party = [b.id]}, GameConstants.DEED_TRYST_SEC)
+	_night_deed(b, "tryst", spot + Vector3(0.8, 0, 0), {follow = a.id, quiet = quiet, party = [a.id]}, GameConstants.DEED_TRYST_SEC)
 
 
 ## The avenging head goes at night to the target House's home.
@@ -1171,7 +1203,8 @@ func _lover(p: Dictionary, except_id := -1) -> Dictionary:
 	var rels := _state.relations_of(p.id)
 	for other_id in rels:
 		var o := _state.person(other_id)
-		if other_id == except_id or o.is_empty() or bool(o.female) == bool(p.female) or int(o.get("spouse_id", -1)) >= 0:
+		if other_id == except_id or o.is_empty() or bool(o.female) == bool(p.female) or int(o.get("spouse_id", -1)) >= 0 \
+				or not SocietyRules.is_adult(o) or o.get("status", "") != "resident":
 			continue
 		if rels[other_id] >= best_rel and not Kinship.is_close_kin(_state, p, o):
 			best_rel = rels[other_id]

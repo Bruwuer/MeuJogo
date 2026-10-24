@@ -64,6 +64,8 @@ func test_territory_fades_after_a_raid() -> void:
 	assert_eq(p.territory, 2 * GameConstants.TERRITORY_PER_BUILDING, "only new buildings anger the pack again")
 	PackMotives.update(p, _ctx({ buildings_in_territory = 3 }), 1.0)
 	assert_eq(p.territory, 0.0, "fewer buildings than accepted is no motive")
+	PackMotives.update(p, _ctx({ buildings_in_territory = 6 }), 1.0)
+	assert_eq(p.territory, 3 * GameConstants.TERRITORY_PER_BUILDING, "what fell and was rebuilt angers it again")
 
 
 func test_cubs_alarm() -> void:

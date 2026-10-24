@@ -103,9 +103,8 @@ func test_deed_with_node_waits_for_the_person() -> void:
 	house.tick_hour(k, 31.0)
 	assert_true(not (p.deed as Dictionary).is_empty(), "a loaded person walks there for real")
 	house.tick_hour(k, 33.0)
-	assert_true((p.deed as Dictionary).is_empty(), "past the window it is settled anyway")
-	assert_eq(done.size(), 1)
-	assert_eq(done[0][2], [], "nobody saw an expired deed")
+	assert_true((p.deed as Dictionary).is_empty(), "past the window the deed is dropped")
+	assert_eq(done.size(), 0, "on screen and never got there: nothing happens without the walk")
 	nodes.clear()
 
 
@@ -129,4 +128,4 @@ func test_witness_filter() -> void:
 		{id = 6, family_id = 12, pos = Vector3(GameConstants.DEED_WITNESS_RADIUS + 1.0, 0, 0), adult = true, visible = true},
 		{id = 7, family_id = 12, pos = Vector3(1, 0, 1), adult = true, visible = true}, # part of the deed
 	]
-	assert_eq(PeopleManager.witness_ids(doer.id, int(doer.family_id), [7], Vector3.ZERO, people), [3])
+	assert_eq(PeopleManager.witness_ids(doer.id, [int(doer.family_id)], [7], Vector3.ZERO, people), [3])

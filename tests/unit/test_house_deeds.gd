@@ -391,3 +391,97 @@ func test_secrets_do_not_come_out_by_luck() -> void:
 		house._hour = day * 24.0 + GameConstants.DEED_HOUR
 		house._intrigue(k, RandomNumberGenerator.new())
 	assert_eq((f.secrets as Array).size(), 1, "only a witness brings a secret out")
+
+
+# --- Final review fixes ---
+
+func test_lovers_houses_never_witness_their_tryst() -> void:
+	var a := _house("Lume", 100.0, 28.0)
+	var b := _house("Brasa", 100.0, -28.0)
+	var x := _join(_person("Vasco", false, 24.0), a)
+	var y := _join(_person("Lopo", false, 25.0), b)
+	for f in [a, b]: # each House has a guard on night watch
+		var g := _join(_person("Guarda-" + f.surname, false, 30.0), f)
+		g.profession = P.GUARD
+	s.set_relation(x.id, y.id, 0.9)
+	assert_true(house.start_romance(k, x, y))
+	house._hour = 10.0
+	house.plan_tryst(k, x)
+	house._hour = 24.0
+	for i in 20: # many nights: never seen by their own Houses
+		house._hour = 24.0 * (i + 1) + 0.5
+		assert_eq(house._offscreen_seen(k, x, x.deed), [], "a lover's own House saw the tryst")
+
+
+func test_runaways_own_house_is_no_witness() -> void:
+	var f := _house("Muro", 100.0, 29.0)
+	var son := _join(_person("Gil", false, 19.0), f)
+	var g := _join(_person("Sentinela", false, 30.0), f)
+	g.profession = P.GUARD
+	house._hour = 10.0
+	house.leave(k, f, son, {tone = "neutral", secret = true})
+	for i in 20:
+		house._hour = 24.0 * i + 23.5
+		assert_eq(house._offscreen_seen(k, son, son.deed), [], "the House it flees from is no witness")
+
+
+func test_expired_deed_of_someone_on_screen_is_dropped_not_done() -> void:
+	var f := _house("Preso", 100.0, 30.0)
+	var son := _join(_person("Lino", false, 19.0), f)
+	house.has_node = func(id: int) -> bool: return id == son.id
+	house._hour = 10.0
+	house.leave(k, f, son, {tone = "neutral", secret = true})
+	house._hour = float(son.deed.end_hour) + 1.0
+	house._deeds(k)
+	assert_eq(son.family_id, f.id, "he never got there, so he did not leave")
+	assert_true((son.deed as Dictionary).is_empty(), "the stale deed is dropped")
+	house.has_node = func(_id: int) -> bool: return false
+
+
+func test_lost_stake_deed_frees_the_claim() -> void:
+	var f := _house("Cerco", 500.0, 31.0)
+	f.goal = {kind = G.LAND, target_id = -1, deadline_hour = 1000.0}
+	house._hour = 10.0
+	assert_true(house.claim_plot(k, f))
+	var head := s.person(int(f.head_id))
+	head.deed = {} # a ceremony or anything else took the head's time
+	house._pursue(k, f)
+	assert_eq(head.deed.get("kind", ""), "stake", "the House tries again instead of waiting forever")
+
+
+func test_open_departure_moves_out_with_the_children() -> void:
+	var f := _house("Tronco", 100.0, 32.0)
+	var son := _join(_person("Abel", false, 30.0), f)
+	var wife := _join(_person("Clara", true, 28.0), f)
+	son.spouse_id = wife.id
+	wife.spouse_id = son.id
+	var kid := _join(_person("Nuno", false, 6.0), f)
+	kid.parents = [son.id, wife.id]
+	var nf := house.depart(k, f, son, {tone = "friendly", secret = false}, 12.0)
+	assert_eq(kid.family_id, nf.id, "minor children go with their parents")
+	assert_true(int(son.home_id) != int(s.person(int(f.head_id)).home_id), "the new House does not keep the old House's home")
+	assert_eq(house.house_level_of(nf), 0, "nor its prestige")
+
+
+func test_elopement_never_marries_someone_already_married() -> void:
+	var a := _house("Fogo", 100.0, 33.0)
+	var b := _house("Agua", 100.0, -33.0)
+	var groom := _join(_person("Paio", false, 22.0, [T.BRAVE, T.LONER]), a)
+	var bride := _join(_person("Sancha", true), b)
+	var lover := _person("Urraca", true, 21.0)
+	var other := _person("Fernão", false, 25.0)
+	s.set_relation(groom.id, lover.id, 0.9)
+	house._hour = 10.0
+	house.arranged_marriage(k, a, groom, bride, "flee")
+	lover.spouse_id = other.id # she married someone else before the night came
+	other.spouse_id = lover.id
+	house.complete_deed(k, groom, [], 23.5)
+	assert_eq(lover.spouse_id, other.id, "an elopement broke a marriage")
+	assert_eq(groom.spouse_id, -1)
+
+
+func test_a_child_is_never_a_lover() -> void:
+	var p := _person("Mendo", false, 20.0)
+	var child := _person("Teresa", true, 12.0)
+	s.set_relation(p.id, child.id, 0.95)
+	assert_eq(house._lover(p), {}, "a child was picked as a lover")

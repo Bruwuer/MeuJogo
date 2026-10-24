@@ -13,7 +13,9 @@ static func update(pack: Dictionary, ctx: Dictionary, hours: float) -> void:
 	pack.hunger = clampf(pack.hunger + (GameConstants.HUNGER_RATE - GameConstants.PACK_FEED_RATE * prey_share) * hours, 0.0, 1.0)
 	# Only buildings raised since the last raid count: what still stands after one is accepted.
 	pack.territory_buildings = int(ctx.get("buildings_in_territory", 0))
-	var unaccepted: int = pack.territory_buildings - int(pack.get("territory_accepted", 0))
+	# What fell since is no longer accepted: rebuilding it angers the pack again.
+	pack.territory_accepted = mini(int(pack.get("territory_accepted", 0)), pack.territory_buildings)
+	var unaccepted: int = pack.territory_buildings - pack.territory_accepted
 	pack.territory = clampf(unaccepted * GameConstants.TERRITORY_PER_BUILDING, 0.0, 1.0)
 	pack.grudge = maxf(0.0, pack.grudge - GameConstants.GRUDGE_DECAY_PER_DAY / 24.0 * hours)
 	if ctx.get("player_near_den", false) and ctx.get("cubs", 0) > 0:

@@ -450,20 +450,19 @@ func finish_deed(n: Person) -> void:
 		pool.append({id = o.record.id, family_id = int(o.record.get("family_id", -1)), pos = o.global_position,
 				adult = SocietyRules.is_adult(o.record), visible = o.visible})
 	var data: Dictionary = deed.data
-	var quiet := int(data.get("quiet", rec.get("family_id", -1)))
-	var seen := witness_ids(rec.id, quiet, data.get("party", []), n.global_position, pool)
+	var seen := witness_ids(rec.id, HouseSim.quiet_families(data, rec), data.get("party", []), n.global_position, pool)
 	_sim.houses.complete_deed(k, rec, seen, _sim.now_hours())
 
 
 ## Ids of the people who see a deed done at `at`: awake (visible) adults close by, outside the
-## House that keeps the secret (`quiet_family`, -1: none) and the deed's party.
+## Houses that keep the secret (`quiet_families`) and the deed's party.
 ## `people`: [{id, family_id, pos, adult, visible}].
-static func witness_ids(doer_id: int, quiet_family: int, party: Array, at: Vector3, people: Array) -> Array:
+static func witness_ids(doer_id: int, quiet_families: Array, party: Array, at: Vector3, people: Array) -> Array:
 	var out := []
 	for o: Dictionary in people:
 		if o.id == doer_id or party.has(o.id) or not o.adult or not o.visible:
 			continue
-		if quiet_family >= 0 and o.family_id == quiet_family:
+		if quiet_families.has(o.family_id):
 			continue
 		if _flat(o.pos, at) <= GameConstants.DEED_WITNESS_RADIUS:
 			out.append(o.id)
