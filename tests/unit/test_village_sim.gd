@@ -287,3 +287,22 @@ func test_travelers_differ_after_reload() -> void:
 	assert_eq(second.size(), 1)
 	if first.size() == 1 and second.size() == 1:
 		assert_true(first[0] != second[0], "a different person: %s" % second[0])
+
+
+func test_masons_build_when_rocks_are_gone() -> void:
+	var a := _setup(false)
+	var s: WorldState = a[0]
+	var k: Dictionary = a[1]
+	var sim: VillageSim = a[2]
+	k.next_traveler_hour = 1e9
+	k.stock = { R.WOOD: 100, R.STONE: 10, R.FOOD: 100 }
+	for pr in _scatter.props_near(k.center, GameConstants.VILLAGE_HARVEST_RADIUS + 1.0):
+		if pr.type == GameConstants.Prop.ROCK:
+			s.mark_removed(ChunkMath.world_to_chunk(pr.pos), pr.id)
+	_resident(s, k, P.MASON)
+	sim.tick_hours(1.0) # opens a house site (stone 10 covers it)
+	var id: int = k.site_id
+	assert_true(id >= 0, "a site is open")
+	for i in 3:
+		sim.tick_hours(1.0)
+	assert_true(float(s.building(id).get("progress", 1.0)) > 0.0, "the mason helps instead of looking for rocks")

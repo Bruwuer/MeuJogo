@@ -223,7 +223,7 @@ func _snapshot(k: Dictionary) -> Dictionary:
 	var now := Time.get_ticks_msec()
 	var cached: Array = _snaps.get(k.id, [])
 	if cached.is_empty() or now - int(cached[0]) > GameConstants.PEOPLE_SNAPSHOT_MS:
-		cached = [now, VillageRules.snapshot(_state, k, _sim.now_hours())]
+		cached = [now, _sim.snapshot(k)]
 		_snaps[k.id] = cached
 	return cached[1]
 

@@ -284,7 +284,11 @@ static func _has_job(profession: int, snap: Dictionary) -> bool:
 	return _profession_job(profession, snap) != ""
 
 
+## Whether the stock lacks what `job` gathers and there is still some of it near the kingdom
+## (`snap.props_left`, filled by the callers that know the map).
 static func _needs(job: String, snap: Dictionary) -> bool:
+	if not (snap.get("props_left", {}) as Dictionary).get(job, true):
+		return false
 	match job:
 		"wood":
 			return int(snap.stock.get(R.WOOD, 0)) < GameConstants.KINGDOM_STOCK_TARGET[R.WOOD]

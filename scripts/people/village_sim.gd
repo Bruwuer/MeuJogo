@@ -126,7 +126,7 @@ func _travelers(k: Dictionary) -> void:
 				decide(p)
 	if now >= k.next_traveler_hour:
 		var interval := GameConstants.TRAVELER_INTERVAL_HOURS
-		var snap := VillageRules.snapshot(_state, k, now)
+		var snap := snapshot(k)
 		if snap.has_market:
 			interval = GameConstants.TRAVELER_INTERVAL_MARKET
 		k.next_traveler_hour = now + interval
@@ -169,7 +169,7 @@ func decide(p: Dictionary) -> bool:
 		return false
 	var rng := RandomNumberGenerator.new()
 	rng.seed = hash([_state.seed, "decide", p.id, int(now_hours())])
-	var d := VillageRules.stay_decision(p, VillageRules.snapshot(_state, k, now_hours()), rng)
+	var d := VillageRules.stay_decision(p, snapshot(k), rng)
 	var who := PersonGen.full_name(p)
 	if d.stay:
 		p.status = "resident"
@@ -304,7 +304,7 @@ func _stalled_site(k: Dictionary) -> void:
 func _offscreen_work(k: Dictionary) -> void:
 	if not is_work_time():
 		return
-	var snap := VillageRules.snapshot(_state, k, now_hours())
+	var snap := snapshot(k)
 	var farmers := 0
 	if not k.has("work_frac"):
 		k.work_frac = {}
@@ -397,3 +397,14 @@ func nearest_prop_list(from: Vector3) -> Array:
 	if not _props_near.has(from):
 		_props_near[from] = _scatter.props_near(from, GameConstants.VILLAGE_HARVEST_RADIUS)
 	return _props_near[from]
+
+
+## VillageRules.snapshot plus what the map still offers near the kingdom (gatherers whose props
+## are gone help elsewhere instead of idling).
+func snapshot(k: Dictionary) -> Dictionary:
+	var snap := VillageRules.snapshot(_state, k, now_hours())
+	var left := {}
+	for job in ["wood", "stone", "berries"]:
+		left[job] = not nearest_prop(k.center, _job_props(job)).is_empty()
+	snap.props_left = left
+	return snap

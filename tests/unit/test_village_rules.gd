@@ -217,3 +217,17 @@ func test_pick_site_inside_territory_when_nothing_else() -> void:
 	s.add_pack("lobo", center + Vector3(5, 0, 5)) # the whole kingdom is wolf land
 	var r := VillageRules.pick_site(B.HOUSE, k, s, _gen, _scatter, [], _rng())
 	assert_true(r.ok, "a kingdom built by a den still grows (closest to the den is avoided only when possible)")
+
+
+func test_no_props_left_means_other_work() -> void:
+	var s := WorldState.new()
+	var k := _kingdom(s)
+	_residents(s, k, 2)
+	var snap := VillageRules.snapshot(s, k, 10.0)
+	snap.props_left = {"wood": true, "stone": false, "berries": true}
+	snap.site = 7
+	assert_eq(VillageRules.choose_job(_person([T.WORKER, T.BRAVE], P.MASON), snap), "build",
+			"no rock left nearby: helps on the site")
+	snap.site = -1
+	assert_eq(VillageRules.choose_job(_person([T.WORKER, T.BRAVE], P.MASON), snap), "wood", "or fetches what can be found")
+	assert_eq(VillageRules.choose_job(_person([T.WORKER, T.BRAVE], P.MERCHANT), snap), "wood")
