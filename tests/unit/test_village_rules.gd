@@ -60,7 +60,7 @@ func test_stays_with_food_and_shelter() -> void:
 	s.add_building(B.HOUSE, k.center + Vector3(10, 0, 0), 0, Color.WHITE, GameConstants.OWNER_KINGDOM)
 	s.add_stock(k, R.FOOD, 40)
 	var snap := VillageRules.snapshot(s, k, 10.0)
-	assert_eq(snap.free_beds, 3)
+	assert_eq(snap.free_beds, GameConstants.HOUSE_CAPACITY[B.HOUSE])
 	assert_true(snap.food_days >= 2.0)
 	var d := VillageRules.stay_decision(_person(), snap, _rng())
 	assert_true(d.stay, "food and a free bed: stays (score %.2f)" % d.score)
@@ -149,9 +149,9 @@ func test_project_order() -> void:
 	s.residents(k.id)[0].home_id = house.id
 	var farm := s.add_building(B.FARM, k.center + Vector3(-10, 0, 0), 0, Color.WHITE, GameConstants.OWNER_KINGDOM)
 	assert_eq(VillageRules.next_project(VillageRules.snapshot(s, k, 0.0)), B.STORAGE, "1 farm feeds 1: storage")
-	_residents(s, k, 2) # 3 residents, 2 homeless, 2 free beds left
+	_residents(s, k, 2) # 3 residents, 2 homeless, 3 free beds left
 	assert_eq(VillageRules.next_project(VillageRules.snapshot(s, k, 0.0)), B.WELL, "beds enough: well at 3")
-	_residents(s, k, 1) # 4: one more homeless than beds
+	_residents(s, k, 2) # 5: one more homeless than beds (a house has 4)
 	assert_eq(VillageRules.next_project(VillageRules.snapshot(s, k, 0.0)), B.HOUSE)
 	s.add_building(B.HOUSE, k.center + Vector3(10, 0, 10), 0, Color.WHITE, GameConstants.OWNER_KINGDOM)
 	s.add_building(B.FARM, k.center + Vector3(-10, 0, 10), 0, Color.WHITE, GameConstants.OWNER_KINGDOM)

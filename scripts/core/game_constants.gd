@@ -513,14 +513,14 @@ const BUILD_WORK_HOURS := {
 	Building.FLAG: 1.0, Building.HOUSE: 8.0, Building.FARM: 4.0, Building.MARKET: 6.0,
 }
 ## Beds per building type for villagers (the seat cabin is the player's).
-const HOUSE_CAPACITY := { Building.HOUSE: 3, Building.CABIN: 2 }
+const HOUSE_CAPACITY := { Building.HOUSE: 4, Building.CABIN: 2 } ## A house fits a couple and two children.
 const SCAFFOLD_SCENE := "res://assets/models/scaffold.glb" ## Unit frame (1 x 1 x 3 m), scaled to each footprint.
 const SITE_MIN_SCALE := 0.15 ## Height scale of a building model on a site with no progress.
 const PERSON_START_CONTENTMENT := 0.6
 
 # Village rules (1 game hour = DAY_LENGTH_SEC / 24 s)
 const KINGDOM_FOUNDERS := 2 ## The first people to reach a kingdom always stay.
-const KINGDOM_MAX_PEOPLE := 12
+const KINGDOM_MAX_PEOPLE := 16 ## Children count too.
 const KINGDOM_STOCK_TARGET := { Res.WOOD: 60, Res.STONE: 30 } ## Villagers gather only below these.
 const BERRY_FOOD_DAYS := 3.0 ## Gatherers pick berries while food lasts less than this.
 const FOOD_PER_DAY := 2 ## Meals a person eats a day (1 food or 1 berry each).
@@ -558,7 +558,7 @@ const STAY_REASONS := {
 	founder = "o reino é novo e precisa de gente", house = "há uma casa com vaga",
 	campfire = "dá para dormir junto à fogueira", food = "há comida guardada", job = "há trabalho de %s",
 	well = "há um poço", small = "o reino é pequeno e precisa de gente", sociable = "gosta de um reino animado",
-	opinion = "gosta de você", other = "gostou do lugar",
+	opinion = "gosta de você", kin = "tem parentes no reino", other = "gostou do lugar",
 }
 ## "Bento do Vale seguiu viagem: <reason>".
 const LEAVE_REASONS := {
@@ -742,3 +742,9 @@ const THEFT_RES := [Res.WOOD, Res.STONE, Res.BERRIES]
 const THEFT_MAX_PER_DAY := 2
 const STAY_KIN := 0.1
 const CHILD_PROFESSION_NAME := "criança"
+## Society messages (Portuguese, shown in the HUD or kept for the player's return).
+const SOCIETY_MSG_KIN := "%s juntou-se à Casa %s, de parentes"
+const SOCIETY_MSG_MARRIED := "%s e %s se casaram"
+const SOCIETY_MSG_MERGED := "A Casa %s uniu-se à Casa %s"
+const SOCIETY_MSG_DISSOLVED := "A Casa %s se desfez"
+const VILLAGE_MSG_LEFT_FAMILY := "%s deixou o Reino de %s com a família: %s"

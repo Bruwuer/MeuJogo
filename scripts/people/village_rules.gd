@@ -39,11 +39,16 @@ static func snapshot(state: WorldState, k: Dictionary, hour: float) -> Dictionar
 			B.FARM:
 				farms += 1
 	var homed := 0
+	var apart := 0 # married people not living with their spouse
 	var professions := {}
 	for p in residents:
 		if p.home_id >= 0:
 			homed += 1
-		professions[p.profession] = int(professions.get(p.profession, 0)) + 1
+		if int(p.profession) >= 0:
+			professions[p.profession] = int(professions.get(p.profession, 0)) + 1
+		var spouse := state.person(p.spouse_id)
+		if not spouse.is_empty() and spouse.status == "resident" and spouse.home_id != p.home_id:
+			apart += 1
 	var food := state.stock_of(k, R.FOOD) + state.stock_of(k, R.BERRIES)
 	var eaters := maxi(1, residents.size())
 	return {
@@ -52,7 +57,9 @@ static func snapshot(state: WorldState, k: Dictionary, hour: float) -> Dictionar
 		farms = farms, food = food, food_days = float(food) / float(eaters * GameConstants.FOOD_PER_DAY),
 		recent_raid = hour - float(k.last_raid_hour) < GameConstants.RAID_RECENT_HOURS,
 		site = k.site_id, stock = (k.stock as Dictionary).duplicate(), professions = professions,
-		people_ever = k.people_ever,
+		people_ever = k.people_ever, apart = apart,
+		surnames = state.families_of(k.id).map(func(f: Dictionary) -> String: return f.surname),
+		families = state.families_of(k.id).size(),
 	}
 
 
@@ -96,6 +103,8 @@ static func stay_decision(person: Dictionary, snap: Dictionary, rng: RandomNumbe
 				GameConstants.STAY_SOCIABLE_PER * (snap.residents - GameConstants.STAY_SOCIABLE_FROM))
 	if PersonGen.has_trait(person, T.LONER) and snap.residents > GameConstants.STAY_LONER_FROM:
 		f.loner = GameConstants.STAY_LONER_PER * (snap.residents - GameConstants.STAY_LONER_FROM)
+	if (snap.get("surnames", []) as Array).has(person.surname):
+		f.kin = GameConstants.STAY_KIN
 	var op: float = person.opinion * GameConstants.STAY_OPINION
 	if op != 0.0:
 		f.opinion = op
@@ -175,7 +184,7 @@ static func next_project(snap: Dictionary) -> int:
 	if snap.food_days < GameConstants.PROJECT_FOOD_DAYS \
 			and snap.farms < ceili(float(snap.residents) / GameConstants.PROJECT_FARM_PER_PEOPLE):
 		return B.FARM
-	if snap.homeless > snap.free_beds:
+	if snap.homeless + int(snap.get("apart", 0)) > snap.free_beds:
 		return B.HOUSE
 	if snap.farms * GameConstants.FARM_FOOD_PER_DAY < snap.residents * GameConstants.FOOD_PER_DAY:
 		return B.FARM

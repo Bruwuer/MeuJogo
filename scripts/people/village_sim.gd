@@ -14,6 +14,11 @@ signal person_left(rec: Dictionary)
 signal traveler_spawned(rec: Dictionary)
 signal person_decided(rec: Dictionary, stayed: bool, reason: String)
 signal prop_removed(c: Vector2i, id: int)
+signal person_born(rec: Dictionary)
+## Before the record is removed: its node must go.
+signal person_died(rec: Dictionary)
+## Families, homes or house owners changed (banners may need a new crest).
+signal families_changed
 
 const B := GameConstants.Building
 const R := GameConstants.Res
@@ -38,6 +43,8 @@ var _day_night: DayNight
 var _rng := RandomNumberGenerator.new()
 var _last_hour := -1.0
 var _props_near: Dictionary = {} # Vector3 center -> props around it (the scatter is deterministic)
+## Families, couples, children and opinions (one tick per kingdom per hour).
+var society := SocietySim.new()
 
 
 func setup(state: WorldState, gen: TerrainGenerator, scatter: PropScatter, day_night: DayNight) -> void:
@@ -46,6 +53,10 @@ func setup(state: WorldState, gen: TerrainGenerator, scatter: PropScatter, day_n
 	_scatter = scatter
 	_day_night = day_night
 	_rng.seed = hash([state.seed, "village"])
+	society.setup(state, _say, func(k: Dictionary) -> bool: return is_player_in.call(k), snapshot)
+	society.person_born.connect(func(r: Dictionary) -> void: person_born.emit(r))
+	society.person_died.connect(func(r: Dictionary) -> void: person_died.emit(r))
+	society.families_changed.connect(func() -> void: families_changed.emit())
 
 
 func _process(_delta: float) -> void:
@@ -84,19 +95,22 @@ func take_messages() -> Array[String]:
 
 
 func tick_hours(hours: float) -> void:
-	for i in maxi(1, int(round(hours))):
+	var n := maxi(1, int(round(hours)))
+	for i in n:
 		if _day_night == null:
 			clock_hours += 1.0
-		_tick_hour()
+		# Catching up several hours: each one is simulated as its own hour (seeds, daily events).
+		_tick_hour(now_hours() - (n - 1 - i) if _day_night else now_hours())
 
 
-func _tick_hour() -> void:
+func _tick_hour(hour: float) -> void:
 	var opinions := 0.0
 	var count := 0
 	for k in _state.kingdoms():
 		_travelers(k)
 		_needs(k)
 		_assign_homes(k)
+		society.tick_hour(k, hour)
 		_plan(k)
 		_offscreen_work(k)
 		_stalled_site(k)
@@ -104,8 +118,9 @@ func _tick_hour() -> void:
 		for p in _state.residents(k.id):
 			if away:
 				p.opinion = move_toward(float(p.opinion), 0.0, GameConstants.AWAY_OPINION_PER_DAY / 24.0)
-			opinions += float(p.opinion)
-			count += 1
+			if SocietyRules.is_adult(p):
+				opinions += float(p.opinion)
+				count += 1
 	if count > 0:
 		_state.fame = opinions / count
 	for p in _state.all_people(): # those who left and lost their node walk off the map
@@ -190,47 +205,86 @@ func decide(p: Dictionary) -> bool:
 func _needs(k: Dictionary) -> void:
 	var snap := VillageRules.snapshot(_state, k, now_hours())
 	for p in _state.residents(k.id):
+		if p.status != "resident":
+			continue # left with their family earlier in this loop
 		p.hunger = minf(1.0, float(p.hunger) + GameConstants.HUNGER_PER_HOUR)
 		var fed := VillageRules.eat(p, k, _state)
 		p.contentment = clampf(float(p.contentment) + VillageRules.hourly_contentment(p, snap, fed), 0.0, 1.0)
-		if p.contentment < GameConstants.LEAVE_CONTENTMENT:
+		if p.contentment < GameConstants.LEAVE_CONTENTMENT and SocietyRules.is_adult(p):
 			p.unhappy_hours = float(p.unhappy_hours) + 1.0
 		else:
-			p.unhappy_hours = 0.0
-		if p.unhappy_hours >= GameConstants.LEAVE_AFTER_HOURS:
+			p.unhappy_hours = 0.0 # children never leave alone
+		if p.status == "resident" and p.unhappy_hours >= GameConstants.LEAVE_AFTER_HOURS:
 			_leave(p, k, VillageRules.leave_reason(p, snap))
 
 
+## An unhappy resident leaves with the spouse and the minor children; houses they owned pass to
+## the oldest adult who stays there (or to the kingdom).
 func _leave(p: Dictionary, k: Dictionary, reason: String) -> void:
-	p.status = "leaving"
-	for b in _state.all_buildings():
-		if b.get("owner", GameConstants.OWNER_PLAYER) == p.id:
-			b.owner = GameConstants.OWNER_KINGDOM
-	p.home_id = -1
-	p.inside = -1
-	_say(k, GameConstants.VILLAGE_MSG_LEFT % [PersonGen.full_name(p), k.name, reason])
-	person_left.emit(p)
-	if not has_node.call(p.id):
-		_state.remove_person(p.id)
+	var group: Array[Dictionary] = [p]
+	var spouse := _state.person(p.spouse_id)
+	if not spouse.is_empty() and spouse.status == "resident":
+		group.append(spouse)
+	for c in _state.residents(k.id):
+		if not SocietyRules.is_adult(c) and group.any(func(g: Dictionary) -> bool: return (c.parents as Array).has(g.id)):
+			group.append(c)
+	var ids := group.map(func(g: Dictionary) -> int: return g.id)
+	for g in group:
+		SocietySim.transfer_houses(_state, g.id, ids)
+	var text := GameConstants.VILLAGE_MSG_LEFT if group.size() == 1 else GameConstants.VILLAGE_MSG_LEFT_FAMILY
+	_say(k, text % [PersonGen.full_name(p), k.name, reason])
+	for g in group:
+		g.status = "leaving"
+		g.home_id = -1
+		g.inside = -1
+		person_left.emit(g)
+		if not has_node.call(g.id):
+			_state.remove_person(g.id)
+	families_changed.emit()
 
 
-## Homeless residents move into houses (or non-seat cabins) with a free bed.
+## Homeless residents move into houses (or non-seat cabins) with a free bed, preferring the spouse's
+## home, then a parent's (children), then a relative's, then an empty house. Nobody is evicted.
 func _assign_homes(k: Dictionary) -> void:
 	var homeless := _state.residents(k.id).filter(func(p: Dictionary) -> bool: return p.home_id < 0)
 	if homeless.is_empty():
 		return
+	homeless.sort_custom(func(a: Dictionary, b: Dictionary) -> bool: return a.id < b.id)
+	var homes: Array[Dictionary] = []
 	for b in VillageRules.kingdom_buildings(_state, k):
-		if homeless.is_empty():
+		if not b.get("site", false) and GameConstants.HOUSE_CAPACITY.has(b.type) and b.id != k.seat_id:
+			homes.append(b)
+	for p in homeless:
+		var best := {}
+		var best_rank := 99
+		for b in homes:
+			if SocietySim.room(_state, b) <= 0:
+				continue
+			var rank := _home_rank(p, b)
+			if rank < best_rank:
+				best = b
+				best_rank = rank
+		if best.is_empty():
 			return
-		if b.get("site", false) or not GameConstants.HOUSE_CAPACITY.has(b.type) or b.id == k.seat_id:
+		p.home_id = best.id
+		if best.type == B.HOUSE and best.get("owner", -1) < 0 and SocietyRules.is_adult(p):
+			best.owner = p.id
+		families_changed.emit()
+
+
+## 0 spouse's home, 1 a parent's, 2 a relative's, 3 an empty house, 4 any other.
+func _home_rank(p: Dictionary, b: Dictionary) -> int:
+	var rank := 3 if _occupants(b.id) == 0 else 4
+	for o in _state.all_people():
+		if o.home_id != b.id or o.id == p.id:
 			continue
-		var room: int = GameConstants.HOUSE_CAPACITY[b.type] - _occupants(b.id)
-		while room > 0 and not homeless.is_empty():
-			var p: Dictionary = homeless.pop_front()
-			p.home_id = b.id
-			if b.type == B.HOUSE and b.get("owner", -1) < 0:
-				b.owner = p.id
-			room -= 1
+		if o.id == p.spouse_id:
+			return 0
+		if (p.parents as Array).has(o.id):
+			rank = mini(rank, 1)
+		elif int(p.family_id) >= 0 and o.family_id == p.family_id:
+			rank = mini(rank, 2)
+	return rank
 
 
 func _occupants(id: int) -> int:
