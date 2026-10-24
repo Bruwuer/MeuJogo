@@ -157,10 +157,11 @@ func kingdom(id: int) -> Dictionary:
 	return {}
 
 
-## Fields added after stage 4 (old saves lack them). Old kingdoms start with an empty stock.
+## Fields added after stage 4 (old saves lack them). Old kingdoms get the founders' supplies too,
+## or their first villagers would starve and nobody would ever stay.
 static func _kingdom_defaults(k: Dictionary) -> void:
 	if not k.has("stock"):
-		k.stock = {}
+		k.stock = GameConstants.KINGDOM_START_STOCK.duplicate()
 	for key in ["site_id", "next_traveler_hour"]:
 		if not k.has(key):
 			k[key] = -1.0 if key == "next_traveler_hour" else -1

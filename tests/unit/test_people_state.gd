@@ -143,7 +143,8 @@ func test_loads_stage4_save() -> void:
 	var k: Dictionary = l.kingdoms()[0]
 	assert_eq(k.site_id, -1)
 	assert_true(k.stock is Dictionary)
-	assert_eq(l.stock_of(k, R.WOOD), 0, "old kingdoms start with an empty stock")
+	assert_eq(l.stock_of(k, R.WOOD), GameConstants.KINGDOM_START_STOCK[R.WOOD], "old kingdoms get the founders' supplies (or they never grow)")
+	assert_eq(l.stock_of(k, R.BERRIES), GameConstants.KINGDOM_START_STOCK[R.BERRIES])
 	assert_eq(l.building(1).owner, GameConstants.OWNER_PLAYER)
 	assert_eq(l.all_people().size(), 0)
 	assert_true(l.add_person(_person(), Vector3(1, 0, 1)).id >= 1)
