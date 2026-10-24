@@ -921,3 +921,5 @@ const HOUSE_MSG_SERVE := "%s deixou a Casa %s e foi servir a Casa %s"
 const HOUSE_MSG_SPY := "Descoberto: %s espionava a Casa %s a mando da Casa %s"
 const HOUSE_MSG_REVENGE := "A Casa %s vingou-se da Casa %s"
 const HOUSE_MSG_ROMANCE := "A Casa %s descobriu o romance secreto de %s e %s"
+const HOUSE_LEVEL_SCENES := ["res://assets/models/house.glb", "res://assets/models/house_stone.glb",
+		"res://assets/models/manor.glb"]

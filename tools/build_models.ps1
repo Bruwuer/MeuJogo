@@ -26,6 +26,8 @@ $jobs = @(
     @{ Script = "buildings.py"; Args = @("market"); Out = "assets/models/market.glb" },
     @{ Script = "buildings.py"; Args = @("scaffold"); Out = "assets/models/scaffold.glb" },
     @{ Script = "buildings.py"; Args = @("stake"); Out = "assets/models/stake.glb" },
+    @{ Script = "buildings.py"; Args = @("house_stone"); Out = "assets/models/house_stone.glb" },
+    @{ Script = "buildings.py"; Args = @("manor"); Out = "assets/models/manor.glb" },
     @{ Script = "buildings.py"; Args = @("crest_banner"); Out = "assets/models/crest_banner.glb" },
     @{ Script = "weapons.py"; Args = @("sword"); Out = "assets/models/sword.glb" },
     @{ Script = "weapons.py"; Args = @("spear"); Out = "assets/models/spear.glb" },

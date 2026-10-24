@@ -14,6 +14,7 @@ const _DEFAULT_ROUGHNESS := 0.9
 var _meshes: Dictionary[int, Mesh] = {} # Prop type -> mesh
 var _scenes: Dictionary[int, PackedScene] = {} # Building type -> scene
 var _parts: Dictionary[String, PackedScene] = {} # creature part name -> scene
+var _house_levels: Dictionary[int, PackedScene] = {} # house level (1, 2) -> scene
 var _weapons: Dictionary[int, PackedScene] = {} # Weapon -> scene (own materials: never faded)
 var _arrow: PackedScene
 var _scaffold: PackedScene
@@ -38,6 +39,8 @@ func start_loading() -> void:
 	_queue.append(["scaffold", 0, GameConstants.SCAFFOLD_SCENE])
 	_queue.append(["person", 0, GameConstants.HUMANOID_SCENE])
 	_queue.append(["crest", 0, GameConstants.CREST_BANNER_SCENE])
+	for level in range(1, GameConstants.HOUSE_LEVEL_SCENES.size()):
+		_queue.append(["house_level", level, GameConstants.HOUSE_LEVEL_SCENES[level]])
 	_request_next()
 
 
@@ -71,6 +74,11 @@ func person_scene() -> PackedScene:
 
 func part_scene(part: String) -> PackedScene:
 	return _parts.get(part)
+
+
+## House model for a level: 0 = simple house, 1 = stone house, 2 = manor.
+func house_scene(level: int) -> PackedScene:
+	return scene_for(GameConstants.Building.HOUSE) if level <= 0 else _house_levels.get(level)
 
 
 func _request_next() -> void:
@@ -110,6 +118,8 @@ func _process(_delta: float) -> void:
 			_arrow = scene
 		elif _current[0] == "building":
 			_scenes[_current[1]] = scene
+		elif _current[0] == "house_level":
+			_house_levels[_current[1]] = scene
 		else:
 			_parts[_current[1]] = scene
 		root.free()

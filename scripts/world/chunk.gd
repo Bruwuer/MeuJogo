@@ -77,7 +77,7 @@ func add_building(rec: Dictionary) -> void:
 	node.position = rec.pos - position
 	node.rotation.y = rec.rot * PI * 0.5
 	var site: bool = rec.get("site", false)
-	var scene := _library.scene_for(type)
+	var scene := _library.house_scene(int(rec.get("house_level", 0))) if type == GameConstants.Building.HOUSE else _library.scene_for(type)
 	if scene:
 		var model := scene.instantiate() as Node3D
 		model.name = "Model"

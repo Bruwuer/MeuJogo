@@ -175,6 +175,55 @@ def house():
     return parts
 
 
+SLATE = (0.30, 0.31, 0.35)
+DRESSED_STONE = (0.62, 0.60, 0.55)
+
+
+def house_stone():
+    """Stone house (level 1): same footprint as the house, dressed-stone walls, slate roof."""
+    stone, walls = common.flat_material("stone", STONE), common.flat_material("dressed_stone", DRESSED_STONE)
+    timber, roof = common.flat_material("timber", TIMBER), common.flat_material("slate", SLATE)
+    door, window = common.flat_material("door", DOOR), common.flat_material("window", WINDOW, emission=0.6)
+    parts = [
+        box("foundation", (4.5, 5.5, 0.35), (0, 0, 0.175), stone),
+        box("walls", (4.2, 5.2, 2.9), (0, 0, 1.8), walls),
+        gable_roof("roof", 2.45, 5.8, 3.2, 4.9, roof),
+        box("door", (1.0, 0.1, 2.0), (0, -2.63, 1.35), door),
+        box("window_l", (0.6, 0.1, 0.7), (-1.3, -2.63, 2.0), window),
+        box("window_r", (0.6, 0.1, 0.7), (1.3, -2.63, 2.0), window),
+        box("window_side", (0.1, 0.6, 0.7), (2.13, 0.5, 2.0), window),
+        box("chimney", (0.6, 0.6, 2.0), (-1.2, 1.4, 4.4), stone),
+        box("lintel", (1.3, 0.14, 0.18), (0, -2.64, 2.45), timber),
+    ]
+    for k, (x, y) in enumerate(((-2.1, -2.6), (2.1, -2.6), (-2.1, 2.6), (2.1, 2.6))):
+        parts.append(box(f"quoin_{k}", (0.24, 0.24, 2.9), (x, y, 1.8), stone))
+    return parts
+
+
+def manor():
+    """Manor (level 2): stone ground floor, timbered upper floor, steep roof and a corner tower."""
+    stone, walls = common.flat_material("stone", STONE), common.flat_material("dressed_stone", DRESSED_STONE)
+    plaster, timber = common.flat_material("plaster", PLASTER), common.flat_material("timber", TIMBER)
+    roof, door = common.flat_material("slate", SLATE), common.flat_material("door", DOOR)
+    window = common.flat_material("window", WINDOW, emission=0.6)
+    parts = [
+        box("foundation", (4.5, 5.5, 0.35), (0, 0, 0.175), stone),
+        box("ground_floor", (4.1, 5.1, 2.6), (0, 0, 1.65), walls),
+        box("upper_floor", (4.4, 5.4, 2.2), (0, 0, 4.05), plaster),
+        box("floor_beam", (4.46, 5.46, 0.16), (0, 0, 2.95), timber),
+        gable_roof("roof", 2.4, 5.6, 5.15, 7.0, roof),
+        box("door", (1.1, 0.1, 2.1), (0.6, -2.58, 1.4), door),
+        box("tower", (1.3, 1.3, 6.6), (-1.55, 2.05, 3.65), walls),
+        cylinder("tower_roof", 1.0, 1.6, (-1.55, 2.05, 7.75), roof, segments=4, radius_top=0.0),
+    ]
+    for k, x in enumerate((-1.3, 0.0, 1.3)):
+        parts.append(box(f"window_up_{k}", (0.55, 0.1, 0.7), (x, -2.73, 4.1), window))
+    parts.append(box("window_down", (0.6, 0.1, 0.7), (-1.2, -2.58, 1.8), window))
+    for k, (x, y) in enumerate(((-2.2, -2.7), (2.2, -2.7), (-2.2, 2.7), (2.2, 2.7))):
+        parts.append(box(f"post_{k}", (0.16, 0.16, 2.2), (x, y, 4.05), timber))
+    return parts
+
+
 def farm():
     """6 x 6 m field: tilled soil, five crop rows, low corner stakes (walkable, no collision)."""
     soil, crop = common.flat_material("soil", SOIL), common.flat_material("crop", CROP)
@@ -277,7 +326,7 @@ def crest_banner():
     return parts
 
 
-BUILDERS = {"stake": stake, "cabin": cabin, "campfire": campfire, "storage": storage, "fence": fence, "well": well, "flag": flag,
+BUILDERS = {"stake": stake, "house_stone": house_stone, "manor": manor, "cabin": cabin, "campfire": campfire, "storage": storage, "fence": fence, "well": well, "flag": flag,
             "house": house, "farm": farm, "market": market, "scaffold": scaffold, "crest_banner": crest_banner}
 
 if __name__ == "__main__":
