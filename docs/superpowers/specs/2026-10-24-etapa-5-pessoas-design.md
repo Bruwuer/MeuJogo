@@ -120,3 +120,66 @@ jogador consegue ler (no HUD ou conversando com ele).
   - orçamento de frame com 30 pessoas e 40 criaturas.
 - **Capturas com janela:** viajante chegando, povoado com moradores trabalhando, um canteiro subindo,
   o cartão de um morador e o povoado à noite (com gente dormindo em casa e junto à fogueira).
+
+## 5. Decisões após a revisão do design (Claude)
+
+1. **Dono das construções:** só o reino/jogador (`owner = -1`) e os moradores (`owner = id`) são donos.
+   O jogador **não pode demolir** casa ou obra de morador nesta etapa ("A casa é de Ana Ferreira").
+   Toda remoção passa por `WorldState.remove_building`, que limpa o `home_id` dos moradores, ejeta quem
+   estava dentro, fecha a obra do reino e devolve ao estoque o custo reservado de uma obra destruída.
+   A demolição pelo jogador continua devolvendo 50 % ao inventário dele (só nas construções dele).
+2. **`BuildRules`:** dividido em `check_site` (lugar: mapa, inclinação, objetos, sobreposição, quem está
+   no caminho) e `check` (lugar + custo no inventário do jogador). O planejador usa `check_site` e confere
+   o custo no estoque do reino. Pessoas também bloqueiam o lugar de uma obra.
+3. **Começo:** fundar o reino dá um estoque inicial (`KINGDOM_START_STOCK`: 20 madeira, 24 frutas). A
+   sede com uma fogueira (ou só a sede) serve de abrigo para dormir ao relento. As duas primeiras
+   pessoas que chegam a um reino ficam sempre ("o reino é novo e precisa de gente"). A Fazenda passa na
+   frente da Casa quando a comida dura menos de 2 dias. Metade dos viajantes vem com a profissão que o
+   reino mais precisa.
+4. **Carregado ou não, por pessoa:** quem tem nó trabalha de verdade; quem não tem é resumido naquela
+   hora pelo `VillageSim`. Ao perder o nó, o que a pessoa carregava vai para o estoque. Um viajante sem
+   nó chega à sede na hora seguinte (o registro "anda" até lá). `WorldState.move_person` reindexa o chunk.
+5. **Saves antigos:** valores novos entram **no fim** dos enums (`Res.FOOD` depois de `ARROWS`; `HOUSE`,
+   `FARM`, `MARKET` depois de `FLAG`) e ficam fora de `BUILDABLE`. `_from_dict` completa reinos sem
+   `stock` etc. e construções sem `owner`. Um teste carrega um save no formato da etapa 4.
+6. **Fama do jogador:** média da opinião dos moradores de todos os reinos, recalculada a cada hora e
+   salva. Puxa a opinião inicial dos viajantes.
+7. **Território das criaturas:** o planejador não abre obra dentro do território de uma toca
+   (`TERRITORY_RADIUS`), para os moradores não provocarem os bandos. Obras não são alvo de ataque.
+8. **Criaturas veem pessoas** como tipo `person`: herbívoros fogem delas, carnívoros as ignoram.
+9. **Recursos:** moradores só coletam enquanto o estoque está abaixo da meta (`KINGDOM_STOCK_TARGET`).
+   O trabalho resumido também remove objetos de verdade (o mais próximo do centro, pela semente), para o
+   reino não render mais com o jogador longe. Árvores, rochas e arbustos não voltam nesta etapa; a comida
+   duradoura vem das fazendas.
+10. **Teto:** `KINGDOM_MAX_PEOPLE = 12` por reino, abaixo de `PEOPLE_MAX_ACTIVE = 30`.
+11. **Fazenda sem colisão** (lavoura com estacas baixas, dá para atravessar). Casas têm um ponto de porta
+    na frente; entrar em casa = andar até a porta e o nó sumir.
+12. **Obra parada:** sem progresso por `SITE_STALL_HOURS` (48 h), a obra é abandonada e o custo volta.
+13. **Escopo:** fica numa etapa só, mas o plano entrega primeiro a base (pessoas, chegada, decisão,
+    necessidades, estoque, conversa, simulação, save) e depois o trabalho de verdade e as obras.
+14. **Busca de lugar limitada:** no máximo `SITE_CANDIDATES` (24) lugares testados por hora, numa
+    espiral determinística a partir do centro.
+15. **Mensagens:** de reino carregado vão direto ao HUD; de reino descarregado ficam numa fila e são
+    contadas na volta (juntas, como os ataques resumidos).
+16. **Teclas:** E fala com uma pessoa a até `TALK_RANGE` (2,2 m) fora do modo construção, com prioridade
+    sobre a coleta; G doa. O descanso não é uma barra: é o horário (dormem das 21h às 6h).
+17. **Materiais das pessoas** ficam num cache por cor, não um por pessoa.
+
+### Números (todos em `GameConstants`; 1 hora de jogo = 20 s)
+
+| Item | Valor |
+|---|---|
+| Viajantes | 1º 1 h após a fundação; depois a cada 6 h (4 h com Comércio); surgem a 60–90 m |
+| Comida | cada pessoa come 2 por dia (1 quando a fome passa de 0,5); Comida antes de Frutas |
+| Fazenda | 0,75 de comida por hora de agricultor trabalhando nela (≈ 8 por dia) |
+| Resumido por hora de trabalho | lenhador 2 madeira, pedreiro 1,2 pedra, coletor 1,5 frutas |
+| Metas de estoque | madeira 60, pedra 30; frutas só se a comida dura menos de 3 dias |
+| Horário | trabalho das 7h às 19h; sono das 21h às 6h |
+| Casa | 40 madeira + 10 pedra, 8 h de obra, 3 moradores |
+| Fazenda | 12 madeira, 4 h de obra, 6 × 6 m |
+| Comércio | 25 madeira + 8 pedra, 6 h de obra, a partir de 4 moradores |
+| Poço / Depósito (moradores) | custo da etapa 3; 5 h e 6 h de obra |
+| Contentamento | começa em 0,6; por hora: com fome −0,04, sem abrigo nenhum −0,03, só fogueira −0,01, ataque nas últimas 48 h −0,02 (×2 medroso, ×0,5 corajoso), alimentado +0,02, com casa +0,01, poço +0,005, comércio +0,01 |
+| Partida | contentamento < 0,25 por 24 h seguidas |
+| Decisão de ficar | casa com vaga +0,25, só fogueira/sede +0,05, nada −0,3; comida ≥ 2 dias +0,25, sem comida −0,35; ataque recente −0,25 (×2 medroso, ×0,5 corajoso); trabalho na profissão +0,1; poço +0,05; reino com menos de 3 moradores +0,2; sociável +0,05 por morador acima de 3 (até 0,15); solitário −0,05 por morador acima de 6; opinião × 0,2; ruído ±0,1. Fica se > 0 |
+| Opinião | inicial: traços (generoso +0,1, ganancioso −0,1, devoto +0,1, cético −0,05) + fama × 0,5 ± 0,2. Doação: +0,05 para quem está a até 25 m. Matar um atacante dentro do reino: +0,05 para todos os moradores. Longe do reino: −0,1 por dia na direção do neutro |
