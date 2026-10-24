@@ -41,6 +41,7 @@ var _stuck_check_left := GameConstants.PERSON_STUCK_CHECK_SEC
 var _stuck_for := 0.0
 var _detour := Vector3.ZERO
 var _detour_left := 0.0
+var _goal_reach := 0.0 ## How close the goal needs us (work targets are prop or site centres).
 
 
 func setup(rec: Dictionary, library: ModelLibrary, mgr: Node) -> void:
@@ -82,8 +83,10 @@ func setup(rec: Dictionary, library: ModelLibrary, mgr: Node) -> void:
 		visible = false
 
 
-## Walks to `pos` and stays there (tests and scripted moves): the brain is not consulted.
-func walk_to(pos: Vector3) -> void:
+## Walks to `pos` (or within `reach` of it) and stays there (tests and scripted moves): the brain is
+## not consulted.
+func walk_to(pos: Vector3, reach := 0.0) -> void:
+	_goal_reach = reach
 	_stuck_dist = INF
 	_commanded = true
 	act = A.WALK
@@ -176,6 +179,7 @@ func _think() -> void:
 	if (d.target_pos as Vector3).distance_to(target_pos) > 1.0:
 		_stuck_dist = INF # a new destination
 	target_pos = d.target_pos
+	_goal_reach = float(work_target.get("reach", 0.0)) if goal == A.WORK else 0.0
 	if goal != was_goal:
 		_done = false
 		_eval_left = GameConstants.PERSON_EVALUATE_SEC
@@ -202,7 +206,7 @@ func _move(delta: float, speed: float) -> void:
 	to.y = 0.0
 	var dist := to.length()
 	var dir := Vector3.ZERO
-	var stop := GameConstants.PERSON_ARRIVE * 0.5
+	var stop := maxf(GameConstants.PERSON_ARRIVE * 0.5, _goal_reach * 0.9)
 	if dist > stop:
 		if _detour_left > 0.0:
 			_detour_left -= delta
@@ -224,7 +228,7 @@ func _move(delta: float, speed: float) -> void:
 
 
 ## Failsafe for corners and steps the rays miss: no progress for a while -> a short sidestep;
-## stuck for long -> placed at the target (on the ground).
+## stuck for long -> placed at the target's approach point (on the ground).
 func _watch_stuck(delta: float, want: Vector3) -> void:
 	_stuck_check_left -= delta
 	if _stuck_check_left > 0.0:
@@ -240,7 +244,13 @@ func _watch_stuck(delta: float, want: Vector3) -> void:
 	if _stuck_for >= GameConstants.PERSON_STUCK_TELEPORT_SEC:
 		_stuck_for = 0.0
 		_detour_left = 0.0
-		global_position = _ground_at(target_pos) + Vector3.UP * 0.3
+		# The approach point on our side, not the centre (a prop or a site would swallow us).
+		var back := global_position - target_pos
+		back.y = 0.0
+		if back.length() < 0.01:
+			back = Vector3.BACK
+		var spot := target_pos + back.normalized() * _goal_reach * 0.9
+		global_position = _ground_at(spot) + Vector3.UP * 0.3
 		reset_physics_interpolation()
 		return
 	_detour = want.rotated(Vector3.UP, PI * 0.5 * (1.0 if _rng.randf() < 0.5 else -1.0))

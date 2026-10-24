@@ -157,3 +157,33 @@ func test_stuck_person_gets_free() -> void:
 			"still stuck at %s" % str(p.global_position))
 	p.queue_free()
 	pen.queue_free()
+
+
+func test_failsafe_never_lands_inside_the_target() -> void:
+	# Work targets are prop or site centres: the failsafe must use the approach point, not the centre.
+	_floor()
+	var pen := StaticBody3D.new()
+	pen.collision_layer = GameConstants.LAYER_OBSTACLES
+	for w in [[Vector3(0, 1, 1.2), Vector3(3, 2, 0.2)], [Vector3(0, 1, -1.2), Vector3(3, 2, 0.2)],
+			[Vector3(1.2, 1, 0), Vector3(0.2, 2, 3)], [Vector3(-1.2, 1, 0), Vector3(0.2, 2, 3)],
+			[Vector3(9, 1.5, 0), Vector3(5, 3, 5)]]: # house-sized
+		var shape := CollisionShape3D.new()
+		var box := BoxShape3D.new()
+		box.size = w[1]
+		shape.shape = box
+		shape.position = w[0]
+		pen.add_child(shape)
+	add_child(pen)
+	var p: Person = await _spawn(Vector3(0, 0.2, 0), 7)
+	p.walk_to(Vector3(9, 0, 0), 3.8)
+	Engine.time_scale = 4.0
+	for i in 1500:
+		await get_tree().physics_frame
+		if _flat(p.global_position).distance_to(Vector3(9, 0, 0)) < 4.0:
+			break
+	Engine.time_scale = 1.0
+	var q := p.global_position
+	assert_true(_flat(q).distance_to(Vector3(9, 0, 0)) < 4.2, "got near the target (%s)" % str(q))
+	assert_true(absf(q.x - 9.0) > 2.7 or absf(q.z) > 2.7, "not inside the target (%s)" % str(q))
+	p.queue_free()
+	pen.queue_free()
