@@ -665,3 +665,25 @@ const PERSON_STUCK_CHECK_SEC := 1.0 ## How often a walking person checks it is g
 const PERSON_STUCK_MOVE := 0.3 ## Less than this in a check counts as stuck.
 const PERSON_DETOUR_SEC := 0.8 ## Sidestep when stuck.
 const PERSON_STUCK_TELEPORT_SEC := 6.0 ## Stuck this long: placed at the target.
+
+# Society: crests (drawn pixel by pixel, see Crest)
+enum CrestPattern { PLAIN, PALE, FESS, BEND, QUARTERLY, CHEVRON }
+enum CrestCharge { NONE, ROUNDEL, CROSS, LOZENGE, STAR, CRESCENT }
+## [Portuguese name, color, is metal]. Heraldry: metal on colour, never metal on metal.
+const TINCTURES := [
+	["ouro", Color(0.86, 0.68, 0.20), true], ["prata", Color(0.90, 0.90, 0.86), true],
+	["vermelho", Color(0.72, 0.12, 0.12), false], ["azul", Color(0.16, 0.30, 0.66), false],
+	["verde", Color(0.16, 0.46, 0.22), false], ["preto", Color(0.10, 0.10, 0.11), false],
+	["púrpura", Color(0.46, 0.20, 0.52), false],
+]
+const CREST_PATTERN_NAMES := {
+	CrestPattern.PLAIN: "pleno", CrestPattern.PALE: "partido", CrestPattern.FESS: "cortado",
+	CrestPattern.BEND: "em banda", CrestPattern.QUARTERLY: "esquartelado", CrestPattern.CHEVRON: "em asna",
+}
+const CREST_CHARGE_NAMES := {
+	CrestCharge.ROUNDEL: "um besante", CrestCharge.CROSS: "uma cruz", CrestCharge.LOZENGE: "um losango",
+	CrestCharge.STAR: "uma estrela", CrestCharge.CRESCENT: "um crescente",
+}
+const CREST_SIZE := Vector2i(32, 40) ## Pixels of a crest image (a shield with a pointed base).
+const CREST_TRIES := 40 ## Attempts to find a crest not used in the kingdom.
+const CREST_BORDER := Color(0.12, 0.10, 0.08)
