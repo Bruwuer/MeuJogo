@@ -45,6 +45,24 @@ const PROP_DENSITY := {
 const PROP_COLLISION_RADIUS := { Prop.OAK: 0.4, Prop.PINE: 0.35, Prop.ROCK: 0.9, Prop.BUSH: 0.0 }
 const PROP_COLLISION_HEIGHT := 3.0
 
+# Harvesting
+const HARVEST_RANGE := 2.2 ## Max gap (m) between player and a prop's collision edge.
+const HARVEST_HIT_TIME := 0.45 ## One swing; input and movement are locked meanwhile.
+const HARVEST_HITS := { Prop.OAK: 4, Prop.PINE: 4, Prop.ROCK: 5, Prop.BUSH: 1 }
+const HARVEST_YIELD := {
+	Prop.OAK: [Res.WOOD, 3],
+	Prop.PINE: [Res.WOOD, 3],
+	Prop.ROCK: [Res.STONE, 2],
+	Prop.BUSH: [Res.BERRIES, 2],
+}
+const HARVEST_PROMPTS := {
+	Prop.OAK: "[E] Cortar árvore",
+	Prop.PINE: "[E] Cortar árvore",
+	Prop.ROCK: "[E] Quebrar rocha",
+	Prop.BUSH: "[E] Colher frutas",
+}
+const RES_NAMES := { Res.WOOD: "Madeira", Res.STONE: "Pedra", Res.BERRIES: "Frutas" }
+
 # Player
 const WALK_SPEED := 4.0
 const RUN_SPEED := 7.5
