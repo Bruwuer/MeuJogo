@@ -130,3 +130,11 @@ Comandos (Windows, PowerShell):
 - Testes: `tests/unit`, `tests/integration`, `tests/visual/capture.gd`.
 - Modelos: `assets/models/*.glb` (gerados por `tools/blender/*.py`).
 - Histórico git: `main` (etapas 1–6) e `etapa-7` (trabalho atual).
+
+## 8. Como levar o projeto inteiro (código + histórico)
+
+- **GitHub:** repositório privado `MeuJogo` (branches `main` e `etapa-7`). No outro computador:
+  `git clone <url>`, `cd MeuJogo`, `git checkout etapa-7` e siga o `README.md`.
+- **Google Drive:** pasta `MeuJogo` com os documentos (contexto, README, CLAUDE, CONTINUAR, ENTREGAS, designs).
+- **OneDrive** da máquina original, pasta `MeuJogo`: `MeuJogo-projeto-completo.zip` e `MeuJogo.bundle`
+  (histórico do git: `git clone MeuJogo.bundle MeuJogo`).
