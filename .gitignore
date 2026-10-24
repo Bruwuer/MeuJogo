@@ -3,3 +3,4 @@ captures/
 *.blend1
 .superpowers/
 __pycache__/
+logs/
