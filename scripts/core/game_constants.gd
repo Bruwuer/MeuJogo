@@ -167,6 +167,9 @@ const BUILD_SCENES := {
 	Building.FENCE: "res://assets/models/fence.glb",
 	Building.WELL: "res://assets/models/well.glb",
 	Building.FLAG: "res://assets/models/flag.glb",
+	Building.HOUSE: "res://assets/models/house.glb",
+	Building.FARM: "res://assets/models/farm.glb",
+	Building.MARKET: "res://assets/models/market.glb",
 }
 const BUILD_REFUND := 0.5 ## Share of the cost returned on demolish (rounded down).
 const BUILD_MAX_HEIGHT_DIFF := 1.2 ## Max ground height difference under a footprint.
@@ -510,4 +513,6 @@ const BUILD_WORK_HOURS := {
 }
 ## Beds per building type for villagers (the seat cabin is the player's).
 const HOUSE_CAPACITY := { Building.HOUSE: 3, Building.CABIN: 2 }
+const SCAFFOLD_SCENE := "res://assets/models/scaffold.glb" ## Unit frame (1 x 1 x 3 m), scaled to each footprint.
+const SITE_MIN_SCALE := 0.15 ## Height scale of a building model on a site with no progress.
 const PERSON_START_CONTENTMENT := 0.6

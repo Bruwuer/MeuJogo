@@ -76,13 +76,25 @@ func add_building(rec: Dictionary) -> void:
 	node.name = "B_%d" % rec.id
 	node.position = rec.pos - position
 	node.rotation.y = rec.rot * PI * 0.5
+	var site: bool = rec.get("site", false)
 	var scene := _library.scene_for(type)
 	if scene:
-		node.add_child(scene.instantiate())
+		var model := scene.instantiate() as Node3D
+		model.name = "Model"
+		if site:
+			model.scale.y = _site_scale(rec)
+		node.add_child(model)
 	var fp: Vector2 = GameConstants.BUILD_FOOTPRINT[type]
-	if type != GameConstants.Building.FLAG:
+	var flat := type in GameConstants.BUILD_FLAT
+	if site and _library.scaffold_scene():
+		var scaffold := _library.scaffold_scene().instantiate() as Node3D
+		scaffold.name = "Scaffold"
+		scaffold.scale = Vector3(fp.x, 1.0, fp.y)
+		node.add_child(scaffold)
+	if type != GameConstants.Building.FLAG and not flat:
 		node.add_child(_foundation(type, fp))
-	node.add_child(_colliders(type, fp))
+	if not flat:
+		node.add_child(_colliders(type, fp, site))
 	if type == GameConstants.Building.FLAG:
 		_color_banner(node, rec.color)
 	elif type == GameConstants.Building.CAMPFIRE:
@@ -91,6 +103,24 @@ func add_building(rec: Dictionary) -> void:
 		node.add_child(light)
 	add_child(node)
 	_buildings[rec.id] = node
+
+
+## Refreshes a site after work: the model rises with progress; a finished site is rebuilt as a
+## normal building (no scaffold, full collision).
+func update_site(rec: Dictionary) -> void:
+	if not _buildings.has(rec.id):
+		return
+	if not rec.get("site", false):
+		remove_building(rec.id)
+		add_building(rec)
+		return
+	var model := _buildings[rec.id].get_node_or_null("Model") as Node3D
+	if model:
+		model.scale.y = _site_scale(rec)
+
+
+func _site_scale(rec: Dictionary) -> float:
+	return lerpf(GameConstants.SITE_MIN_SCALE, 1.0, float(rec.get("progress", 0.0)))
 
 
 func remove_building(id: int) -> void:
@@ -117,13 +147,14 @@ func _foundation(type: int, fp: Vector2) -> MeshInstance3D:
 	return mi
 
 
-## Static body on the obstacle layer: the type's boxes plus one for the foundation.
-func _colliders(type: int, fp: Vector2) -> StaticBody3D:
+## Static body on the obstacle layer: the type's boxes plus one for the foundation (a site has
+## only the foundation).
+func _colliders(type: int, fp: Vector2, site := false) -> StaticBody3D:
 	var body := StaticBody3D.new()
 	body.name = "Body"
 	body.collision_layer = GameConstants.LAYER_OBSTACLES
 	body.collision_mask = 0
-	var boxes: Array = GameConstants.BUILD_COLLIDERS[type].duplicate()
+	var boxes: Array = [] if site else GameConstants.BUILD_COLLIDERS[type].duplicate()
 	if type != GameConstants.Building.FLAG:
 		var depth := _FENCE_SKIRT_DEPTH if type == GameConstants.Building.FENCE else fp.y
 		boxes.append([Vector3.DOWN * GameConstants.FOUNDATION_DEPTH * 0.5, Vector3(fp.x, GameConstants.FOUNDATION_DEPTH, depth)])

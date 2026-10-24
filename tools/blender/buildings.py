@@ -1,7 +1,7 @@
 """Low-poly buildings: one joined mesh per building, origin at the footprint center on the ground,
 front (door) facing -Y in Blender (= +Z in Godot). Footprints match GameConstants.BUILD_FOOTPRINT.
 
-    blender -b --factory-startup --python tools/blender/buildings.py -- <cabin|campfire|storage|fence|well|flag> <out.glb>
+    blender -b --factory-startup --python tools/blender/buildings.py -- <cabin|campfire|storage|fence|well|flag|house|farm|market|scaffold> <out.glb>
 """
 import math
 import os
@@ -133,7 +133,92 @@ def flag():
     ]
 
 
-BUILDERS = {"cabin": cabin, "campfire": campfire, "storage": storage, "fence": fence, "well": well, "flag": flag}
+PLASTER = (0.86, 0.80, 0.68)
+TIMBER = (0.32, 0.21, 0.12)
+SOIL = (0.40, 0.28, 0.17)
+CROP = (0.48, 0.62, 0.22)
+CROP_TIP = (0.85, 0.72, 0.30)
+CANOPY = (0.78, 0.30, 0.22)
+CANOPY_B = (0.92, 0.86, 0.72)
+CRATE = (0.62, 0.46, 0.26)
+
+
+def house():
+    """Villager house: plaster walls with a timber frame, thatch-like roof, door at the front."""
+    stone, plaster = common.flat_material("stone", STONE), common.flat_material("plaster", PLASTER)
+    timber, roof = common.flat_material("timber", TIMBER), common.flat_material("roof", ROOF)
+    door, window = common.flat_material("door", DOOR), common.flat_material("window", WINDOW, emission=0.6)
+    parts = [
+        box("foundation", (4.5, 5.5, 0.3), (0, 0, 0.15), stone),
+        box("walls", (4.1, 5.1, 2.4), (0, 0, 1.5), plaster),
+        gable_roof("roof", 2.45, 5.8, 2.6, 4.1, roof),
+        box("door", (0.9, 0.1, 1.8), (0, -2.58, 1.2), door),
+        box("window_l", (0.6, 0.1, 0.5), (-1.3, -2.58, 1.8), window),
+        box("window_r", (0.6, 0.1, 0.5), (1.3, -2.58, 1.8), window),
+        box("window_side", (0.1, 0.6, 0.5), (2.08, 0.5, 1.8), window),
+        box("chimney", (0.5, 0.5, 1.6), (-1.2, 1.4, 3.6), stone),
+        box("beam", (4.16, 5.16, 0.12), (0, 0, 2.62), timber),
+    ]
+    for k, (x, y) in enumerate(((-2.05, -2.55), (2.05, -2.55), (-2.05, 2.55), (2.05, 2.55))):
+        parts.append(box(f"post_{k}", (0.16, 0.16, 2.4), (x, y, 1.5), timber))
+    parts.append(box("post_mid_l", (0.12, 0.1, 2.4), (-0.75, -2.57, 1.5), timber))
+    parts.append(box("post_mid_r", (0.12, 0.1, 2.4), (0.75, -2.57, 1.5), timber))
+    return parts
+
+
+def farm():
+    """6 x 6 m field: tilled soil, five crop rows, low corner stakes (walkable, no collision)."""
+    soil, crop = common.flat_material("soil", SOIL), common.flat_material("crop", CROP)
+    tip, stake = common.flat_material("crop_tip", CROP_TIP), common.flat_material("fence_wood", FENCE_WOOD)
+    parts = [box("soil", (6.0, 6.0, 0.1), (0, 0, 0.05), soil)]
+    for k in range(5):
+        x = -2.2 + k * 1.1
+        parts.append(box(f"row_{k}", (0.5, 5.2, 0.4), (x, 0, 0.3), crop))
+        parts.append(box(f"tips_{k}", (0.3, 5.0, 0.12), (x, 0, 0.56), tip))
+    for k, (x, y) in enumerate(((-2.94, -2.94), (2.94, -2.94), (-2.94, 2.94), (2.94, 2.94))):
+        parts.append(box(f"stake_{k}", (0.12, 0.12, 0.8), (x, y, 0.4), stake))
+    return parts
+
+
+def market():
+    """Market stall: counter at the front, four posts, striped canopy, crates behind."""
+    stone, planks = common.flat_material("stone", STONE), common.flat_material("planks", PLANKS)
+    timber, crate = common.flat_material("timber", TIMBER), common.flat_material("crate", CRATE)
+    canopy, canopy_b = common.flat_material("canopy", CANOPY), common.flat_material("canopy_b", CANOPY_B)
+    fruit = common.flat_material("crop_tip", CROP_TIP)
+    parts = [
+        box("floor", (4.0, 3.0, 0.2), (0, 0, 0.1), stone),
+        box("counter", (3.4, 0.6, 1.0), (0, -1.0, 0.7), planks),
+        box("goods", (2.8, 0.4, 0.15), (0, -1.0, 1.28), fruit),
+        box("crate_a", (0.8, 0.8, 0.7), (-1.1, 0.8, 0.55), crate),
+        box("crate_b", (0.7, 0.7, 0.6), (0.9, 0.9, 0.5), crate),
+        box("back", (3.8, 0.1, 1.2), (0, 1.42, 0.8), planks),
+    ]
+    for k, (x, y) in enumerate(((-1.85, -1.35), (1.85, -1.35), (-1.85, 1.35), (1.85, 1.35))):
+        parts.append(box(f"post_{k}", (0.14, 0.14, 2.3), (x, y, 1.25), timber))
+    for k in range(6):
+        stripe = box(f"stripe_{k}", (4.0 / 6, 3.0, 0.08), (-2.0 + 4.0 / 12 + k * 4.0 / 6, 0, 2.45), canopy if k % 2 == 0 else canopy_b)
+        stripe.rotation_euler = (math.radians(-10), 0, 0)
+        parts.append(stripe)
+    return parts
+
+
+def scaffold():
+    """Unit construction frame (1 x 1 m, 3 m tall); Godot scales it to each footprint."""
+    wood = common.flat_material("scaffold", FENCE_WOOD)
+    parts = []
+    for k, (x, y) in enumerate(((-0.5, -0.5), (0.5, -0.5), (-0.5, 0.5), (0.5, 0.5))):
+        parts.append(box(f"pole_{k}", (0.05, 0.05, 3.0), (x, y, 1.5), wood))
+    for k, z in enumerate((1.0, 2.0, 2.9)):
+        parts.append(box(f"bar_x0_{k}", (1.0, 0.03, 0.04), (0, -0.5, z), wood))
+        parts.append(box(f"bar_x1_{k}", (1.0, 0.03, 0.04), (0, 0.5, z), wood))
+        parts.append(box(f"bar_y0_{k}", (0.03, 1.0, 0.04), (-0.5, 0, z), wood))
+        parts.append(box(f"bar_y1_{k}", (0.03, 1.0, 0.04), (0.5, 0, z), wood))
+    return parts
+
+
+BUILDERS = {"cabin": cabin, "campfire": campfire, "storage": storage, "fence": fence, "well": well, "flag": flag,
+            "house": house, "farm": farm, "market": market, "scaffold": scaffold}
 
 if __name__ == "__main__":
     argv = sys.argv[sys.argv.index("--") + 1:]

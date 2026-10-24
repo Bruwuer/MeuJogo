@@ -92,3 +92,55 @@ func test_library_scenes_for_buildings() -> void:
 				for s in mi.mesh.get_surface_count():
 					assert_true(mi.mesh.surface_get_material(s) is ShaderMaterial, "building %d surface not converted" % type)
 			inst.free()
+
+
+func test_new_footprints_match() -> void:
+	for type in [B.HOUSE, B.FARM, B.MARKET]:
+		var n := _instance(type)
+		if n == null:
+			continue
+		var box := _aabb(n)
+		var fp: Vector2 = GameConstants.BUILD_FOOTPRINT[type]
+		var name: String = GameConstants.BUILD_NAMES[type]
+		assert_near(box.size.x, fp.x, 0.6, "%s width" % name)
+		assert_near(box.size.z, fp.y, 0.6, "%s depth" % name)
+		assert_near(box.position.y, 0.0, 0.05, "%s base" % name)
+	var farm := _instance(B.FARM)
+	if farm:
+		assert_true(_aabb(farm).size.y < 1.2, "a farm is a low field")
+
+
+func test_house_door_faces_plus_z() -> void:
+	var n := _instance(B.HOUSE)
+	if n == null:
+		return
+	var mesh: Mesh = (n.find_children("*", "MeshInstance3D", true, false)[0] as MeshInstance3D).mesh
+	var found := false
+	for s in mesh.get_surface_count():
+		if mesh.surface_get_material(s).resource_name == "door":
+			var verts: PackedVector3Array = mesh.surface_get_arrays(s)[Mesh.ARRAY_VERTEX]
+			var zsum := 0.0
+			for v in verts:
+				zsum += v.z
+			assert_true(zsum / verts.size() > 2.0, "door at z=%.2f" % (zsum / verts.size()))
+			found = true
+	assert_true(found, "house has no 'door' material")
+
+
+func test_scaffold_and_person_in_library() -> void:
+	assert_true(ResourceLoader.exists(GameConstants.SCAFFOLD_SCENE), "scaffold missing: run tools/build_models.ps1")
+	var lib := ModelLibrary.new()
+	add_child(lib)
+	lib.start_loading()
+	for i in 600:
+		if lib.is_ready():
+			break
+		await get_tree().process_frame
+	assert_true(lib.scaffold_scene() != null, "no scaffold scene")
+	var person: PackedScene = lib.person_scene()
+	assert_true(person != null, "no person scene")
+	if person:
+		var inst: Node = person.instantiate()
+		assert_true(not inst.find_children("*", "AnimationPlayer", true, false).is_empty(), "person has no animations")
+		inst.free()
+	lib.queue_free()

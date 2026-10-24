@@ -138,3 +138,49 @@ func test_obstacles_on_their_own_layer() -> void:
 	assert_eq(body.collision_layer, GameConstants.LAYER_OBSTACLES)
 	assert_eq((chunk.get_node("Terrain") as StaticBody3D).collision_layer, GameConstants.LAYER_TERRAIN)
 	assert_eq((chunk.get_node("PropBodies") as StaticBody3D).collision_layer, GameConstants.LAYER_OBSTACLES)
+
+
+func test_site_shows_scaffold_and_grows() -> void:
+	var spot := TestSpots.flat_clear(_gen, _scatter, B.HOUSE)
+	var seat := _state.add_building(B.CABIN, spot + Vector3(20, 0, 0), 0)
+	var k := _state.add_kingdom("T", Color.RED, seat.pos, seat.id)
+	_state.add_stock(k, GameConstants.Res.WOOD, 100)
+	_state.add_stock(k, GameConstants.Res.STONE, 100)
+	var r := BuildRules.check_site(B.HOUSE, spot, 0, _gen, _scatter, _state)
+	var site := _state.add_site(B.HOUSE, Vector3(spot.x, r.y, spot.z), 0, k, 0.0)
+	var s := _make_streamer()
+	s.update_center(spot)
+	await _settle(s)
+	var chunk := s.get_chunk(ChunkMath.world_to_chunk(spot))
+	var node := chunk.get_node_or_null("B_%d" % site.id) as Node3D
+	assert_true(node != null, "site node missing")
+	if node == null:
+		return
+	assert_true(node.get_node_or_null("Scaffold") != null, "no scaffold")
+	var model := node.get_node_or_null("Model") as Node3D
+	assert_true(model != null, "no model")
+	if model == null:
+		return
+	var low := model.scale.y
+	assert_true(low < 0.5, "a new site starts low (%.2f)" % low)
+	_state.add_progress(site.id, 4.0, 1.0)
+	chunk.update_site(site)
+	assert_true(model.scale.y > low, "site grows with progress")
+	_state.add_progress(site.id, 100.0, 2.0)
+	chunk.update_site(site)
+	var done := chunk.get_node_or_null("B_%d" % site.id) as Node3D
+	assert_true(done != null and done.get_node_or_null("Scaffold") == null, "finished: scaffold gone")
+	assert_true(done != null and done.find_children("*", "StaticBody3D", true, false).size() == 1, "finished: full collision")
+
+
+func test_farm_has_no_collision() -> void:
+	var spot := TestSpots.flat_clear(_gen, _scatter, B.FARM)
+	var rec := _state.add_building(B.FARM, spot, 0, Color.WHITE, GameConstants.OWNER_KINGDOM)
+	var s := _make_streamer()
+	s.update_center(spot)
+	await _settle(s)
+	var node := s.get_chunk(ChunkMath.world_to_chunk(spot)).get_node_or_null("B_%d" % rec.id) as Node3D
+	assert_true(node != null)
+	if node:
+		assert_eq(node.find_children("*", "StaticBody3D", true, false).size(), 0, "farm is walkable")
+		assert_true(node.get_node_or_null("Foundation") == null, "no stone base under a field")
