@@ -47,3 +47,21 @@ func test_library_loads_async() -> void:
 	assert_true(lib.is_ready(), "library not ready in 300 frames")
 	for type in GameConstants.PROP_SCENES:
 		assert_true(lib.mesh_for(type) != null, "no mesh for %d" % type)
+
+
+func test_library_meshes_use_occlusion_shader() -> void:
+	var lib := PropLibrary.new()
+	add_child(lib)
+	lib.start_loading()
+	while not lib.is_ready():
+		await get_tree().process_frame
+	for type in GameConstants.PROP_SCENES:
+		var mesh := lib.mesh_for(type)
+		for s in mesh.get_surface_count():
+			var mat := mesh.surface_get_material(s)
+			assert_true(mat is ShaderMaterial and (mat as ShaderMaterial).shader.resource_path == PropLibrary.OCCLUSION_SHADER,
+					"type %d surface %d not using the occlusion shader" % [type, s])
+
+
+func test_occlusion_global_exists() -> void:
+	assert_true(RenderingServer.global_shader_parameter_get_list().has(&"player_world_pos"), "missing shader global player_world_pos")

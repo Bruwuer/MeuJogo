@@ -66,3 +66,11 @@ func test_sun_points_down_at_noon() -> void:
 	assert_true(dn.sun_elevation() > 0.99)
 	_at(dn, 0.0)
 	assert_true(dn.sun_elevation() < -0.99)
+
+
+func test_moonlight_at_midnight() -> void:
+	var dn := _make()
+	_at(dn, 0.0)
+	assert_true(_sun.light_energy > 0.0, "no moonlight at midnight")
+	assert_true(_sun.light_color.b > _sun.light_color.r, "moonlight should be bluish")
+	assert_true((-_sun.global_transform.basis.z).y < -0.5, "moon should shine down at midnight")

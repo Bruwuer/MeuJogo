@@ -1,50 +1,74 @@
 class_name World
 extends Node3D
-## Root of the main scene: terrain streaming, light, map-edge walls, player and camera.
+## Root of the main scene. Loads the save (or starts a new world with its own seed), then wires
+## terrain/prop streaming, day/night, map-edge walls, player, camera, harvesting and HUD.
 ## The player stays frozen whenever the chunk under it has no collision yet.
 
 signal world_ready
 
 const PLAYER_SCENE := preload("res://scenes/player.tscn")
 const _SPAWN_DROP := 0.5
+const _RESTORE_DROP := 0.2
 const _WALL_THICKNESS := 1.0
-const _WALL_HEIGHT := 60.0
-const _SUN_ROTATION_DEG := Vector3(-55.0, -35.0, 0.0)
 const _SHADOW_DISTANCE := 90.0
+const _PLAYER_CENTER := 0.9 ## Height of the point props fade around (prop occlusion shader).
 
-## -1 = random spawn; any other value makes the spawn reproducible.
+## -1 = random spawn; any other value makes the spawn reproducible (new worlds only).
 @export var spawn_seed := GameConstants.SPAWN_SEED
+## -1 = new worlds get a random seed; ignored when a save is loaded.
+@export var world_seed := -1
+## Where the world is saved; "" disables saving and loading.
+@export var save_path := GameConstants.SAVE_PATH
 
+var _state: WorldState
 var _gen: TerrainGenerator
 var _streamer: ChunkStreamer
 var _player: Player
 var _camera: IsoCamera
+var _day_night: DayNight
+var _harvest: HarvestSystem
+var _hud: Hud
 var _spawn: Vector3
 var _is_ready := false
+var _autosave_left := GameConstants.AUTOSAVE_SEC
 
 
 func _ready() -> void:
-	_gen = TerrainGenerator.new(GameConstants.WORLD_SEED)
-	var scatter := PropScatter.new(_gen, GameConstants.WORLD_SEED)
+	_state = WorldState.load_from(save_path) if save_path != "" else null
+	if _state == null:
+		_state = WorldState.new()
+		_state.seed = world_seed if world_seed >= 0 else randi()
+
+	_gen = TerrainGenerator.new(_state.seed)
+	var scatter := PropScatter.new(_gen, _state.seed)
 	var library := PropLibrary.new()
 	library.name = "PropLibrary"
 	add_child(library)
 	library.start_loading()
 	_streamer = ChunkStreamer.new()
 	_streamer.name = "Chunks"
-	_streamer.setup(_gen, scatter, library, func(_c: Vector2i) -> PackedInt32Array: return PackedInt32Array())
+	_streamer.setup(_gen, scatter, library, _state.removed_in)
 	add_child(_streamer)
 	_add_environment()
 	_add_edge_walls()
 
-	var rng := RandomNumberGenerator.new()
-	if spawn_seed >= 0:
-		rng.seed = spawn_seed
+	if _state.has_player_position:
+		_spawn = _state.player_position + Vector3.UP * (_RESTORE_DROP - _SPAWN_DROP)
 	else:
-		rng.randomize()
-	_spawn = SpawnPicker.pick(_gen, scatter, rng)
+		var rng := RandomNumberGenerator.new()
+		if spawn_seed >= 0:
+			rng.seed = spawn_seed
+		else:
+			rng.randomize()
+		_spawn = SpawnPicker.pick(_gen, scatter, rng)
+
+	_harvest = HarvestSystem.new()
+	_harvest.name = "Harvest"
+	_harvest.setup(_streamer.get_chunk, _state)
+	add_child(_harvest)
 
 	_player = PLAYER_SCENE.instantiate()
+	_player.harvest = _harvest
 	add_child(_player)
 	_player.global_position = _spawn + Vector3.UP * _SPAWN_DROP
 	_player.reset_physics_interpolation()
@@ -55,6 +79,11 @@ func _ready() -> void:
 	_camera.make_current()
 	_camera.snap_to_target()
 
+	_hud = Hud.new()
+	_hud.name = "Hud"
+	add_child(_hud)
+	_hud.setup(_state, _harvest, _day_night, _player)
+
 	_streamer.chunk_loaded.connect(_on_chunk_loaded)
 	_streamer.update_center(_spawn)
 
@@ -63,6 +92,32 @@ func _physics_process(_delta: float) -> void:
 	var pos := _player.global_position
 	_streamer.update_center(pos)
 	_player.frozen = not _streamer.is_loaded(ChunkMath.world_to_chunk(pos))
+
+
+func _process(delta: float) -> void:
+	RenderingServer.global_shader_parameter_set(&"player_world_pos", _player.global_position + Vector3.UP * _PLAYER_CENTER)
+	if not _is_ready or save_path == "":
+		return
+	_autosave_left -= delta
+	if _autosave_left <= 0.0:
+		_autosave_left = GameConstants.AUTOSAVE_SEC
+		save_now()
+
+
+func _notification(what: int) -> void:
+	if what == NOTIFICATION_WM_CLOSE_REQUEST and _is_ready:
+		save_now()
+
+
+## Copies live values (player position, time of day) into the state and writes the save.
+func save_now() -> Error:
+	if save_path == "":
+		return ERR_UNAVAILABLE
+	_state.player_position = _player.global_position
+	_state.has_player_position = true
+	_state.time_of_day = _day_night.time_of_day
+	_state.day = _day_night.day
+	return _state.save_to(save_path)
 
 
 func _on_chunk_loaded(c: Vector2i) -> void:
@@ -79,6 +134,10 @@ func get_player() -> Player:
 	return _player
 
 
+func get_camera() -> IsoCamera:
+	return _camera
+
+
 func get_streamer() -> ChunkStreamer:
 	return _streamer
 
@@ -87,40 +146,60 @@ func get_generator() -> TerrainGenerator:
 	return _gen
 
 
+func get_state() -> WorldState:
+	return _state
+
+
+func get_harvest() -> HarvestSystem:
+	return _harvest
+
+
+func get_day_night() -> DayNight:
+	return _day_night
+
+
+func get_hud() -> Hud:
+	return _hud
+
+
 func _add_environment() -> void:
 	var sky_mat := ProceduralSkyMaterial.new()
-	sky_mat.sky_top_color = Color(0.38, 0.55, 0.78)
-	sky_mat.sky_horizon_color = Color(0.72, 0.78, 0.82)
-	sky_mat.ground_horizon_color = Color(0.72, 0.78, 0.82)
 	var sky := Sky.new()
 	sky.sky_material = sky_mat
 	var env := Environment.new()
 	env.background_mode = Environment.BG_SKY
 	env.sky = sky
-	env.ambient_light_source = Environment.AMBIENT_SOURCE_SKY
-	env.ambient_light_energy = 0.8
 	env.tonemap_mode = Environment.TONE_MAPPER_FILMIC
 	var world_env := WorldEnvironment.new()
 	world_env.environment = env
 	add_child(world_env)
 
 	var sun := DirectionalLight3D.new()
-	sun.rotation_degrees = _SUN_ROTATION_DEG
-	sun.light_energy = 1.1
+	sun.name = "Sun"
 	sun.shadow_enabled = true
 	sun.directional_shadow_max_distance = _SHADOW_DISTANCE
 	add_child(sun)
 
+	_day_night = DayNight.new()
+	_day_night.name = "DayNight"
+	_day_night.time_of_day = _state.time_of_day
+	_day_night.day = _state.day
+	add_child(_day_night)
+	_day_night.setup(sun, env, sky_mat)
 
-## Invisible walls just outside the playable square.
+
+## Invisible walls just outside the playable square, tall enough for the highest terrain.
 func _add_edge_walls() -> void:
 	var size := ChunkMath.playable_size()
+	var max_h := GameConstants.TERRAIN_HEIGHT * (1.0 + GameConstants.ROCKY_HEIGHT_BOOST)
+	var height := max_h * 3.0
+	var y := max_h * 0.5
 	var half_t := _WALL_THICKNESS * 0.5
 	var walls := [
-		[Vector3(-half_t, 0, size * 0.5), Vector3(_WALL_THICKNESS, _WALL_HEIGHT, size)],
-		[Vector3(size + half_t, 0, size * 0.5), Vector3(_WALL_THICKNESS, _WALL_HEIGHT, size)],
-		[Vector3(size * 0.5, 0, -half_t), Vector3(size, _WALL_HEIGHT, _WALL_THICKNESS)],
-		[Vector3(size * 0.5, 0, size + half_t), Vector3(size, _WALL_HEIGHT, _WALL_THICKNESS)],
+		[Vector3(-half_t, y, size * 0.5), Vector3(_WALL_THICKNESS, height, size)],
+		[Vector3(size + half_t, y, size * 0.5), Vector3(_WALL_THICKNESS, height, size)],
+		[Vector3(size * 0.5, y, -half_t), Vector3(size, height, _WALL_THICKNESS)],
+		[Vector3(size * 0.5, y, size + half_t), Vector3(size, height, _WALL_THICKNESS)],
 	]
 	for w in walls:
 		var body := StaticBody3D.new()

@@ -7,6 +7,8 @@ const READY_TIMEOUT_FRAMES := 600
 func _make_world() -> World:
 	var w: World = load(MAIN_SCENE).instantiate()
 	w.spawn_seed = 42
+	w.world_seed = GameConstants.WORLD_SEED
+	w.save_path = ""
 	add_child(w)
 	for i in READY_TIMEOUT_FRAMES:
 		if w.is_world_ready():

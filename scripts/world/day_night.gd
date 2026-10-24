@@ -42,11 +42,19 @@ func apply() -> void:
 	var sun_up := clampf(e * 2.0, 0.0, 1.0)
 	var dusk := clampf(1.0 - absf(e) * 3.0, 0.0, 1.0) # peaks at sunrise/sunset
 
-	# Pitch follows the arc: horizontal at sunrise, straight down at noon.
-	_sun.rotation = Vector3(-(time_of_day - 0.25) * TAU, deg_to_rad(GameConstants.SUN_YAW_DEG), 0.0)
-	_sun.light_energy = GameConstants.SUN_MAX_ENERGY * sun_up
-	_sun.light_color = GameConstants.SUN_DUSK_COLOR.lerp(GameConstants.SUN_DAY_COLOR, sun_up)
-	_sun.shadow_enabled = sun_up > 0.0
+	# The same light is the sun by day and the moon by night. Pitch follows the arc:
+	# horizontal at sunrise/sunset, straight down at noon (sun) and midnight (moon).
+	var yaw := deg_to_rad(GameConstants.SUN_YAW_DEG)
+	if e >= 0.0:
+		_sun.rotation = Vector3(-(time_of_day - 0.25) * TAU, yaw, 0.0)
+		_sun.light_energy = GameConstants.SUN_MAX_ENERGY * sun_up
+		_sun.light_color = GameConstants.SUN_DUSK_COLOR.lerp(GameConstants.SUN_DAY_COLOR, sun_up)
+	else:
+		var moon_up := clampf(-e * 2.0, 0.0, 1.0)
+		_sun.rotation = Vector3(-(time_of_day - 0.75) * TAU, yaw, 0.0)
+		_sun.light_energy = GameConstants.MOON_ENERGY * moon_up
+		_sun.light_color = GameConstants.MOON_COLOR
+	_sun.shadow_enabled = _sun.light_energy > 0.0
 
 	_sky.sky_top_color = GameConstants.SKY_NIGHT_TOP.lerp(GameConstants.SKY_DAY_TOP, daylight)
 	var horizon := GameConstants.SKY_NIGHT_HORIZON.lerp(GameConstants.SKY_DAY_HORIZON, daylight)

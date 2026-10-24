@@ -39,9 +39,11 @@ scripts/core/         game_constants.gd (todas as constantes)
 scripts/world/        chunks, terreno, spawn, cena do mundo
 scripts/actors/       jogador e entrada
 scripts/camera/       câmera isométrica
+scripts/ui/           HUD
+shaders/              prop_occlusion.gdshader (árvores/rochas somem na frente do jogador)
 scenes/               main.tscn, player.tscn
 tests/                run_tests.gd, game_test.gd, unit/, integration/, visual/
-tools/                godot.ps1, run_tests.ps1, build_models.ps1, capture.ps1
+tools/                godot.ps1, run_tests.ps1, build_models.ps1, capture.ps1, new_world.ps1
 tools/blender/        scripts Python do Blender (um por modelo + common.py)
 docs/superpowers/     specs/ e plans/
 ```
@@ -64,6 +66,9 @@ docs/superpowers/     specs/ e plans/
 6. Sem assets externos. As integrações de assets do Blender MCP (PolyHaven, Sketchfab etc.) ficam desligadas.
 7. Código e comentários em inglês. Documentação e textos do jogo em português.
 8. Commits pequenos, um por funcionalidade. Cada etapa do roadmap ganha um design curto antes.
+9. **Mexeu na geração do mundo** (terreno, biomas, densidades, `PROP_CELL`, inclinação)? Suba
+   `GameConstants.WORLDGEN_VERSION`. Isso invalida só a lista de objetos removidos dos saves antigos.
+10. Testes e capturas nunca usam o save real: `World.save_path = ""` e `world_seed` fixo.
 
 ## Comandos
 
@@ -71,12 +76,14 @@ docs/superpowers/     specs/ e plans/
 - Gerar modelos: `powershell -ExecutionPolicy Bypass -File tools/build_models.ps1`
 - Capturas de tela: `powershell -ExecutionPolicy Bypass -File tools/capture.ps1` (saem em `captures/`)
 - Abrir o editor: `powershell -ExecutionPolicy Bypass -File tools/godot.ps1 -e`
+- Começar um mundo novo (apaga o save): `powershell -ExecutionPolicy Bypass -File tools/new_world.ps1`
+- Controles: WASD anda, Shift corre, E coleta (árvore 4 golpes = 3 madeira, rocha 5 = 2 pedra, arbusto 1 = 2 frutas)
 
 ## Roadmap
 
-1. **Fundação jogável:** mapa pequeno em chunks, humanoide do Blender com WASD e Shift para
+1. ✅ **Fundação jogável:** mapa pequeno em chunks, humanoide do Blender com WASD e Shift para
    correr, câmera isométrica seguindo, testes.
-2. **Mundo com conteúdo:** biomas, árvores, pedras e arbustos (MultiMesh), recursos coletáveis,
+2. ✅ **Mundo com conteúdo:** biomas, árvores, pedras e arbustos (MultiMesh), recursos coletáveis,
    dia e noite, mapa maior, persistência delta por chunk.
 3. **Construção:** inventário, coleta, construções pré-feitas com custo realista, fundação do reino.
 4. **Criaturas e combate:** genoma de peças (animais reais + inventadas), comportamento, cruzamento

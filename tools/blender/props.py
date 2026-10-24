@@ -14,7 +14,7 @@ import common  # noqa: E402
 BARK = (0.40, 0.27, 0.16)
 OAK_LEAVES = (0.30, 0.52, 0.20)
 PINE_NEEDLES = (0.18, 0.38, 0.22)
-ROCK = (0.55, 0.54, 0.52)
+ROCK = (0.46, 0.45, 0.43)
 BUSH_LEAVES = (0.26, 0.48, 0.20)
 BERRY = (0.75, 0.12, 0.15)
 
