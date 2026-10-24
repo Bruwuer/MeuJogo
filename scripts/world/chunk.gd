@@ -254,8 +254,13 @@ func set_crest(rec: Dictionary, crest: Dictionary) -> void:
 	var banner := _library.crest_scene().instantiate() as Node3D
 	banner.name = "Crest"
 	banner.set_meta("crest_key", key)
+	# The camera never turns: the banner goes on the corner it sees, its cloth turned to it.
+	var yaw := deg_to_rad(GameConstants.CAM_YAW_DEG)
+	var cam := Vector3(sin(yaw), 0.0, cos(yaw)).rotated(Vector3.UP, -node.rotation.y) # in the building's frame
 	var fp: Vector2 = GameConstants.BUILD_FOOTPRINT[rec.type]
-	banner.position = Vector3(fp.x * 0.5 + GameConstants.CREST_BANNER_GAP.x, 0.0, fp.y * 0.5 - GameConstants.CREST_BANNER_GAP.y)
+	banner.position = Vector3(signf(cam.x) * (fp.x * 0.5 + GameConstants.CREST_BANNER_GAP.x), 0.0,
+			signf(cam.z) * (fp.y * 0.5 - GameConstants.CREST_BANNER_GAP.y))
+	banner.rotation.y = yaw - node.rotation.y
 	for mi: MeshInstance3D in banner.find_children("*", "MeshInstance3D", true, false):
 		for s in mi.mesh.get_surface_count():
 			var mat := mi.mesh.surface_get_material(s)

@@ -71,6 +71,7 @@ func _run() -> void:
 
 	await _village(scatter)
 	await _people()
+	await _society()
 	await _creatures(scatter)
 	print("WORST_FRAME_MS %.1f" % _worst_ms)
 	print("WOOD %d" % _world.get_state().get_resource(GameConstants.Res.WOOD))
@@ -437,3 +438,179 @@ func _show(rec: Dictionary) -> void:
 	var chunk := _world.get_streamer().get_chunk(ChunkMath.world_to_chunk(rec.pos))
 	if chunk:
 		chunk.add_building(rec)
+
+
+## Stage 6: a family (couple + children) by its house with the crest banner, the card of the
+## mother, crests on several houses, the families panel (C), a member breaking away (new crest on
+## his house) and the allies/enemies news (gift and theft).
+func _society() -> void:
+	const B := GameConstants.Building
+	const P := GameConstants.Profession
+	const T := GameConstants.Trait
+	if _village_spot.x < 0.0 or _world.get_state().kingdoms().is_empty():
+		print("SKIPPED society: no village")
+		return
+	var state := _world.get_state()
+	var gen := _world.get_generator()
+	var sim := _world.get_village_sim()
+	var mgr := _world.get_people_manager()
+	var hud := _world.get_hud()
+	var p := _world.get_player()
+	var scatter := PropScatter.new(gen, state.seed)
+	var k: Dictionary = state.kingdoms()[0]
+	k.next_traveler_hour = 1e9
+	var raid_hours := {}
+	for pk in state.all_packs():
+		raid_hours[pk.id] = pk.next_raid_hour
+		pk.next_raid_hour = 1e9
+	_set_time(DAY_TIME)
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 21
+	sim.society.tick_hour(k, sim.now_hours()) # every resident gets a family
+
+	# The family: Ana and Bento, married, with two children, in their own house.
+	var mom := state.add_person(PersonGen.generate(rng, 0.3, P.FARMER), _ground(gen, k.center), k.id)
+	var dad := state.add_person(PersonGen.generate(rng, 0.3, P.BUILDER), _ground(gen, k.center), k.id)
+	mom.merge({name = "Ana", surname = "Ferreira", female = true, age = 34.0, status = "resident",
+			traits = [T.SOCIABLE, T.WORKER]}, true)
+	dad.merge({name = "Bento", surname = "do Vale", female = false, age = 36.0, status = "resident",
+			traits = [T.WORKER, T.BRAVE]}, true)
+	var fam := state.add_family("Ferreira", Crest.generate(rng, []), k.id, mom.id, sim.now_hours())
+	var kids: Array[Dictionary] = []
+	for age in [7.0, 3.0]:
+		var c := state.add_person(PersonGen.child(mom, dad, "Ferreira", rng, kids.map(func(x: Dictionary) -> String: return x.name)),
+				_ground(gen, k.center), k.id)
+		c.merge({status = "resident", age = age, parents = [mom.id, dad.id]}, true)
+		kids.append(c)
+	for x in [mom, dad] + kids:
+		x.family_id = fam.id
+	mom.spouse_id = dad.id
+	dad.spouse_id = mom.id
+	var spot := VillageRules.pick_site(B.HOUSE, k, state, gen, scatter, [p.global_position], rng)
+	var house := {}
+	if spot.ok:
+		# The door faces the camera (it never turns) when the place allows it.
+		var yaw := deg_to_rad(GameConstants.CAM_YAW_DEG)
+		var rot := VillageRules._rot_facing(Vector3(sin(yaw), 0.0, cos(yaw)))
+		if not BuildRules.check_site(B.HOUSE, spot.pos, rot, gen, scatter, state, [p.global_position]).ok:
+			rot = spot.rot
+		house = state.add_building(B.HOUSE, spot.pos, rot, Color.WHITE, mom.id)
+		_show(house)
+		for x in [mom, dad] + kids:
+			x.home_id = house.id
+	# A friend and a rival for Ana's card.
+	var others := state.residents(k.id).filter(func(x: Dictionary) -> bool: return x.family_id != fam.id and SocietyRules.is_adult(x))
+	if others.size() >= 2:
+		state.set_relation(mom.id, others[0].id, 0.6)
+		state.set_relation(mom.id, others[1].id, -0.6)
+	mom.opinion = 0.7
+	mom.stance = "ally"
+	mgr.refresh_crests()
+	print("SOCIETY house=%s families=%d" % [spot.ok, state.families_of(k.id).size()])
+	await _physics(30)
+	if not house.is_empty():
+		var door := PeopleManager.door_of(house)
+		var out: Vector3 = (door - house.pos).normalized()
+		var side := out.cross(Vector3.UP)
+		var people := [mom, dad] + kids
+		var spots: Array[Vector3] = []
+		for i in people.size():
+			spots.append(_ground(gen, door + out * 1.2 + side * (i - 1.5) * 0.9))
+			state.move_person(people[i].id, spots[i])
+		await _teleport(door + out * 6.0 + side * 2.0)
+		for f in 120: # the nodes appear where the records are
+			if people.all(func(x: Dictionary) -> bool: return mgr.node_for(x.id) != null):
+				break
+			await _frames(1)
+		for i in people.size():
+			var n := mgr.node_for(people[i].id)
+			if n:
+				n.global_position = spots[i]
+				n.reset_physics_interpolation()
+				n.walk_to(spots[i])
+				n.rotation.y = atan2(out.x, out.z)
+		await _physics(40)
+		await _shot("24_couple_children")
+		var mn := mgr.node_for(mom.id)
+		if mn:
+			await _teleport(spots[0] + out * 1.4)
+			p.face(spots[0] - p.global_position)
+			p.interact()
+			await _frames(10)
+			await _shot("23_family_card")
+			hud.hide_card()
+	else:
+		print("SKIPPED 23/24: no place for the family's house")
+
+	# Crests on the houses of several families.
+	var houses := VillageRules.kingdom_buildings(state, k).filter(func(b: Dictionary) -> bool:
+		return b.type == B.HOUSE and not b.get("site", false))
+	var center := Vector3.ZERO
+	for b in houses:
+		center += b.pos
+		if int(b.owner) < 0 or state.person(b.owner).is_empty():
+			var someone := state.residents(k.id).filter(func(x: Dictionary) -> bool: return SocietyRules.is_adult(x) and x.family_id != fam.id)
+			if not someone.is_empty():
+				b.owner = someone[0].id
+				someone[0].home_id = b.id
+	mgr.refresh_crests()
+	if not houses.is_empty():
+		# Frame the family's house with the house nearest to it (two crests side by side).
+		var a: Dictionary = house if not house.is_empty() else houses[0]
+		var b := a
+		var best := INF
+		for h in houses:
+			var d := Vector2(h.pos.x - a.pos.x, h.pos.z - a.pos.z).length()
+			if h.id != a.id and d < best:
+				best = d
+				b = h
+		var yaw := deg_to_rad(GameConstants.CAM_YAW_DEG)
+		await _teleport((a.pos + b.pos) * 0.5 + Vector3(sin(yaw), 0.0, cos(yaw)) * 2.0)
+		await _physics(30)
+		await _shot("25_house_crests")
+	hud.toggle_families()
+	await _frames(10)
+	await _shot("26_families_panel")
+	hud.toggle_families()
+
+	# A rival of Ana breaks away from the Casa Ferreira and founds his own house.
+	var other_house := {}
+	for b in houses:
+		if b.id != house.get("id", -1):
+			other_house = b
+	if not other_house.is_empty():
+		var martim := state.add_person(PersonGen.generate(rng, 0.0, P.MASON), _ground(gen, PeopleManager.door_of(other_house)), k.id)
+		martim.merge({name = "Martim", surname = "Ferreira", female = false, age = 24.0, status = "resident",
+				family_id = fam.id, home_id = other_house.id, traits = [T.LAZY, T.GREEDY]}, true)
+		other_house.owner = martim.id
+		mgr.refresh_crests()
+		var cam_dir := Vector3(sin(deg_to_rad(GameConstants.CAM_YAW_DEG)), 0.0, cos(deg_to_rad(GameConstants.CAM_YAW_DEG)))
+		await _teleport(other_house.pos + cam_dir * 4.5)
+		await _physics(30)
+		state.set_relation(martim.id, mom.id, -0.9)
+		fam.last_split_hour = -1e9
+		sim.society.tick_hour(k, sim.now_hours())
+		await _physics(30)
+		print("SOCIETY split martim family=%s" % state.family(martim.family_id).get("surname", "?"))
+		await _shot("27_family_split")
+	else:
+		print("SKIPPED 27_family_split: one house only")
+
+	# Allies and enemies: a gift from the Casa Ferreira, a theft by an enemy.
+	for x in state.family_members(fam.id):
+		x.opinion = 0.8
+	fam.stance = ""
+	fam.deed_day = -1
+	var foe := state.residents(k.id).filter(func(x: Dictionary) -> bool: return x.family_id != fam.id and SocietyRules.is_adult(x))
+	if not foe.is_empty():
+		foe[0].opinion = -0.9
+		foe[0].stance = ""
+		foe[0].deed_day = -1
+	state.add_stock(k, GameConstants.Res.WOOD, 30)
+	_set_time(0.45)
+	sim.society.tick_hour(k, floorf(sim.now_hours()))
+	await _frames(10)
+	await _shot("28_allies_enemies")
+	_set_time(DAY_TIME)
+	for pk in state.all_packs():
+		pk.next_raid_hour = raid_hours.get(pk.id, 0.0)

@@ -153,7 +153,7 @@ func test_crest_banner_model() -> void:
 	var n: Node3D = load(GameConstants.CREST_BANNER_SCENE).instantiate()
 	add_child(n)
 	var box := _aabb(n)
-	assert_near(box.size.y, 2.5, 0.2, "banner height")
+	assert_near(box.size.y, 3.34, 0.2, "banner height")
 	var found := false
 	for mi: MeshInstance3D in n.find_children("*", "MeshInstance3D", true, false):
 		for s in mi.mesh.get_surface_count():

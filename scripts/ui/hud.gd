@@ -15,7 +15,7 @@ const _REASON_COLOR := Color(1.0, 0.45, 0.4)
 const _MESSAGE_COLOR := Color(1.0, 0.88, 0.6)
 const _MAX_MESSAGES := 4
 const _MESSAGE_SEC := 8.0
-const _CARD_WIDTH := 360.0
+const _CARD_WIDTH := 440.0
 const _CARD_COLOR := Color(0.1, 0.08, 0.06, 0.82)
 const _CARD_CREST_SCALE := 2.0
 const _ROW_CREST_SCALE := 1.0
@@ -76,6 +76,7 @@ func setup(state: WorldState, harvest: HarvestSystem, day_night: DayNight, playe
 	_card.set_anchors_and_offsets_preset(Control.PRESET_CENTER_RIGHT)
 	_card.offset_left = -_CARD_WIDTH - _MARGIN
 	_card.offset_right = -_MARGIN
+	_card.grow_vertical = Control.GROW_DIRECTION_BOTH # long cards stay on screen
 	_card.visible = false
 	var style := StyleBoxFlat.new()
 	style.bg_color = _CARD_COLOR
@@ -390,3 +391,12 @@ func _fill_families(k: Dictionary) -> void:
 		label.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 		row.add_child(label)
 		_families_box.add_child(row)
+
+
+func card_rect() -> Rect2:
+	return _card.get_global_rect()
+
+
+func hide_card() -> void:
+	_card_left = 0.0
+	_card.visible = false

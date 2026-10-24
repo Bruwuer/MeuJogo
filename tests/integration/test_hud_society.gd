@@ -143,3 +143,16 @@ func test_family_key_action_exists() -> void:
 	assert_true(InputMap.has_action("families"), "families action")
 	var keys := InputMap.action_get_events("families").map(func(e: InputEvent) -> int: return (e as InputEventKey).physical_keycode)
 	assert_true(keys.has(KEY_C), "on C")
+
+
+func test_card_fits_on_screen() -> void:
+	_make()
+	var h := _household()
+	hud.show_card(h.ana)
+	await wait_frames(3)
+	var rect := hud.card_rect()
+	var view := get_viewport().get_visible_rect()
+	assert_near(rect.get_center().y, view.get_center().y, 1.0, "centered on its anchor, grows up and down (%s)" % rect)
+	assert_true(rect.size.y < 620.0, "short enough for a 720 p screen (%s)" % rect)
+	hud.hide_card()
+	assert_true(not hud.card_visible())

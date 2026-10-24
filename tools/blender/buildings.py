@@ -219,8 +219,8 @@ def scaffold():
 
 
 
-CREST_W = 0.6  # cloth width (m); its shape matches Crest's pixel mask (32 x 40)
-CREST_H = 0.75
+CREST_W = 0.85  # cloth width (m); its shape matches Crest's pixel mask (32 x 40)
+CREST_H = 1.05
 CREST_SPLIT = 22.0 / 40.0  # where the straight sides start curving into the point
 
 
@@ -230,11 +230,11 @@ def crest_banner():
     pole = common.flat_material("pole", POLE)
     cloth = common.flat_material("crest", BANNER)
     parts = [
-        cylinder("pole", 0.04, 2.4, (0, 0, 1.2), pole, segments=6),
-        box("bar", (0.75, 0.04, 0.04), (0.36, 0, 2.3), pole),
-        cylinder("finial", 0.07, 0.12, (0, 0, 2.46), pole, segments=6, radius_top=0.0),
+        cylinder("pole", 0.05, 3.2, (0, 0, 1.6), pole, segments=6),
+        box("bar", (1.0, 0.05, 0.05), (0.48, 0, 3.08), pole),
+        cylinder("finial", 0.09, 0.14, (0, 0, 3.27), pole, segments=6, radius_top=0.0),
     ]
-    top, cx = 2.27, 0.38
+    top, cx = 3.05, 0.5
     outline = [(0.0, 0.0), (1.0, 0.0)]  # (u, v) of the image, v down
     steps = 8
     for k in range(steps + 1):

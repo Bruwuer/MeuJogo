@@ -89,14 +89,24 @@ func test_banner_on_owned_house() -> void:
 	var spot := _make()
 	var p := _resident(spot + Vector3(0, 0, 6), 1)
 	var f := _family(p, 5)
-	var house := state.add_building(B.HOUSE, spot + Vector3(12, 0, 0), 0, Color.WHITE, p.id)
+	var houses := [
+		state.add_building(B.HOUSE, spot + Vector3(12, 0, 0), 0, Color.WHITE, p.id),
+		state.add_building(B.HOUSE, spot + Vector3(-12, 0, 0), 2, Color.WHITE, p.id), # door away from the camera
+	]
 	await _load_around(spot)
 	mgr.refresh_crests()
-	assert_eq(_banner_material(house), Crest.material(f.crest), "the owner's family crest")
-	var chunk := streamer.get_chunk(ChunkMath.world_to_chunk(house.pos))
-	var banner: Node3D = chunk.building_node(house.id).get_node("Crest")
-	var fp: Vector2 = GameConstants.BUILD_FOOTPRINT[B.HOUSE]
-	assert_true(banner.position.x > fp.x * 0.5 and banner.position.z > 0.0, "beside the front corner, outside the walls")
+	var cam := Vector3(sin(deg_to_rad(GameConstants.CAM_YAW_DEG)), 0.0, cos(deg_to_rad(GameConstants.CAM_YAW_DEG)))
+	for house: Dictionary in houses:
+		assert_eq(_banner_material(house), Crest.material(f.crest), "the owner's family crest")
+		var chunk := streamer.get_chunk(ChunkMath.world_to_chunk(house.pos))
+		var banner: Node3D = chunk.building_node(house.id).get_node("Crest")
+		var at := banner.global_position
+		var rect := BuildRules.footprint_rect(B.HOUSE, house.pos, house.rot)
+		assert_true(not rect.has_point(Vector2(at.x, at.z)), "outside the walls (rot %d)" % house.rot)
+		var off: Vector3 = at - house.pos
+		off.y = 0.0
+		assert_true(off.dot(cam) > 2.0, "on the corner the camera sees (rot %d)" % house.rot)
+		assert_true(banner.global_basis.z.normalized().dot(cam) > 0.99, "the cloth faces the camera")
 
 
 func test_banner_follows_owner_family() -> void:
