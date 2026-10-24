@@ -634,3 +634,30 @@ const PERSON_WORK_GAP := 0.6 ## Distance kept from a prop's trunk while working 
 const PERSON_HARVEST_SEC := { Prop.OAK: 6.0, Prop.PINE: 6.0, Prop.ROCK: 8.0, Prop.BUSH: 2.0 }
 const PERSON_SITE_SEC := 5.0 ## One work action on a site (adds 5 s worth of person-hours).
 const PERSON_FARM_SEC := 5.0
+
+# Talking to and helping villagers
+const TALK_RANGE := 2.2
+const TALK_PROMPT := "[E] Falar com %s"
+const PERSON_CARD_SEC := 6.0
+const DONATE_MAX := 10 ## Of each resource per G press.
+const DONATE_RES := [Res.WOOD, Res.STONE, Res.BERRIES]
+const DONATE_OPINION := 0.05
+const DONATE_RADIUS := 25.0 ## Who sees a donation.
+const DONATE_MSG := "Você doou %s ao Reino de %s"
+const DONATE_NOTHING_MSG := "Você não tem madeira, pedra nem frutas para doar"
+const DONATE_OUTSIDE_MSG := "Doe dentro de um reino"
+const PROTECT_OPINION := 0.05 ## To every resident when the player kills a raider inside the kingdom.
+const AWAY_OPINION_PER_DAY := 0.1 ## Opinions drift toward neutral while the player is away.
+## Opinion lines on the card, for opinions >= each step (the last one is below every step).
+const OPINION_STEPS := [0.3, 0.1, -0.1, -0.3]
+const OPINION_TEXTS := ["Gosta de você", "Simpatiza com você", "Não tem opinião sobre você", "Desconfia de você", "Não gosta de você"]
+const JOB_TEXTS := {
+	"wood": "cortando lenha", "stone": "quebrando pedra", "berries": "colhendo frutas", "farm": "cuidando da fazenda",
+	"build": "trabalhando na obra", "market": "cuidando do comércio", "idle": "sem trabalho", "rest": "descansando",
+	"": "olhando o reino",
+}
+const STATUS_TEXTS := { "traveler": "chegando ao reino", "leaving": "indo embora", "inside": "em casa" }
+const NEED_TEXTS := { "food": "comida", "home": "uma casa", "mood": "ânimo", "none": "nada por enquanto" }
+const VILLAGE_LINE := "Moradores: %d · Estoque: %s"
+const VILLAGE_NEWS_SHOWN := 3 ## Village messages shown when the player comes back.
+const VILLAGE_NEWS_MORE := "Enquanto você estava fora, aconteceram mais %d coisas nos povoados"

@@ -97,7 +97,7 @@ func test_kingdom_label_inside_territory_and_toast() -> void:
 func test_hint_outside_build_mode() -> void:
 	await _setup()
 	await wait_physics_frames(2)
-	assert_eq(_label("Hint").text, "B construir · X demolir · Espaço ataca · H come · F flechas")
+	assert_eq(_label("Hint").text, "E fala · G doa · B construir · X demolir · Espaço ataca · H come · F flechas")
 
 
 func test_resources_label_follows_any_change() -> void:

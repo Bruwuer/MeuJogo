@@ -15,6 +15,8 @@ const _REASON_COLOR := Color(1.0, 0.45, 0.4)
 const _MESSAGE_COLOR := Color(1.0, 0.88, 0.6)
 const _MAX_MESSAGES := 4
 const _MESSAGE_SEC := 8.0
+const _CARD_WIDTH := 360.0
+const _CARD_COLOR := Color(0.1, 0.08, 0.06, 0.82)
 
 var _state: WorldState
 var _harvest: HarvestSystem
@@ -34,6 +36,11 @@ var _health: Label
 var _weapon: Label
 var _messages: Label
 var _message_list: Array = [] # [text, seconds left], oldest first
+var _people: PeopleManager
+var _village: Label
+var _card: PanelContainer
+var _card_label: Label
+var _card_left := 0.0
 
 
 func setup(state: WorldState, harvest: HarvestSystem, day_night: DayNight, player: Node3D,
@@ -53,6 +60,26 @@ func setup(state: WorldState, harvest: HarvestSystem, day_night: DayNight, playe
 	_center_h(_kingdom, _WIDE)
 	_kingdom.offset_top = _MARGIN
 	_kingdom.visible = false
+	_village = _make_label("Village", Control.PRESET_CENTER_TOP, HORIZONTAL_ALIGNMENT_CENTER)
+	_center_h(_village, _WIDE * 2.0)
+	_village.offset_top = _MARGIN + _FONT_SIZE * 1.5
+	_village.visible = false
+	_card = PanelContainer.new()
+	_card.name = "Card"
+	_card.set_anchors_and_offsets_preset(Control.PRESET_CENTER_RIGHT)
+	_card.offset_left = -_CARD_WIDTH - _MARGIN
+	_card.offset_right = -_MARGIN
+	_card.visible = false
+	var style := StyleBoxFlat.new()
+	style.bg_color = _CARD_COLOR
+	style.set_corner_radius_all(6)
+	style.set_content_margin_all(12)
+	_card.add_theme_stylebox_override("panel", style)
+	_card_label = Label.new()
+	_card_label.add_theme_font_size_override("font_size", _FONT_SIZE - 2)
+	_card_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_card.add_child(_card_label)
+	add_child(_card)
 	_prompt = _make_label("Prompt", Control.PRESET_CENTER_BOTTOM, HORIZONTAL_ALIGNMENT_CENTER)
 	_center_h(_prompt, 400.0)
 	_prompt.offset_top = -_PROMPT_BOTTOM
@@ -69,7 +96,7 @@ func setup(state: WorldState, harvest: HarvestSystem, day_night: DayNight, playe
 	_hint = _make_label("Hint", Control.PRESET_BOTTOM_LEFT, HORIZONTAL_ALIGNMENT_LEFT)
 	_hint.offset_left = _MARGIN
 	_hint.offset_top = -_MARGIN - _FONT_SIZE * 1.5
-	_hint.text = "B construir · X demolir · Espaço ataca · H come · F flechas"
+	_hint.text = "E fala · G doa · B construir · X demolir · Espaço ataca · H come · F flechas"
 	_toast = _make_label("Toast", Control.PRESET_CENTER, HORIZONTAL_ALIGNMENT_CENTER)
 	_toast.add_theme_font_size_override("font_size", _TOAST_FONT_SIZE)
 	_center_h(_toast, _WIDE * 2.0)
@@ -113,6 +140,11 @@ func _physics_process(delta: float) -> void:
 	_kingdom.visible = not kingdom.is_empty()
 	if _kingdom.visible:
 		_kingdom.text = "Reino de %s" % kingdom.name
+		_village.text = village_line(kingdom)
+	_village.visible = _kingdom.visible
+	if _card_left > 0.0:
+		_card_left -= delta
+		_card.visible = _card_left > 0.0
 	if _toast_left > 0.0:
 		_toast_left -= delta
 		_toast.visible = _toast_left > 0.0
@@ -130,10 +162,56 @@ func _physics_process(delta: float) -> void:
 		_reason.text = check.reason
 		return
 	_reason.visible = false
+	var person: Person = _people.nearest_person(_player.global_position, GameConstants.TALK_RANGE) if _people else null
+	if person:
+		_prompt.visible = true
+		_prompt.text = GameConstants.TALK_PROMPT % person.record.name
+		return
 	var target := _harvest.find_target(_player.global_position)
 	_prompt.visible = not target.is_empty()
 	if _prompt.visible:
 		_prompt.text = GameConstants.HARVEST_PROMPTS[target.prop.type]
+
+
+## Villagers: the talk prompt, the card and the kingdom line use them.
+func set_people(people: PeopleManager) -> void:
+	_people = people
+	if _player.has_signal("talked"):
+		_player.talked.connect(func(n: Node3D) -> void: show_card((n as Person).record))
+
+
+## "Moradores: 5 · Estoque: Madeira 12, Pedra 3, Comida 8, Frutas 4".
+func village_line(kingdom: Dictionary) -> String:
+	var parts: PackedStringArray = []
+	for res in [GameConstants.Res.WOOD, GameConstants.Res.STONE, GameConstants.Res.FOOD, GameConstants.Res.BERRIES]:
+		parts.append("%s %d" % [GameConstants.RES_NAMES[res], _state.stock_of(kingdom, res)])
+	return GameConstants.VILLAGE_LINE % [_state.residents(kingdom.id).size(), ", ".join(parts)]
+
+
+func show_card(rec: Dictionary) -> void:
+	_card_label.text = PeopleManager.card_text(rec, _state)
+	_card.visible = true
+	_card_left = GameConstants.PERSON_CARD_SEC
+
+
+func card_visible() -> bool:
+	return _card.visible
+
+
+func card_text() -> String:
+	return _card_label.text
+
+
+func village_visible() -> bool:
+	return _village.visible
+
+
+func village_text() -> String:
+	return _village.text
+
+
+func prompt_text() -> String:
+	return _prompt.text if _prompt.visible else ""
 
 
 ## Shows a line (raids, destroyed buildings, deaths) for a few seconds; keeps the last four.

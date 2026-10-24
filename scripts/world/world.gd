@@ -35,6 +35,8 @@ var _spawn: Vector3
 var _scatter: PropScatter
 var _pack_sim: PackSim
 var _creatures: CreatureManager
+var _village: VillageSim
+var _people: PeopleManager
 var _is_ready := false
 var _autosave_left := GameConstants.AUTOSAVE_SEC
 
@@ -105,6 +107,7 @@ func _ready() -> void:
 	_hud.setup(_state, _harvest, _day_night, _player, _build)
 
 	_add_creatures(scatter, library, new_world)
+	_add_people(scatter, library)
 	_streamer.chunk_loaded.connect(_on_chunk_loaded)
 	_streamer.update_center(_spawn)
 
@@ -161,6 +164,7 @@ func save_now() -> Error:
 	if save_path == "":
 		return ERR_UNAVAILABLE
 	_creatures.sync_all()
+	_people.sync_all()
 	_state.player_position = _player.global_position
 	_state.has_player_position = true
 	_state.time_of_day = _day_night.time_of_day
@@ -191,9 +195,18 @@ func _add_creatures(scatter: PropScatter, library: ModelLibrary, new_world: bool
 
 ## Raids that happened while the player was away are told once the player is back in a kingdom.
 func _flush_offscreen_messages() -> void:
-	if _pack_sim.pending_messages.is_empty() or _state.kingdom_at(_player.global_position).is_empty():
+	if _state.kingdom_at(_player.global_position).is_empty():
 		return
 	for text in _pack_sim.take_messages():
+		_hud.add_message(text)
+	if _village.pending_messages.is_empty():
+		return
+	# Village news are many: the latest few, and how many more happened.
+	var news := _village.take_messages()
+	var shown := mini(news.size(), GameConstants.VILLAGE_NEWS_SHOWN)
+	if news.size() > shown:
+		_hud.add_message(GameConstants.VILLAGE_NEWS_MORE % (news.size() - shown))
+	for text in news.slice(news.size() - shown):
 		_hud.add_message(text)
 
 
@@ -318,3 +331,30 @@ func get_creature_manager() -> CreatureManager:
 
 func get_pack_sim() -> PackSim:
 	return _pack_sim
+
+
+func get_village_sim() -> VillageSim:
+	return _village
+
+
+func get_people_manager() -> PeopleManager:
+	return _people
+
+
+## Villages: the hourly VillageSim for every kingdom and the person nodes in loaded chunks.
+func _add_people(scatter: PropScatter, library: ModelLibrary) -> void:
+	_village = VillageSim.new()
+	_village.name = "VillageSim"
+	add_child(_village)
+	_village.setup(_state, _gen, scatter, _day_night)
+	_village.is_player_in = func(k: Dictionary) -> bool:
+		return _state.kingdom_at(_player.global_position).get("id", -1) == k.id
+	_people = PeopleManager.new()
+	_people.name = "People"
+	add_child(_people)
+	_people.setup(_state, _gen, scatter, _streamer, library, _day_night, _village, _player)
+	_people.message.connect(_hud.add_message)
+	_creatures.creature_killed.connect(_people.on_creature_killed)
+	_player.talk_target = _people.nearest_person
+	_player.donate_handler = _people.donate
+	_hud.set_people(_people)

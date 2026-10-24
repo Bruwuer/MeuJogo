@@ -412,6 +412,88 @@ func left_map(n: Person) -> void:
 	n.queue_free()
 
 
+# --- The player -----------------------------------------------------------------------------
+
+## G inside a kingdom: up to DONATE_MAX of each resource goes from the player to the stock, and
+## the residents who see it think better of the player. Returns the message to show.
+func donate(pos: Vector3) -> String:
+	var k := _state.kingdom_at(pos)
+	if k.is_empty():
+		return GameConstants.DONATE_OUTSIDE_MSG
+	var cost := {}
+	var parts: PackedStringArray = []
+	for res in GameConstants.DONATE_RES:
+		var n := mini(GameConstants.DONATE_MAX, _state.get_resource(res))
+		if n > 0:
+			cost[res] = n
+			parts.append("%d %s" % [n, (GameConstants.RES_NAMES[res] as String).to_lower()])
+	if cost.is_empty() or not _state.spend(cost):
+		return GameConstants.DONATE_NOTHING_MSG
+	for res in cost:
+		_state.add_stock(k, res, cost[res])
+	sync_all()
+	for p in _state.residents(k.id):
+		if _flat(p.pos, pos) <= GameConstants.DONATE_RADIUS:
+			p.opinion = clampf(float(p.opinion) + GameConstants.DONATE_OPINION, -1.0, 1.0)
+	_snaps.erase(k.id)
+	return GameConstants.DONATE_MSG % [", ".join(parts), k.name]
+
+
+## The player killed a creature: a raider (or a carnivore) inside a kingdom means it protected
+## the people there.
+func on_creature_killed(rec: Dictionary, by_player: bool) -> void:
+	if not by_player:
+		return
+	var k := _state.kingdom_at(rec.pos)
+	if k.is_empty():
+		return
+	var pack := _state.pack(rec.get("pack_id", -1))
+	var raider: bool = not pack.is_empty() and pack.raid_kingdom == k.id
+	if not raider and rec.genome.diet != GameConstants.Diet.CARNIVORE:
+		return
+	for p in _state.residents(k.id):
+		p.opinion = clampf(float(p.opinion) + GameConstants.PROTECT_OPINION, -1.0, 1.0)
+
+
+## What the card shows when the player talks to someone.
+static func card_text(rec: Dictionary, state: WorldState) -> String:
+	var traits: PackedStringArray = []
+	for t: int in rec.traits:
+		traits.append(PersonGen.trait_name(rec, t))
+	var doing: String
+	if int(rec.get("inside", -1)) >= 0:
+		doing = GameConstants.STATUS_TEXTS.inside
+	elif GameConstants.STATUS_TEXTS.has(rec.status):
+		doing = GameConstants.STATUS_TEXTS[rec.status]
+	else:
+		doing = GameConstants.JOB_TEXTS.get(rec.get("job", ""), GameConstants.JOB_TEXTS.idle)
+	var need := "none"
+	if float(rec.get("hunger", 0.0)) >= GameConstants.HUNGER_MEAL:
+		need = "food"
+	elif rec.status == "resident" and int(rec.get("home_id", -1)) < 0:
+		need = "home"
+	elif float(rec.get("contentment", 1.0)) < GameConstants.LEAVE_CONTENTMENT + 0.15:
+		need = "mood"
+	var k := state.kingdom(rec.get("kingdom_id", -1))
+	var lines: PackedStringArray = [
+		"%s, %d anos" % [PersonGen.full_name(rec), rec.age],
+		"%s · %s" % [PersonGen.profession_name(rec).capitalize(), ", ".join(traits)],
+		"Agora: %s" % doing,
+		"Precisa de: %s" % GameConstants.NEED_TEXTS[need],
+		opinion_text(float(rec.opinion)),
+	]
+	if not k.is_empty():
+		lines.insert(1, "Reino de %s" % k.name if rec.status == "resident" else "De passagem pelo Reino de %s" % k.name)
+	return "\n".join(lines)
+
+
+static func opinion_text(opinion: float) -> String:
+	for i in GameConstants.OPINION_STEPS.size():
+		if opinion >= GameConstants.OPINION_STEPS[i]:
+			return GameConstants.OPINION_TEXTS[i]
+	return GameConstants.OPINION_TEXTS[-1]
+
+
 # --- Chunks ---------------------------------------------------------------------------------
 
 func _chunk_of(pos: Vector3) -> Chunk:

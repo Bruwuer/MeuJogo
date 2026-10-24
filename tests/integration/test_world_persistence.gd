@@ -170,3 +170,25 @@ func test_creatures_and_packs_persist_across_save() -> void:
 	assert_near(b.get_state().pack(packs[0].id).grudge, 0.42, 0.001)
 	var wolves := b.get_state().all_packs().filter(func(p: Dictionary) -> bool: return p.species == "lobo")
 	assert_eq(wolves.size(), packs.size() if packs.size() > 0 else 1, "first wolves added again on reload")
+
+
+func test_people_persist_across_save() -> void:
+	var a: World = await _make_world(GameConstants.WORLD_SEED, _path)
+	var s := a.get_state()
+	var seat := s.add_building(GameConstants.Building.CABIN, a.get_player().global_position + Vector3(200, 0, 200), 0)
+	var k := s.add_kingdom("Salvo", Color.BLUE, seat.pos, seat.id)
+	var r := RandomNumberGenerator.new()
+	r.seed = 9
+	var p := s.add_person(PersonGen.generate(r), seat.pos + Vector3(2, 0, 5), k.id)
+	p.status = "resident"
+	p.opinion = 0.33
+	s.add_stock(k, GameConstants.Res.FOOD, 7)
+	assert_true(a.get_people_manager() != null and a.get_village_sim() != null, "the world runs the villages")
+	assert_eq(a.save_now(), OK)
+	a.free()
+	var b: World = await _make_world(GameConstants.WORLD_SEED, _path)
+	var q := b.get_state().person(p.id)
+	assert_eq(q.get("name"), p.name)
+	assert_eq(q.get("status"), "resident")
+	assert_near(float(q.get("opinion", 0.0)), 0.33, 0.0001)
+	assert_eq(b.get_state().stock_of(b.get_state().kingdom(k.id), GameConstants.Res.FOOD), 7)

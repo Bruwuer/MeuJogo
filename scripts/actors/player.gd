@@ -1,6 +1,7 @@
 class_name Player
 extends CharacterBody3D
-## Player character: screen-relative WASD (Shift to run), E to harvest, gravity, faces its movement
+## Player character: screen-relative WASD (Shift to run), E talks to a person nearby or harvests,
+## G donates to the kingdom, gravity, faces its movement
 ## and switches idle/walk/run animations from the imported humanoid model.
 ## Combat is keyboard only: Space attacks where the character faces (no auto-aim), 1/2/3 pick a
 ## weapon and Q cycles, F makes arrows, H eats berries. The active weapon sits in the right hand.
@@ -8,6 +9,7 @@ extends CharacterBody3D
 signal died
 signal attacked(weapon: int)
 signal message(text: String)
+signal talked(person: Node3D)
 
 const _IDLE_SPEED := 0.1
 const _ANIM_BLEND := 0.15
@@ -28,6 +30,11 @@ var state: WorldState
 var library: ModelLibrary
 ## func() -> Array of Creature nodes that can be hit (CreatureManager.active_creatures).
 var creature_source := Callable()
+## func(pos: Vector3, max_dist: float) -> Person or null (PeopleManager.nearest_person): E talks
+## to that person first, before harvesting.
+var talk_target := Callable()
+## func(pos: Vector3) -> String (PeopleManager.donate): G gives resources to the kingdom.
+var donate_handler := Callable()
 var health := Health.new(GameConstants.PLAYER_HP)
 var weapon: int = GameConstants.Weapon.SWORD
 
@@ -78,6 +85,8 @@ func _unhandled_input(event: InputEvent) -> void:
 		attack()
 	elif event.is_action_pressed("craft_arrows"):
 		craft_arrows()
+	elif event.is_action_pressed("donate"):
+		donate()
 	elif event.is_action_pressed("eat"):
 		eat()
 
@@ -97,8 +106,8 @@ func _physics_process(delta: float) -> void:
 	_since_hurt += delta
 	if _since_hurt >= GameConstants.PLAYER_REGEN_DELAY:
 		health.heal(GameConstants.PLAYER_REGEN_PER_SEC * delta)
-	if not is_busy() and harvest and harvest_enabled and Input.is_action_just_pressed("interact"):
-		_try_harvest()
+	if not is_busy() and harvest_enabled and Input.is_action_just_pressed("interact"):
+		interact()
 	var input := Input.get_vector("move_left", "move_right", "move_up", "move_down")
 	var dir := IsoInput.to_world(input, GameConstants.CAM_YAW_DEG)
 	if is_busy() or health.is_dead():
@@ -293,3 +302,22 @@ func _try_harvest() -> void:
 	_work_left = GameConstants.HARVEST_HIT_TIME
 	play_anim(GameConstants.ANIM_WORK, true)
 	harvest.hit(target)
+
+
+## E outside build mode: talk to the nearest person in TALK_RANGE, else hit the nearest prop.
+func interact() -> void:
+	if talk_target.is_valid():
+		var person: Node3D = talk_target.call(global_position, GameConstants.TALK_RANGE)
+		if person:
+			var to := person.global_position - global_position
+			face(Vector3(to.x, 0.0, to.z))
+			talked.emit(person)
+			return
+	if harvest:
+		_try_harvest()
+
+
+## G: gives up to DONATE_MAX of each resource to the kingdom the player stands in.
+func donate() -> void:
+	if donate_handler.is_valid():
+		message.emit(donate_handler.call(global_position))

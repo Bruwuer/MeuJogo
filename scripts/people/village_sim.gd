@@ -24,6 +24,8 @@ var pending_messages: Array[String] = []
 var has_node: Callable = func(_id: int) -> bool: return false
 ## kingdom -> whether its area is loaded (messages go straight to the HUD).
 var is_kingdom_loaded: Callable = func(_k: Dictionary) -> bool: return false
+## kingdom -> whether the player is inside it (opinions drift toward neutral while away).
+var is_player_in: Callable = func(_k: Dictionary) -> bool: return false
 ## Own clock when there is no DayNight (tests), in total hours.
 var clock_hours := 0.0
 
@@ -96,7 +98,10 @@ func _tick_hour() -> void:
 		_plan(k)
 		_offscreen_work(k)
 		_stalled_site(k)
+		var away: bool = not is_player_in.call(k)
 		for p in _state.residents(k.id):
+			if away:
+				p.opinion = move_toward(float(p.opinion), 0.0, GameConstants.AWAY_OPINION_PER_DAY / 24.0)
 			opinions += float(p.opinion)
 			count += 1
 	if count > 0:
