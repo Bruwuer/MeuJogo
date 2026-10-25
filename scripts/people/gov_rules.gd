@@ -11,6 +11,60 @@ static func default_decrees() -> Dictionary:
 	return {tax = "none", ration = "normal", guards = GameConstants.GOV_GUARDS_FREE, build = GameConstants.GOV_BUILD_FREE}
 
 
+## Mean opinion of the founder among the kingdom's adults (0 when there are none).
+static func mean_opinion(state: WorldState, k: Dictionary) -> float:
+	var mean: Variant = SocietyRules.adult_mean(state.residents(k.id))
+	return 0.0 if mean == null else float(mean)
+
+
+## Where opinions of the absent founder drift: toward worship under a cult, toward hatred under an
+## enemy ruler, else toward neutral.
+static func away_target(k: Dictionary) -> float:
+	if int(k.get("ruler_id", GameConstants.GOV_PLAYER)) < 0:
+		return 0.0
+	match String(k.get("ruler_way", "")):
+		"culto":
+			return GameConstants.GOV_CULT_TARGET
+		"inimigo":
+			return GameConstants.GOV_ENEMY_TARGET
+	return 0.0
+
+
+## Who is called to the guard (-1 when nobody fits): members of warrior Houses, then the brave or
+## those who dream of the guard, then adults of no House. Never children, guards, the ruler or
+## someone busy with a deed. Ties: lowest id.
+static func muster_candidate(state: WorldState, k: Dictionary) -> int:
+	var best := -1
+	var best_rank := 3
+	for p in state.residents(k.id):
+		if not SocietyRules.is_adult(p) or int(p.profession) == GameConstants.Profession.GUARD 				or p.id == int(k.get("ruler_id", -1)) or not (p.get("deed", {}) as Dictionary).is_empty():
+			continue
+		var f := state.family(int(p.get("family_id", -1)))
+		var rank := 3
+		if not f.is_empty() and int(f.get("tradition", -1)) == GameConstants.Tradition.WARRIORS:
+			rank = 0
+		elif PersonGen.has_trait(p, T.BRAVE) or int(p.get("vocation", -1)) == GameConstants.Profession.GUARD:
+			rank = 1
+		elif f.is_empty():
+			rank = 2
+		if rank < best_rank or (rank == best_rank and rank < 3 and p.id < best):
+			best = p.id
+			best_rank = rank
+	return best
+
+
+## A dismissed guard's trade: the own vocation, else the House trade, else builder.
+static func civil_profession(p: Dictionary, f: Dictionary) -> int:
+	var G := GameConstants.Profession.GUARD
+	if int(p.get("vocation", -1)) >= 0 and int(p.vocation) != G:
+		return int(p.vocation)
+	var trades: Array = GameConstants.TRADITION_PROFESSIONS.get(int(f.get("tradition", -1)), [])
+	for t: int in trades:
+		if t != G:
+			return t
+	return GameConstants.Profession.BUILDER
+
+
 ## A House head's claim to rule: prestige, adult members and how the other heads like the head.
 static func support(state: WorldState, f: Dictionary) -> float:
 	var adults := state.family_members(f.id).filter(func(p: Dictionary) -> bool:

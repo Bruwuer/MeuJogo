@@ -44,6 +44,8 @@ var _props_near: Dictionary = {} # Vector3 center -> props around it (the scatte
 ## Families, couples, children and opinions (one tick per kingdom per hour).
 var society := SocietySim.new()
 var houses := HouseSim.new()
+## Who rules, decrees carried out, succession (stage 8).
+var gov := GovSim.new()
 
 
 func setup(state: WorldState, gen: TerrainGenerator, scatter: PropScatter, day_night: DayNight) -> void:
@@ -58,6 +60,7 @@ func setup(state: WorldState, gen: TerrainGenerator, scatter: PropScatter, day_n
 	society.families_changed.connect(func() -> void: families_changed.emit())
 	houses.setup(state, _say, society, gen)
 	houses.has_node = func(id: int) -> bool: return has_node.call(id)
+	gov.setup(state, houses, func(k: Dictionary) -> bool: return is_player_in.call(k))
 
 
 func _process(_delta: float) -> void:
@@ -108,13 +111,15 @@ func _tick_hour(hour: float) -> void:
 		_assign_homes(k)
 		society.tick_hour(k, hour)
 		houses.tick_hour(k, hour)
+		gov.tick_hour(k, hour)
 		_plan(k)
 		_offscreen_work(k)
 		_stalled_site(k)
 		var away: bool = not is_player_in.call(k)
+		var target := GovRules.away_target(k) # neutral, or worship / hatred under the regent
 		for p in _state.residents(k.id):
 			if away:
-				p.opinion = move_toward(float(p.opinion), 0.0, GameConstants.AWAY_OPINION_PER_DAY / 24.0)
+				p.opinion = move_toward(float(p.opinion), target, GameConstants.AWAY_OPINION_PER_DAY / 24.0)
 			if SocietyRules.is_adult(p):
 				opinions += float(p.opinion)
 				count += 1

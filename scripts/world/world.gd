@@ -345,6 +345,9 @@ func _add_people(scatter: PropScatter, library: ModelLibrary) -> void:
 	_player.donate_handler = _people.donate
 	_hud.set_people(_people)
 	_village.player_pos = func() -> Variant: return _player.global_position
+	_build.refuse_in = func(pos: Vector3) -> String:
+		var k := _state.kingdom_at(pos)
+		return "" if k.is_empty() or _village.gov.player_may_act(k) else _village.gov.refusal(k)
 	_build.extra_blockers = func() -> Array:
 		return _people.active_people().filter(func(n: Person) -> bool: return n.visible).map(
 				func(n: Person) -> Vector3: return n.global_position)

@@ -16,6 +16,10 @@ signal deed_completed(rec: Dictionary, deed: Dictionary, seen: Array)
 
 ## person id -> whether the person has a node (then deeds are done for real, not summarized).
 var has_node: Callable = func(_id: int) -> bool: return false
+## Deeds of other systems (government): func(k, p, deed, seen, hour) -> bool.
+var extra_deed := Callable()
+## A ruler's skim was done: func(k, p, amount, res, hour).
+var ruler_skim := Callable()
 
 var _state: WorldState
 var _society: SocietySim
@@ -294,7 +298,11 @@ func complete_deed(k: Dictionary, p: Dictionary, seen: Array, hour := -1.0) -> v
 			var before := (f.get("secrets", []) as Array).size()
 			if not f.is_empty():
 				skim(k, f)
-			if not seen.is_empty() and not f.is_empty() and (f.secrets as Array).size() > before:
+			var took := not f.is_empty() and (f.secrets as Array).size() > before
+			if took and data.get("by_ruler", false) and ruler_skim.is_valid():
+				var sec: Dictionary = (f.secrets as Array)[-1]
+				ruler_skim.call(k, p, int(sec.amount), int(sec.res), _hour)
+			if not seen.is_empty() and took:
 				_log(k, GameConstants.HOUSE_MSG_SEEN_SKIM % [_witness_name(seen), PersonGen.full_name(p)])
 				expose(k, f, (f.secrets as Array)[-1])
 		"spy_move":
@@ -327,6 +335,9 @@ func complete_deed(k: Dictionary, p: Dictionary, seen: Array, hour := -1.0) -> v
 					f.dishonor = float(f.get("dishonor", 0.0)) + GameConstants.SCANDAL_DISHONOR
 					_state.add_relation(int(f.head_id), int(target.head_id), GameConstants.FEUD_RELATION_HIT)
 					_log(k, GameConstants.HOUSE_MSG_SEEN_REVENGE % [_witness_name(seen), PersonGen.full_name(p), target.surname])
+		_:
+			if extra_deed.is_valid():
+				extra_deed.call(k, p, deed, seen, _hour)
 	deed_completed.emit(p, deed, seen)
 
 

@@ -181,9 +181,11 @@ static func _kingdom_defaults(k: Dictionary) -> void:
 		k.ruler_id = GameConstants.GOV_PLAYER
 	if not k.has("decrees"):
 		k.decrees = GovRules.default_decrees()
-	for key in ["ruler_way", "ruler_corrupt", "ruler_since", "away_hours", "ruler_skimmed"]:
+	var gov := {ruler_way = "", ruler_corrupt = false, ruler_since = 0.0, away_hours = 0.0, ruler_skimmed = 0,
+			ruler_family = -1, pending_ruler = -1, pending_heir = false, refused = false}
+	for key in gov:
 		if not k.has(key):
-			k[key] = {ruler_way = "", ruler_corrupt = false, ruler_since = 0.0, away_hours = 0.0, ruler_skimmed = 0}[key]
+			k[key] = gov[key]
 
 
 func kingdoms() -> Array[Dictionary]:

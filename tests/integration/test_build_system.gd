@@ -277,3 +277,17 @@ func test_villager_blocks_player_build() -> void:
 	assert_true(not check.ok, "a villager stands there")
 	assert_eq(check.reason, GameConstants.BUILD_MSG_PLAYER)
 	assert_true(not _build.try_place(), "not built over the villager")
+
+
+func test_no_building_where_the_founder_does_not_rule() -> void:
+	var at := _spot()
+	await _setup(at)
+	_rich()
+	_build.refuse_in = func(_pos: Vector3) -> String: return "O Reino de Teste não é seu: Fulano governa"
+	var texts: Array[String] = []
+	_build.message.connect(func(t: String) -> void: texts.append(t))
+	_build.select(B.FENCE)
+	assert_true(not _build.try_place())
+	assert_eq(_state.get_resource(R.WOOD), 200, "nothing spent")
+	assert_true(not _build.try_demolish(at))
+	assert_true(texts.size() >= 1 and texts[0].contains("não é seu"), "message: %s" % str(texts))

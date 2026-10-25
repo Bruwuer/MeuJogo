@@ -16,6 +16,9 @@ var rot := 0
 var use_mouse := true
 ## func() -> Array of positions that also block a footprint (World: villagers with a node).
 var extra_blockers: Callable = func() -> Array: return []
+## func(pos) -> String: why the player may not build or demolish at `pos` ("" = may). World: a
+## kingdom whose ruler keeps it from the founder (stage 8).
+var refuse_in: Callable = func(_pos: Vector3) -> String: return ""
 
 var _state: WorldState
 var _gen: TerrainGenerator
@@ -74,6 +77,10 @@ func preview() -> Dictionary:
 ## Validates, spends and builds at the ghost. Nothing is spent unless the building is placed.
 func try_place() -> bool:
 	var pos := ghost_position()
+	var why: String = refuse_in.call(pos)
+	if why != "":
+		message.emit(why)
+		return false
 	var check := BuildRules.check(type, pos, rot, _gen, _scatter, _state, _blockers())
 	if not check.ok:
 		message.emit(check.reason)
@@ -97,6 +104,10 @@ func try_place() -> bool:
 ## `near`. Kingdom seats, flags and the villagers' buildings are skipped, so a fence next to the
 ## seat can still go.
 func try_demolish(near: Vector3) -> bool:
+	var not_yours: String = refuse_in.call(near)
+	if not_yours != "":
+		message.emit(not_yours)
+		return false
 	var target := {}
 	var best := GameConstants.BUILD_DEMOLISH_RANGE
 	var refusal := "" # why the closest building that is not the player's cannot go

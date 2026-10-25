@@ -199,3 +199,19 @@ func test_protecting_raises_opinion() -> void:
 	assert_near(a.opinion, GameConstants.PROTECT_OPINION, 0.0001, "everyone hears about it")
 	mgr.on_creature_killed(wolf, false)
 	assert_near(a.opinion, GameConstants.PROTECT_OPINION, 0.0001, "only the player's kills count")
+
+
+func test_no_donation_to_a_kingdom_that_is_not_yours() -> void:
+	var spot := _make()
+	var ruler := _resident(P.FARMER, spot + Vector3(2, 0.3, 6), 1)
+	kingdom.ruler_id = ruler.id
+	kingdom.ruler_way = "inimigo"
+	state.add_resource(R.WOOD, 30)
+	await _load_around(spot)
+	var texts: Array[String] = []
+	player.message.connect(func(t: String) -> void: texts.append(t))
+	player.donate()
+	assert_eq(state.get_resource(R.WOOD), 30, "the enemy ruler takes nothing from the founder")
+	assert_true(texts.size() == 1 and texts[0].contains("não é seu"), "message: %s" % str(texts))
+	kingdom.ruler_id = GameConstants.GOV_PLAYER
+	kingdom.ruler_way = ""

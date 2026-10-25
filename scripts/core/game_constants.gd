@@ -965,6 +965,7 @@ const FAMILIES_MORE := "… e mais %d Casas"
 
 # Government (stage 8)
 const GOV_PLAYER := -1 ## `ruler_id` of a kingdom the player governs.
+const GOV_NOBODY := -2 ## `ruler_id` between a ruler's fall (or death) and the next crowning.
 const GOV_ABSENCE_HOURS := 48.0 ## The player away this long: a regent takes over.
 const GOV_CULT_OPINION := 0.7 ## A loyal, devout ruler this fond of the founder starts a cult.
 const GOV_CORRUPT_WEALTH := 0.7 ## A ruler whose House values wealth this much is corrupt.
@@ -1002,6 +1003,7 @@ const GOV_MSG_TAX := "A Casa %s pagou o imposto: %d de %s"
 const GOV_MSG_MUSTER := "%s foi convocado para a guarda"
 const GOV_MSG_DISMISS := "%s foi dispensado da guarda"
 const GOV_MSG_WORSHIP := "%s rezou ao fundador junto à bandeira"
+const GOV_MSG_PLOT_SEEN := "%s viu %s tramando contra o governante de madrugada"
 const GOV_MSG_DEPOSED := "%s foi deposto: os chefes das Casas se reuniram de madrugada"
 const GOV_MSG_DECREE := "Decreto: %s %s"
 const GOV_MSG_RULER_SKIM := "%s, governante, levou %d de %s do estoque para a própria Casa"
