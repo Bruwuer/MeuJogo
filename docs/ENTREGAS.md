@@ -409,3 +409,16 @@ contra a própria família.
 - A troca para o céu nublado é instantânea (sem transição).
 
 Suíte: 641 testes passando.
+
+## Estética: chapéus por ofício (2026-10-25, noite de carta branca)
+
+- Script novo do Blender `tools/blender/hats.py`: **chapéu de palha** (lavradores), **elmo** de ferro com protetor de
+  nariz (guardas), **capuz** (lenhadores e coletores), **boné de couro** (pedreiros e construtores) e **boné com pena**
+  (mercadores). Todo adulto usa o do seu ofício; o chapéu acompanha o ofício (criança que cresce, lavrador convocado
+  para a guarda). Galeria: `tests/visual/trades.gd` (`captures/trades.png`).
+- O guarda guarda a lança enquanto pega um corpo, carrega, cava, reza, come, senta ou conversa.
+- Captura principal: brincadeira (`31_deed_play`), refeição (`33_deed_meal`) e fogueira (`37_deed_fireside`)
+  acontecendo sozinhas na vila do jogador, com os chapéus.
+
+Suíte: 644 testes passando.
+
