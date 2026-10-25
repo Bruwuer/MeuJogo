@@ -964,6 +964,7 @@ const FAMILIES_MAX_ROWS := 6 ## Houses listed in the C panel (most prestigious f
 const FAMILIES_MORE := "… e mais %d Casas"
 
 # Government (stage 8)
+const REALM_MIN_GAP := 160.0 ## A new kingdom's seat is at least this far from every other seat (stage 9).
 const GOV_PLAYER := -1 ## `ruler_id` of a kingdom the player governs.
 const GOV_NOBODY := -2 ## `ruler_id` between a ruler's fall (or death) and the next crowning.
 const GOV_ABSENCE_HOURS := 48.0 ## The player away this long: a regent takes over.

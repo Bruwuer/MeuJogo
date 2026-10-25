@@ -37,11 +37,11 @@ func tick_hour(k: Dictionary, hour: float) -> void:
 	if int(k.ruler_id) == GameConstants.GOV_NOBODY and int(k.get("pending_ruler", -1)) < 0:
 		# Nobody is on the way to the seat: the founder takes over if the people want him back,
 		# else whoever can rule is named (an adult may have grown up meanwhile).
-		if inside and GovRules.mean_opinion(_state, k) >= 0.0:
+		if inside and _mine(k) and GovRules.mean_opinion(_state, k) >= 0.0:
 			_set_player(k)
 		else:
 			_name_ruler(k, GovRules.choose_regent(_state, k), false)
-	if inside and int(k.ruler_id) >= 0:
+	if inside and int(k.ruler_id) >= 0 and _mine(k):
 		_return(k)
 	if int(fmod(hour, 24.0)) == int(GameConstants.DEED_HOUR):
 		_taxes(k)
@@ -52,6 +52,21 @@ func tick_hour(k: Dictionary, hour: float) -> void:
 
 
 # --- Who rules ------------------------------------------------------------------------------
+
+## The player founded `k` (stage 9: NPC kingdoms are only visited).
+static func _mine(k: Dictionary) -> bool:
+	return String(k.get("founder", "player")) == "player"
+
+
+## The player may build and demolish only in the own kingdoms, and not under a ruler who keeps them.
+func player_may_build(k: Dictionary) -> bool:
+	return _mine(k) and player_may_act(k)
+
+
+## A gift to the people is welcome anywhere but under a ruler who keeps the founder out.
+func player_may_donate(k: Dictionary) -> bool:
+	return not _mine(k) or player_may_act(k)
+
 
 ## The founder may build, demolish and donate here unless a ruler who keeps the kingdom governs.
 func player_may_act(k: Dictionary) -> bool:
@@ -157,7 +172,7 @@ func _crowned(k: Dictionary, p: Dictionary) -> void:
 	var f := _state.family(int(p.get("family_id", -1)))
 	k.ruler_id = p.id
 	k.ruler_family = int(p.get("family_id", -1))
-	k.ruler_way = GovRules.ruler_way(p)
+	k.ruler_way = GovRules.ruler_way(p) if _mine(k) else "" # a foreign ruler owes the visitor nothing
 	k.ruler_corrupt = GovRules.is_corrupt(p, f)
 	k.ruler_since = _hour
 	k.decrees = GovRules.npc_decrees(String(k.ruler_way), bool(k.ruler_corrupt), k.decrees)
@@ -322,7 +337,7 @@ func _deposed(k: Dictionary, leader: Dictionary, seen: Array) -> void:
 		return
 	_log(k, GameConstants.GOV_MSG_DEPOSED % PersonGen.full_name(ruler))
 	var old: int = ruler.id
-	if _is_player_in.call(k) and GovRules.mean_opinion(_state, k) >= 0.0:
+	if _mine(k) and _is_player_in.call(k) and GovRules.mean_opinion(_state, k) >= 0.0:
 		_set_player(k)
 		return
 	k.ruler_id = GameConstants.GOV_NOBODY

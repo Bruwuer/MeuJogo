@@ -291,3 +291,22 @@ func test_no_building_where_the_founder_does_not_rule() -> void:
 	assert_eq(_state.get_resource(R.WOOD), 200, "nothing spent")
 	assert_true(not _build.try_demolish(at))
 	assert_true(texts.size() >= 1 and texts[0].contains("não é seu"), "message: %s" % str(texts))
+
+
+func test_a_far_cabin_founds_another_kingdom() -> void:
+	var at := _spot()
+	await _setup(at)
+	_rich()
+	var npc_center := at + Vector3(GameConstants.REALM_MIN_GAP + 60.0, 0, 0)
+	_state.add_kingdom("Vizinho", Color.BLUE, npc_center, -1, "npc")
+	_build.select(B.CABIN)
+	assert_true(_build.try_place())
+	assert_eq(_state.kingdoms().size(), 2, "a cabin far from every seat founds the player's kingdom")
+	assert_eq(String(_state.kingdoms()[1].founder), "player")
+	var near := TestSpots.flat_clear(_gen, _scatter, B.CABIN, 6.0, Vector2(at.x + 60.0, at.z))
+	if Vector2(near.x - at.x, near.z - at.z).length() < GameConstants.REALM_MIN_GAP \
+			and _state.kingdom_at(near).is_empty():
+		_move_player(near)
+		await wait_physics_frames(2)
+		assert_true(_build.try_place())
+		assert_eq(_state.kingdoms().size(), 2, "a cabin near another seat is just a cabin")

@@ -276,3 +276,20 @@ func test_plot_stakes_are_no_building_for_packs() -> void:
 	var fence := s.add_building(GameConstants.Building.FENCE, Vector3(104, 0, 104), 0)
 	assert_true(PackSim.is_raid_target(fence, k))
 	sim.queue_free()
+
+
+func test_new_den_keeps_away_from_every_kingdom() -> void:
+	var s := WorldState.new()
+	var cabin := s.add_building(GameConstants.Building.CABIN, Vector3(300, 0, 300), 0)
+	s.add_kingdom("Valdemar", Color.RED, cabin.pos, cabin.id)
+	var other := s.add_kingdom("Outro", Color.BLUE, Vector3(300 + GameConstants.RAID_RANGE + GameConstants.PACK_MIGRATE_MARGIN, 0, 300),
+			-1, "npc")
+	var p := s.add_pack("rastejante", Vector3(340, 0, 300)) # the way out leads straight to the other kingdom
+	s.add_creature(_genome("rastejante", 1), p.den, p.id)
+	var sim := PackSim.new()
+	add_child(sim)
+	sim.setup(s, null)
+	sim._migrate(p, s.pack_members(p.id))
+	for kd in s.kingdoms():
+		assert_true(PackSim._flat_dist(p.den, kd.center) > GameConstants.RAID_RANGE, "den near %s: %s" % [kd.name, p.den])
+	sim.queue_free()

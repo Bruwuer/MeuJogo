@@ -172,7 +172,9 @@ func _migrate(pack: Dictionary, members: Array) -> void:
 	for step in 12: # turn 30 degrees at a time until the spot is on the map
 		var turn := 30.0 * floorf((step + 1) / 2.0) * (1.0 if step % 2 == 0 else -1.0)
 		var spot := Vector3(center.x, pack.den.y, center.z) + away.rotated(Vector3.UP, deg_to_rad(turn)) * dist
-		if ChunkMath.is_playable(ChunkMath.world_to_chunk(spot)):
+		var clear := _state.kingdoms().all(func(kd: Dictionary) -> bool:
+			return _flat_dist(spot, kd.center) > GameConstants.RAID_RANGE) # away from every kingdom
+		if ChunkMath.is_playable(ChunkMath.world_to_chunk(spot)) and clear:
 			pack.den = spot
 			for i in members.size(): # a small ring around the new den
 				var a := TAU * i / maxf(1.0, members.size())

@@ -446,7 +446,8 @@ func _stances(k: Dictionary) -> void:
 ## Once a day from DEED_HOUR, with the player in the kingdom: ally families give a gift from the
 ## stock, the worst enemies steal from the player.
 func _deeds(k: Dictionary) -> void:
-	if fmod(_hour, 24.0) < GameConstants.DEED_HOUR or not _is_player_in.call(k):
+	if fmod(_hour, 24.0) < GameConstants.DEED_HOUR or not _is_player_in.call(k) \
+			or String(k.get("founder", "player")) != "player": # only the founder's own people
 		return
 	var today := floori(_hour / 24.0)
 	for f in _state.families_of(k.id):

@@ -95,7 +95,7 @@ func try_place() -> bool:
 	var rec := _state.add_building(type, Vector3(pos.x, check.y, pos.z), rot)
 	_add_to_chunk(rec)
 	built.emit(rec)
-	if type == GameConstants.Building.CABIN and _state.kingdoms().is_empty():
+	if type == GameConstants.Building.CABIN and founds_kingdom(_state, rec.pos):
 		_found_kingdom(rec)
 	return true
 
@@ -207,6 +207,14 @@ func _found_kingdom(cabin: Dictionary) -> void:
 	_add_to_chunk(flag)
 	var kingdom := _state.add_kingdom(name, color, cabin.pos, cabin.id)
 	kingdom_founded.emit(kingdom)
+
+
+## A cabin at `pos` founds a kingdom when it is outside every territory and far from every seat.
+static func founds_kingdom(state: WorldState, pos: Vector3) -> bool:
+	for k in state.kingdoms():
+		if Vector2(pos.x - k.center.x, pos.z - k.center.z).length() < GameConstants.REALM_MIN_GAP:
+			return false
+	return true
 
 
 func _is_seat(building_id: int) -> bool:

@@ -513,7 +513,7 @@ func donate(pos: Vector3) -> String:
 	var k := _state.kingdom_at(pos)
 	if k.is_empty():
 		return GameConstants.DONATE_OUTSIDE_MSG
-	if not _sim.gov.player_may_act(k):
+	if not _sim.gov.player_may_donate(k):
 		return _sim.gov.refusal(k)
 	var cost := {}
 	var parts: PackedStringArray = []

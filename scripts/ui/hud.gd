@@ -182,7 +182,9 @@ func _physics_process(delta: float) -> void:
 		_kingdom.text = "Reino de %s" % kingdom.name
 		_ruler.text = gov_line(kingdom)
 		_village.text = village_line(kingdom)
-	_village.visible = _kingdom.visible
+		_village.visible = String(kingdom.get("founder", "player")) == "player" # a stranger's stock is no one's business
+	if not _kingdom.visible:
+		_village.visible = false
 	_ruler.visible = _kingdom.visible and _gov != null
 	_update_families(delta, kingdom)
 	if _card_left > 0.0:
@@ -453,6 +455,10 @@ func _fill_gov() -> void:
 	var k := _state.kingdom_at(_player.global_position)
 	if k.is_empty() or _gov == null:
 		_gov_label.text = GameConstants.GOV_PANEL_OUTSIDE
+		return
+	if String(k.get("founder", "player")) != "player":
+		_gov_label.text = GameConstants.GOV_PANEL_TITLE % k.name + "\n\n" + GameConstants.GOV_NOT_YOURS % [k.name,
+				gov_line(k).trim_prefix("Governo: ")]
 		return
 	if int(k.ruler_id) != GameConstants.GOV_PLAYER and int(k.ruler_id) != GameConstants.GOV_NOBODY:
 		_gov_label.text = GameConstants.GOV_PANEL_TITLE % k.name + "

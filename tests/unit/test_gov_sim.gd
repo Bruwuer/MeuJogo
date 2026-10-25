@@ -403,3 +403,43 @@ func test_lost_tax_deed_is_tried_again() -> void:
 	head.deed = {} # lost (replaced or dropped)
 	_run(GameConstants.DEED_HOUR + 1.0, 26)
 	assert_true(float(f.wealth) < 200.0, "the House pays the next day")
+
+
+# --- Stage 9: kingdoms founded by NPCs ---
+
+func test_npc_kingdom_crowns_its_own_even_with_the_player_there() -> void:
+	_fresh()
+	k.founder = "npc"
+	k.ruler_id = GameConstants.GOV_NOBODY
+	var f := _house("Nativa", 3.0, 0.9, [T.DEVOUT])
+	player_in = true
+	_run(0.0, 30)
+	assert_eq(int(k.ruler_id), int(f.head_id), "a visitor never takes over")
+	assert_eq(String(k.ruler_way), "", "an NPC kingdom's ruler has no stance toward the visitor")
+	assert_true(not gov.player_may_build(k))
+	assert_true(gov.player_may_donate(k), "a gift to the people is welcome")
+
+
+func test_npc_ruler_never_hands_over_to_the_visitor() -> void:
+	_fresh()
+	k.founder = "npc"
+	var f := _house("Dona", 3.0, 0.9)
+	k.ruler_id = f.head_id
+	k.ruler_way = "leal"
+	player_in = true
+	_run(0.0, 30)
+	assert_eq(int(k.ruler_id), int(f.head_id))
+	assert_true((s.person(int(f.head_id)).deed as Dictionary).is_empty(), "no walk to hand anything over")
+
+
+func test_npc_houses_give_no_gifts_to_the_visitor() -> void:
+	_fresh()
+	k.founder = "npc"
+	var f := _house("Amiga", 1.0, 0.9)
+	f.stance = "ally"
+	f.deed_day = -1
+	s.add_stock(k, R.WOOD, 50)
+	var before := s.get_resource(R.WOOD)
+	society._hour = GameConstants.DEED_HOUR
+	society._deeds(k)
+	assert_eq(s.get_resource(R.WOOD), before)
