@@ -80,14 +80,23 @@ static func pick_desire(state: WorldState, p: Dictionary) -> Dictionary:
 	return {kind = D.NONE, target_id = -1}
 
 
-## A meal from the kingdom stock (food first, then fruit): hunger goes down. False when there is none.
+## A meal from the kingdom stock (food first, then fruit), as the ration decree says: one eats only
+## when hungry enough and a short ration fills more of the hunger per portion. False when not hungry
+## or there is no food.
 static func meal(p: Dictionary, k: Dictionary, state: WorldState) -> bool:
+	var share := ration_share(k)
+	if float(p.get("hunger", 0.0)) < GameConstants.MEAL_HUNGER * share:
+		return false # fed already (a summarized meal, or a meal not long ago)
 	for res in [GameConstants.Res.FOOD, GameConstants.Res.BERRIES]:
 		if state.stock_of(k, res) > 0:
 			state.add_stock(k, res, -1)
-			p.hunger = maxf(0.0, float(p.get("hunger", 0.0)) - GameConstants.HUNGER_MEAL)
+			p.hunger = maxf(0.0, float(p.get("hunger", 0.0)) - GameConstants.HUNGER_MEAL * maxf(1.0, share))
 			return true
 	return false
+
+
+static func ration_share(k: Dictionary) -> float:
+	return float(GameConstants.GOV_RATION_EAT_AT.get((k.get("decrees", {}) as Dictionary).get("ration", "normal"), 1.0))
 
 
 ## Who of `people` goes for the body of `dead`: a free adult, kin first, then the lowest id.

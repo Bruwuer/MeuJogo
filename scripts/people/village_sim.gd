@@ -138,7 +138,7 @@ func _tick_hour(hour: float) -> void:
 		gov.tick_hour(k, hour)
 		life.tick_hour(k, hour)
 		_plan(k)
-		_offscreen_work(k)
+		_offscreen_work(k, hour)
 		_stalled_site(k)
 		var away: bool = not is_player_in.call(k)
 		var target := GovRules.away_target(k) # neutral, or worship / hatred under the regent
@@ -241,7 +241,10 @@ func _needs(k: Dictionary) -> void:
 		p.hunger = minf(1.0, float(p.hunger) + GameConstants.HUNGER_PER_HOUR)
 		var fed: bool
 		if has_node.call(p.id) and float(p.hunger) < GameConstants.HUNGER_STARVING:
-			fed = float(p.hunger) < GameConstants.HUNGER_STARVING # on screen one eats by the fire at meal time (LifeSim)
+			# On screen one eats by the fire at meal time (LifeSim): fed while not past the ration's
+			# hunger and the stock has food for the next meal.
+			fed = float(p.hunger) < GameConstants.HUNGER_MEAL * LifeRules.ration_share(k) + GameConstants.MEAL_HUNGER \
+					and _state.stock_of(k, R.FOOD) + _state.stock_of(k, R.BERRIES) > 0
 		else:
 			fed = VillageRules.eat(p, k, _state)
 		p.contentment = clampf(float(p.contentment) + VillageRules.hourly_contentment(p, snap, fed), 0.0, 1.0)
@@ -413,7 +416,7 @@ func _stalled_site(k: Dictionary) -> void:
 
 # --- Summarized work ------------------------------------------------------------------------
 
-func _offscreen_work(k: Dictionary) -> void:
+func _offscreen_work(k: Dictionary, hour := -1.0) -> void:
 	if not is_work_time():
 		return
 	var snap := snapshot(k)
@@ -433,7 +436,7 @@ func _offscreen_work(k: Dictionary) -> void:
 			"wood", "stone", "berries":
 				_harvest(k, job, GameConstants.OFFSCREEN_RATE[job])
 	var food := mini(farmers, snap.farms) * GameConstants.FARM_FOOD_PER_HOUR
-	if _state.raining(now_hours()):
+	if _state.raining(hour if hour >= 0.0 else now_hours()):
 		food *= GameConstants.RAIN_WORK_SHARE
 	if food > 0.0:
 		add_fraction(k, "food", R.FOOD, food)

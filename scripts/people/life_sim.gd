@@ -43,25 +43,28 @@ func tick_hour(k: Dictionary, hour: float) -> void:
 
 # --- Everyday life (stage 11) ---------------------------------------------------------------
 
-## Meals by the fire (people on screen: offscreen meals are summarized by VillageSim), the evening
-## at the fire, children at play.
+## Meals by the fire (people on screen only: offscreen meals are summarized by VillageSim), the
+## evening at the fire and children at play (anyone; offscreen they are summarized like any deed),
+## never out in the rain.
 func _everyday(k: Dictionary) -> void:
 	var h := float(int(fmod(_hour, 24.0)))
+	var wet := _state.raining(_hour)
 	for p in _state.residents(k.id):
 		if not (p.get("deed", {}) as Dictionary).is_empty():
 			continue
 		var deed := {}
-		if h in GameConstants.MEAL_HOURS and _houses.has_node.call(p.id) and float(p.get("hunger", 0.0)) >= GameConstants.MEAL_HUNGER:
+		if h in GameConstants.MEAL_HOURS and _houses.has_node.call(p.id) \
+				and float(p.get("hunger", 0.0)) >= GameConstants.MEAL_HUNGER * LifeRules.ration_share(k):
 			deed = Deeds.make("meal", _ring_spot(k, p, GameConstants.MEAL_RING), GameConstants.PERSON_ARRIVE, _hour,
 					_hour + GameConstants.MEAL_WINDOW, GameConstants.MEAL_SEC, {})
 			deed.anim = GameConstants.ANIM_EAT
-		elif h == GameConstants.FIRESIDE_HOURS.x and SocietyRules.is_adult(p) \
+		elif not wet and h == GameConstants.FIRESIDE_HOURS.x and SocietyRules.is_adult(p) \
 				and float((p.get("needs", {}) as Dictionary).get("social", 0.0)) >= GameConstants.FIRESIDE_WANT:
 			var w := Deeds.next_window(_hour, GameConstants.FIRESIDE_HOURS.x, GameConstants.FIRESIDE_HOURS.y)
 			deed = Deeds.make("fireside", _ring_spot(k, p, GameConstants.FIRESIDE_RING), GameConstants.PERSON_ARRIVE, w.x, w.y,
 					GameConstants.FIRESIDE_SEC, {})
 			deed.anim = GameConstants.ANIM_SIT
-		elif h in GameConstants.PLAY_HOURS and not SocietyRules.is_adult(p):
+		elif not wet and h in GameConstants.PLAY_HOURS and not SocietyRules.is_adult(p):
 			deed = Deeds.make("play", _play_spot(k, p), GameConstants.PERSON_ARRIVE * GameConstants.GOV_REACH_MULT, _hour,
 					_hour + GameConstants.MEAL_WINDOW, GameConstants.PLAY_SEC, {})
 			deed.anim = GameConstants.ANIM_PLAY
@@ -301,7 +304,10 @@ func _gossip(p: Dictionary, other: Dictionary) -> void:
 	var worst := -1
 	var worst_v := GameConstants.RIVAL_AT
 	for id in rels:
-		if id != p.id and float(rels[id]) <= worst_v:
+		var o := _state.person(id)
+		if id == p.id or o.is_empty() or int(p.get("spouse_id", -1)) == id or Kinship.is_close_kin(_state, p, o):
+			continue # gossip does not turn one against one's own
+		if float(rels[id]) <= worst_v:
 			worst = id
 			worst_v = float(rels[id])
 	if worst >= 0:

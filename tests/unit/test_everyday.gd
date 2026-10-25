@@ -155,3 +155,46 @@ func test_friends_talking_share_their_views() -> void:
 	life.complete_deed(k, b, deed, [], 18.0)
 	assert_true(float(b.opinion) < 0.4, "b heard what a thinks of the founder")
 	assert_true(s.relation(b.id, c.id) < 0.0, "and what a thinks of c")
+
+
+# --- Final review fixes ---
+
+func test_supper_then_the_evening_at_the_fire() -> void:
+	_fresh()
+	var p := _person("Ceia")
+	on_screen.append(p.id)
+	p.needs = {social = 0.4, faith = 0.0}
+	p.hunger = 0.5
+	_at_hour(GameConstants.MEAL_HOURS[2]) # supper first
+	life.complete_deed(k, p, p.deed, [], GameConstants.MEAL_HOURS[2])
+	p.deed = {}
+	_at_hour(GameConstants.FIRESIDE_HOURS.x)
+	assert_eq((p.get("deed", {}) as Dictionary).get("kind", ""), "fireside", "after supper, the fire")
+
+
+func test_a_meal_settled_offscreen_feeds_only_once() -> void:
+	_fresh()
+	var p := _person("Uma vez só")
+	p.hunger = 0.1 # already fed by the summarized meal
+	var food := s.stock_of(k, R.FOOD)
+	var deed := Deeds.make("meal", k.center, 1.0, 0.0, 1.0, 5.0, {})
+	life.complete_deed(k, p, deed, [], 12.0)
+	assert_eq(s.stock_of(k, R.FOOD), food, "not hungry: no second meal")
+
+
+func test_short_ration_on_screen_too() -> void:
+	_fresh()
+	k.decrees.ration = "curta"
+	var p := _person("Racionado")
+	p.hunger = GameConstants.HUNGER_MEAL * float(GameConstants.GOV_RATION_EAT_AT.curta)
+	assert_true(LifeRules.meal(p, k, s))
+	assert_eq(float(p.hunger), 0.0, "a short ration meal comes later and takes the whole hunger")
+
+
+func test_no_play_or_fire_in_the_rain() -> void:
+	_fresh()
+	var kid := _person("Molhado", 7.0)
+	s.rain_from = 0.0
+	s.rain_until = 48.0
+	_at_hour(GameConstants.PLAY_HOURS[0])
+	assert_true((kid.get("deed", {}) as Dictionary).is_empty(), "children stay in when it rains")

@@ -227,6 +227,7 @@ func person_context(n: Person) -> Dictionary:
 	if guard: # guards stand their ground, keep watch at night and through raids
 		me.threat_pos = null
 		me.raid = false
+		me.rain = false # rain or not, the watch goes on
 		me.is_work_time = VillageRules.guard_on_duty(_sim.hour_of_day())
 		me.is_sleep_time = not me.is_work_time
 	var deed: Dictionary = rec.get("deed", {})

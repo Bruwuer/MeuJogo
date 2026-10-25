@@ -1204,12 +1204,12 @@ const MERCHANT_NONE := "Nenhum mercador por perto"
 
 # Everyday life (stage 11)
 const MEAL_HOURS := [7.0, 12.0, 19.0] ## When people on screen go to eat by the fire.
-const MEAL_HUNGER := 0.3 ## Hungry enough to go to a meal.
+const MEAL_HUNGER := 0.2 ## Hungry enough to go to a meal (times the ration's share).
 const MEAL_WINDOW := 2.0
 const MEAL_SEC := 6.0
 const MEAL_RING := 1.8 ## Eaters sit this far around the campfire (or the seat's door).
 const HUNGER_STARVING := 0.9 ## On screen, this hungry one eats wherever (nobody starves waiting for supper).
-const FIRESIDE_HOURS := Vector2(19.0, 21.0) ## The evening by the fire.
+const FIRESIDE_HOURS := Vector2(20.0, 22.0) ## The evening by the fire (after supper).
 const FIRESIDE_WANT := 0.2 ## Company missed this much brings one to the fire.
 const FIRESIDE_SEC := 20.0
 const FIRESIDE_RING := 2.6
@@ -1232,5 +1232,10 @@ const RAIN_SPEED := 22.0
 const RAIN_DROP_SIZE := Vector2(0.03, 0.5)
 const RAIN_COLOR := Color(0.75, 0.82, 0.95, 0.55)
 const RAIN_HEIGHT := 14.0 ## The drops start this high above the player.
+const RAIN_SPEED_MIN := 0.9 ## Share of RAIN_SPEED for the slowest drops.
+const RAIN_DIRECTION := Vector3(0.15, -1.0, 0.05) ## A little wind.
+const RAIN_SPREAD := 2.0
+const RAIN_VISIBLE := AABB(Vector3(-40, -40, -40), Vector3(80, 60, 80)) ## Around the emitter.
+const RAIN_SKY_MIX := 0.6 ## How grey the sky gets under rain clouds.
 const RAIN_DIM := 0.45 ## Sunlight under the clouds.
 const RAIN_SKY := Color(0.48, 0.52, 0.58)

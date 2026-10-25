@@ -9,13 +9,13 @@ func _init() -> void:
 	amount = GameConstants.RAIN_DROPS
 	lifetime = GameConstants.RAIN_LIFETIME
 	emitting = false
-	visibility_aabb = AABB(Vector3(-30, -20, -30), Vector3(60, 40, 60))
+	visibility_aabb = GameConstants.RAIN_VISIBLE
 	var mat := ParticleProcessMaterial.new()
 	mat.emission_shape = ParticleProcessMaterial.EMISSION_SHAPE_BOX
 	mat.emission_box_extents = GameConstants.RAIN_BOX
-	mat.direction = Vector3(0.15, -1.0, 0.05)
-	mat.spread = 2.0
-	mat.initial_velocity_min = GameConstants.RAIN_SPEED * 0.9
+	mat.direction = GameConstants.RAIN_DIRECTION
+	mat.spread = GameConstants.RAIN_SPREAD
+	mat.initial_velocity_min = GameConstants.RAIN_SPEED * GameConstants.RAIN_SPEED_MIN
 	mat.initial_velocity_max = GameConstants.RAIN_SPEED
 	mat.gravity = Vector3(0, -GameConstants.RAIN_SPEED, 0)
 	process_material = mat

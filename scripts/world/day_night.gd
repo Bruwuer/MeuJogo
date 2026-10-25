@@ -66,8 +66,8 @@ func apply() -> void:
 
 	if overcast:
 		_sun.light_energy *= GameConstants.RAIN_DIM
-		_sky.sky_top_color = _sky.sky_top_color.lerp(GameConstants.RAIN_SKY, 0.6 * daylight)
-		_sky.sky_horizon_color = _sky.sky_horizon_color.lerp(GameConstants.RAIN_SKY, 0.6 * daylight)
+		_sky.sky_top_color = _sky.sky_top_color.lerp(GameConstants.RAIN_SKY, GameConstants.RAIN_SKY_MIX * daylight)
+		_sky.sky_horizon_color = _sky.sky_horizon_color.lerp(GameConstants.RAIN_SKY, GameConstants.RAIN_SKY_MIX * daylight)
 		_sky.ground_horizon_color = _sky.sky_horizon_color
 	_env.ambient_light_color = GameConstants.AMBIENT_NIGHT_COLOR.lerp(GameConstants.AMBIENT_DAY_COLOR, daylight)
 	_env.ambient_light_energy = lerpf(GameConstants.NIGHT_MIN_AMBIENT, GameConstants.DAY_AMBIENT, daylight)
