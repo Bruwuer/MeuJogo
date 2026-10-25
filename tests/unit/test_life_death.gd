@@ -238,3 +238,24 @@ func test_the_cemetery_lies_on_flat_free_ground() -> void:
 		var spot_i: Vector3 = life._grave_spot(k)
 		assert_true(gen.biome_at(spot_i.x, spot_i.z) != GameConstants.Biome.ROCKY, "no grave on a rocky slope")
 		assert_true(BuildRules.check_site(B.GRAVE, spot_i, 0, gen, scatter, s, []).ok, "free, flat ground")
+
+
+func test_the_family_follows_the_body_to_the_cemetery() -> void:
+	_fresh()
+	var dead := _person("Pai", 70.0)
+	var son := _person("Filho mais velho", 35.0)
+	var daughter := _person("Filha", 30.0, true)
+	for c in [son, daughter]:
+		c.parents = [dead.id]
+	society.kill(k, dead, "")
+	_run(0.0, int(GameConstants.DEED_DAY.x)) # one of them is sent for the body
+	var bearer: Dictionary = son if (son.get("deed", {}) as Dictionary).get("kind", "") == "fetch_body" else daughter
+	var other: Dictionary = daughter if bearer == son else son
+	var fetch: Dictionary = bearer.deed
+	bearer.deed = {}
+	life.complete_deed(k, bearer, fetch, [], GameConstants.DEED_DAY.x) # the body is picked up
+	var deed: Dictionary = other.get("deed", {})
+	assert_eq(deed.get("kind", ""), "procession", "the family walks behind the body")
+	assert_eq(deed.get("anim", ""), GameConstants.ANIM_MOURN)
+	var grave_at: Vector3 = (bearer.deed as Dictionary).pos
+	assert_true((deed.pos as Vector3).distance_to(grave_at) <= GameConstants.PROCESSION_RING + 0.5, "to the grave")

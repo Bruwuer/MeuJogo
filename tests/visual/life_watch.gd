@@ -10,7 +10,7 @@ const OUT_DIR := "res://captures"
 const SKIP_DAYS := 30
 const WATCH_DAYS := 8
 const SPEED := 8.0
-const KINDS := ["body", "fetch_body", "carry", "bury", "funeral", "talk", "trade", "prayer", "meal", "fireside", "play", "rain"]
+const KINDS := ["body", "fetch_body", "carry", "procession", "bury", "funeral", "talk", "trade", "prayer", "meal", "fireside", "play", "rain"]
 
 var _world: World
 var _shots := {}

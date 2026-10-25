@@ -346,6 +346,7 @@ func complete_deed(k: Dictionary, p: Dictionary, deed: Dictionary, _seen: Array,
 					GameConstants.DIG_SEC, {body_id = body.id, kingdom_id = care.id})
 			bury.anim = GameConstants.ANIM_DIG
 			_houses.plan_deed(p, bury)
+			_procession(care, body, spot)
 		"bury":
 			var body := _state.person(int(data.get("body_id", -1)))
 			p.carrying_body = -1
@@ -374,6 +375,8 @@ func complete_deed(k: Dictionary, p: Dictionary, deed: Dictionary, _seen: Array,
 
 		"meal":
 			LifeRules.meal(p, k, _state)
+		"procession":
+			pass # they walked behind the body and stood by the grave: the funeral comes next
 		"fireside":
 			p.needs = p.get("needs", {social = 0.0, faith = 0.0})
 			p.needs.social = maxf(0.0, float(p.needs.get("social", 0.0)) - GameConstants.FIRESIDE_SOCIAL)
@@ -390,6 +393,19 @@ func complete_deed(k: Dictionary, p: Dictionary, deed: Dictionary, _seen: Array,
 		_:
 			return false
 	return true
+
+
+## The close family walks behind the body to the grave and waits there with the head bowed.
+func _procession(k: Dictionary, body: Dictionary, grave_at: Vector3) -> void:
+	var kin := _state.residents(k.id).filter(func(o: Dictionary) -> bool:
+		return (SocietyRules.is_adult(o) and (o.get("deed", {}) as Dictionary).is_empty()
+				and LifeRules.grief_for(_state, o, body) >= GameConstants.GRIEF_KIN))
+	for i in kin.size():
+		var a := TAU * (i + 0.5) / maxf(1.0, kin.size())
+		var deed := Deeds.make("procession", grave_at + Vector3(cos(a), 0.0, sin(a)) * GameConstants.PROCESSION_RING,
+				GameConstants.PERSON_ARRIVE, _hour, _hour + GameConstants.BURY_HOURS, GameConstants.DIG_SEC, {body_id = body.id})
+		deed.anim = GameConstants.ANIM_MOURN
+		_houses.plan_deed(kin[i], deed)
 
 
 ## The family kneels and prays at the new grave at dusk (each one free goes; nobody is forced).
