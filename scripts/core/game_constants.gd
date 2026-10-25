@@ -1252,3 +1252,11 @@ const RAIN_VISIBLE := AABB(Vector3(-40, -40, -40), Vector3(80, 60, 80)) ## Aroun
 const RAIN_SKY_MIX := 0.6 ## How grey the sky gets under rain clouds.
 const RAIN_DIM := 0.45 ## Sunlight under the clouds.
 const RAIN_SKY := Color(0.48, 0.52, 0.58)
+
+# Finishing (stage 12): menus, saves, sound
+const SAVE_SLOTS := 3
+const SLOT_EMPTY := "vazio"
+const SLOT_SAVED := "jogo salvo"
+const SLOT_KINGDOM := "Reino de %s"
+const SLOT_NO_KINGDOM := "sem reino"
+const SLOT_LABEL := "%s, dia %d · salvo em %02d/%02d %02d:%02d"

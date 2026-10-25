@@ -41,3 +41,21 @@ fome, mercadores), sempre por constantes.
   continuam usando `main.tscn` direto (sem save).
 - **Ruling:** opções de som ficam em `user://settings.cfg` (`ConfigFile`), fora do save do mundo.
 - **Ruling:** Esc abre a pausa só quando nada mais usa o Esc (construção, painel P, cartão).
+
+## 4. Adendo após a revisão do design
+
+- **Ruling (Esc):** a construção marca o Esc como usado; a pausa ouve `ui_cancel` (não `build_cancel`, que também é o
+  clique direito) e só abre com nada aberto (construção, painel P, painéis do ADM).
+- **Ruling (pausa):** a árvore pausa; o menu de pausa e o som rodam sempre (`PROCESS_MODE_ALWAYS`); testes que pausam
+  despausam no fim.
+- **Ruling (espaços):** `SaveSlots` cuida de caminhos, resumo e migração. "Novo jogo" apaga `.bin`, `.bak`, `.tmp`,
+  `.corrupt` e o resumo. O resumo (reino, dia, quando) é um arquivo à parte escrito depois do save dar certo (por
+  `.tmp` e troca); se faltar, a linha diz só "jogo salvo". A migração do `save.bin` antigo leva junto `.bak`/`.tmp` e
+  só acontece com o espaço 1 vazio. O `World` sem menu usa o espaço 1. `tools/new_world.ps1` apaga os 3 espaços.
+- **Ruling (sair):** "Sair" e "Voltar ao menu" chamam `save_now()` e só seguem se der certo (senão avisam).
+- **Ruling (cena):** um autoload `Session` leva o espaço escolhido do menu para o `World` (`change_scene_to_file`).
+- **Ruling (som):** autoload `Sound` (`PROCESS_MODE_ALWAYS`) cria os canais Música, Efeitos e Ambiente; laços
+  marcados em tempo de execução; vozes 3D num conjunto de 8 que vão até o lugar do som (nada além de 25 m do ouvinte);
+  o ouvinte (`AudioListener3D`) fica no jogador; fogueiras têm seu próprio laço 3D; passos pela distância andada
+  (passo mais longo correndo); opções em `user://settings.cfg` (caminho trocável nos testes); sons carregados só se
+  existirem (nenhum erro de motor nos testes).
