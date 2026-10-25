@@ -191,5 +191,38 @@ common.make_action(arm, "talk", {  # standing, one hand then the other making a 
     ("spine", "rot_z"): [(0, 0.0), (12, 5.0), (36, -5.0), (48, 0.0)],
 }, 48)
 
+# Stage 11 — everyday life.
+SIT = {  # sitting on the ground, knees up, hands on the knees
+    ("hips", "loc_y"): [(0, -0.74), (48, -0.74)],
+    ("thigh.L", "rot_x"): [(0, -75.0), (48, -75.0)],
+    ("thigh.R", "rot_x"): [(0, -75.0), (48, -75.0)],
+    ("shin.L", "rot_x"): [(0, 70.0), (48, 70.0)],
+    ("shin.R", "rot_x"): [(0, 70.0), (48, 70.0)],
+    ("spine", "rot_x"): [(0, -4.0), (24, -1.0), (48, -4.0)],
+    ("upper_arm.L", "rot_x"): [(0, -38.0), (48, -38.0)],
+    ("upper_arm.R", "rot_x"): [(0, -38.0), (48, -38.0)],
+    ("forearm.L", "rot_x"): [(0, -35.0), (48, -35.0)],
+    ("forearm.R", "rot_x"): [(0, -35.0), (48, -35.0)],
+}
+common.make_action(arm, "sit", SIT, 48)
+eat = dict(SIT)
+eat[("upper_arm.R", "rot_x")] = [(0, -40.0), (10, -95.0), (16, -95.0), (26, -40.0), (36, -40.0)]  # hand to the mouth
+eat[("forearm.R", "rot_x")] = [(0, -40.0), (10, -125.0), (16, -125.0), (26, -40.0), (36, -40.0)]
+eat[("head", "rot_x")] = [(0, 0.0), (12, 8.0), (16, 8.0), (26, 0.0), (36, 0.0)]
+eat = {key: (frames if key[0] in ("upper_arm.R", "forearm.R", "head") else [(0, frames[0][1]), (36, frames[0][1])])
+       for key, frames in eat.items()}
+common.make_action(arm, "eat", eat, 36)
+common.make_action(arm, "play", {  # a child's skip: little jumps, arms up and swinging
+    ("hips", "loc_y"): [(0, 0.0), (4, 0.14), (8, 0.0), (12, 0.14), (16, 0.0)],
+    ("thigh.L", "rot_x"): [(0, -35.0), (8, 20.0), (16, -35.0)],
+    ("thigh.R", "rot_x"): [(0, 20.0), (8, -35.0), (16, 20.0)],
+    ("shin.L", "rot_x"): [(0, 50.0), (8, 10.0), (16, 50.0)],
+    ("shin.R", "rot_x"): [(0, 10.0), (8, 50.0), (16, 10.0)],
+    ("upper_arm.L", "rot_x"): [(0, -120.0), (8, -60.0), (16, -120.0)],
+    ("upper_arm.R", "rot_x"): [(0, -60.0), (8, -120.0), (16, -60.0)],
+    ("upper_arm.L", "rot_y"): [(0, 20.0), (16, 20.0)],
+    ("upper_arm.R", "rot_y"): [(0, -20.0), (16, -20.0)],
+}, 16)
+
 common.export_glb(common.output_path())
 print("EXPORTED", common.output_path())

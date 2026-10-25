@@ -4,7 +4,7 @@ extends SceneTree
 ## and from the side. Usage: tools/godot.ps1 -s res://tests/visual/poses.gd (writes captures/poses_*.png)
 
 const OUT_DIR := "res://captures"
-const CLIPS := ["idle", "dead", "pickup", "carry", "dig", "pray", "mourn", "talk"]
+const CLIPS := ["idle", "dead", "pickup", "carry", "dig", "pray", "mourn", "talk", "sit", "eat", "play"]
 const SPACING := 2.2
 
 
