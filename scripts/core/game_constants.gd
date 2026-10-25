@@ -1020,6 +1020,14 @@ const REALM_EXODUS_DAYS := 3 ## Days between two departures from one kingdom.
 const REALM_EXODUS_REL := { angry = -0.4, calm = 0.2 } ## First relation between the old and the new kingdom.
 const REALM_MSG_EXODUS := "A Casa %s partiu do Reino de %s para fundar um reino"
 const REALM_MSG_FOUNDED := "A Casa %s deixou o Reino de %s e fundou o Reino de %s"
+const REALM_ACTS := ["gift", "peace"] ## What the player can send to another kingdom.
+const REALM_ACT_NAMES := { "gift": "enviar presente", "peace": "propor paz" }
+const REALM_LINE := "Reino de %s: %s (relação %+.1f)"
+const REALM_PANEL_HINT := "↑↓ escolhe · ←→ muda · Enter envia · P fecha"
+const REALM_ENVOY_SENT := "Um enviado partiu para o Reino de %s"
+const REALM_ENVOY_NONE := "Ninguém livre para levar a mensagem agora"
+const REALM_NO_WAR := "Não há guerra com o Reino de %s"
+const REALM_ADM_LINE := "Reinos: %s"
 const REALM_MIN_GAP := 160.0 ## A new kingdom's seat is at least this far from every other seat (stage 9).
 const GOV_PLAYER := -1 ## `ruler_id` of a kingdom the player governs.
 const GOV_NOBODY := -2 ## `ruler_id` between a ruler's fall (or death) and the next crowning.

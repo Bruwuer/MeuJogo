@@ -55,6 +55,8 @@ var _ruler: Label
 var _gov_panel: PanelContainer
 var _gov_label: Label
 var _gov_row := 0
+var _gov_act := 0 ## What the player sends to the selected kingdom (index in REALM_ACTS).
+var _realms: RealmSim
 const _GOV_KEYS := ["tax", "ration", "guards", "build"]
 
 
@@ -362,6 +364,10 @@ func _unhandled_input(event: InputEvent) -> void:
 		get_viewport().set_input_as_handled()
 		return
 	if _gov_panel.visible:
+		if event.is_action_pressed("gov_confirm"):
+			gov_confirm()
+			get_viewport().set_input_as_handled()
+			return
 		var moves := {ui_up = [-1, 0], ui_down = [1, 0], ui_left = [0, -1], ui_right = [0, 1]}
 		for action: String in moves:
 			if event.is_action_pressed(action):
@@ -377,8 +383,9 @@ func _unhandled_input(event: InputEvent) -> void:
 
 # --- Government panel (P): the player's own decrees ---
 
-func set_gov(gov: GovSim) -> void:
+func set_gov(gov: GovSim, realms: RealmSim = null) -> void:
 	_gov = gov
+	_realms = realms
 
 
 ## "Governo: você" or "Governo: <ruler>" (who rules is public).
@@ -402,6 +409,16 @@ func gov_adm_line(k: Dictionary) -> String:
 			GovSim.value_name("build", d.build), int(k.ruler_skimmed)]
 
 
+## The ADM's view of this kingdom's relations: "Reinos: Bruma (paz, -0.4), Aldor (guerra, -0.8)".
+func realms_adm_line(k: Dictionary) -> String:
+	var parts: PackedStringArray = []
+	for o in _state.kingdoms():
+		if o.id != k.id:
+			var r := _state.realm(k.id, o.id)
+			parts.append("%s (%s, %+.1f)" % [o.name, "guerra" if r.war else "paz", float(r.rel)])
+	return GameConstants.REALM_ADM_LINE % (", ".join(parts) if not parts.is_empty() else "nenhum")
+
+
 ## Opens or closes the panel; the player stands still while it is open.
 func toggle_gov() -> void:
 	_gov_panel.visible = not _gov_panel.visible
@@ -418,24 +435,54 @@ func gov_text() -> String:
 	return _gov_label.text
 
 
-## Moves the selection `dy` rows (wrapping).
+## Moves the selection `dy` rows (wrapping over the decrees and the known kingdoms).
 func gov_move(dy: int) -> void:
 	if dy == 0:
 		return
-	_gov_row = posmod(_gov_row + dy, _GOV_KEYS.size())
+	_gov_row = posmod(_gov_row + dy, _GOV_KEYS.size() + _gov_realms().size())
 	_fill_gov()
 
 
-## Changes the selected decree by `dx` steps (only while the player governs this kingdom).
+## Changes the selected decree by `dx` steps, or picks what to send to the selected kingdom (only
+## while the player governs this kingdom).
 func gov_change(dx: int) -> void:
 	var k := _state.kingdom_at(_player.global_position)
 	if dx == 0 or _gov == null or k.is_empty():
+		return
+	if _gov_row >= _GOV_KEYS.size():
+		_gov_act = posmod(_gov_act + dx, GameConstants.REALM_ACTS.size())
+		_fill_gov()
 		return
 	var key: String = _GOV_KEYS[_gov_row]
 	var options := _gov_options(key)
 	var i := options.find(k.decrees[key])
 	_gov.set_decree(k, key, options[clampi(i + dx, 0, options.size() - 1)])
 	_fill_gov()
+
+
+## Enter on a kingdom row: an envoy of the player's kingdom sets out with the chosen act.
+func gov_confirm() -> void:
+	var k := _state.kingdom_at(_player.global_position)
+	var others := _gov_realms()
+	var i := _gov_row - _GOV_KEYS.size()
+	if _realms == null or k.is_empty() or i < 0 or i >= others.size() or int(k.ruler_id) != GameConstants.GOV_PLAYER:
+		return
+	var other: Dictionary = others[i]
+	var act: String = GameConstants.REALM_ACTS[_gov_act]
+	if act == "peace" and not _state.at_war(k.id, other.id):
+		add_message(GameConstants.REALM_NO_WAR % other.name)
+	elif _realms.send_envoy(k, other, act, _day_night.total_hours()):
+		add_message(GameConstants.REALM_ENVOY_SENT % other.name)
+	else:
+		add_message(GameConstants.REALM_ENVOY_NONE)
+	_fill_gov()
+
+
+## The other kingdoms the player has been to (their seat's chunk was visited).
+func _gov_realms() -> Array:
+	var here := _state.kingdom_at(_player.global_position)
+	return _state.kingdoms().filter(func(o: Dictionary) -> bool:
+		return o.id != here.get("id", -1) and _state.visited(ChunkMath.world_to_chunk(o.center)))
 
 
 static func _gov_options(key: String) -> Array:
@@ -456,25 +503,37 @@ func _fill_gov() -> void:
 	if k.is_empty() or _gov == null:
 		_gov_label.text = GameConstants.GOV_PANEL_OUTSIDE
 		return
+	var title: String = GameConstants.GOV_PANEL_TITLE % k.name
 	if String(k.get("founder", "player")) != "player":
-		_gov_label.text = GameConstants.GOV_PANEL_TITLE % k.name + "\n\n" + GameConstants.GOV_NOT_YOURS % [k.name,
-				gov_line(k).trim_prefix("Governo: ")]
+		_gov_label.text = title + "\n\n" + GameConstants.GOV_NOT_YOURS % [k.name, gov_line(k).trim_prefix("Governo: ")]
 		return
 	if int(k.ruler_id) != GameConstants.GOV_PLAYER and int(k.ruler_id) != GameConstants.GOV_NOBODY:
-		_gov_label.text = GameConstants.GOV_PANEL_TITLE % k.name + "
-
-" + (_gov.refusal(k) if not _gov.player_may_act(k)
-				else gov_line(k))
+		_gov_label.text = title + "\n\n" + (_gov.refusal(k) if not _gov.player_may_act(k) else gov_line(k))
 		return
-	var lines: PackedStringArray = [GameConstants.GOV_PANEL_TITLE % k.name, ""]
+	var lines: PackedStringArray = [title, ""]
 	for i in _GOV_KEYS.size():
 		var key: String = _GOV_KEYS[i]
 		lines.append("%s %s: %s" % [">" if i == _gov_row else " ", GameConstants.GOV_DECREE_NAMES[key],
 				GovSim.value_name(key, k.decrees[key])])
+	var others := _gov_realms()
+	if not others.is_empty():
+		lines.append("")
+		for i in others.size():
+			var o: Dictionary = others[i]
+			var row := _GOV_KEYS.size() + i
+			var line := "%s %s" % [">" if row == _gov_row else " ", realm_line(k, o)]
+			if row == _gov_row:
+				line += " · " + GameConstants.REALM_ACT_NAMES[GameConstants.REALM_ACTS[_gov_act]]
+			lines.append(line)
 	lines.append("")
-	lines.append(GameConstants.GOV_PANEL_HINT)
-	_gov_label.text = "
-".join(lines)
+	lines.append(GameConstants.GOV_PANEL_HINT if others.is_empty() else GameConstants.REALM_PANEL_HINT)
+	_gov_label.text = "\n".join(lines)
+
+
+## "Reino de Bruma: paz (relação +0,2)" — what the ruler of `k` knows of `other`.
+func realm_line(k: Dictionary, other: Dictionary) -> String:
+	var r := _state.realm(k.id, other.id)
+	return GameConstants.REALM_LINE % [other.name, "guerra" if r.war else "paz", float(r.rel)]
 
 
 # --- ADM panels (F9 log, F10 Houses): dev only, the player never sees kingdom events ---
@@ -579,8 +638,7 @@ func _fill_families(k: Dictionary) -> void:
 	var title := Label.new()
 	title.text = GameConstants.FAMILIES_TITLE % k.name
 	if _gov:
-		title.text += "
-" + gov_adm_line(k)
+		title.text += "\n" + gov_adm_line(k) + "\n" + realms_adm_line(k)
 	title.add_theme_font_size_override("font_size", _FONT_SIZE)
 	_families_box.add_child(title)
 	var rows := PeopleManager.family_rows(_state, k)

@@ -351,7 +351,7 @@ func _add_people(scatter: PropScatter, library: ModelLibrary) -> void:
 	_player.talked.connect(func(n: Node3D) -> void: _people.talked_to((n as Person).record))
 	_player.donate_handler = _people.donate
 	_hud.set_people(_people)
-	_hud.set_gov(_village.gov)
+	_hud.set_gov(_village.gov, _village.realms)
 	_village.player_pos = func() -> Variant: return _player.global_position
 	_build.refuse_in = func(pos: Vector3) -> String:
 		var k := _state.kingdom_at(pos)
