@@ -151,5 +151,5 @@ docs/superpowers/     specs/ e plans/
 9. ✅ **Mundo vivo:** reinos NPC, simulação resumida fora da tela, diplomacia e guerras, novos reinos.
 10. ✅ **Vida:** morte com corpo, recolher, carregar, cavar e enterrar (com animação), velório, sentimentos,
     necessidades (companhia, fé), vontades, mercadores ambulantes, moedas e pão.
-11. **Cotidiano:** mais da vida de todo dia (a definir no design da etapa).
+11. ✅ **Cotidiano:** refeições sentados à fogueira, noite na fogueira, crianças brincando, chuva, fofoca.
 12. **Polimento:** menu, salvar/carregar, som, balanceamento.

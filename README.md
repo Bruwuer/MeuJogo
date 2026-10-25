@@ -72,4 +72,4 @@ O log do ADM com tudo o que acontece no reino fica em `%APPDATA%\Godot\app_userd
 
 ## Estado
 
-Etapas 1 a 10 no `main` (630 testes). Próximas: 11 (Cotidiano) e 12 (Acabamento) — ver o roadmap no `CLAUDE.md`.
+Etapas 1 a 11 no `main` (641 testes). Próxima: 12 (Acabamento) — ver o roadmap no `CLAUDE.md`.

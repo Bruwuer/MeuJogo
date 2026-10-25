@@ -382,3 +382,30 @@ concordância de gênero.
 - A cova "reservada" conta mesmo se o enterro não acontecer (fica um espaço vazio na fileira).
 
 Suíte: 630 testes passando.
+
+
+## Etapa 11 — Cotidiano (2026-10-25, noite de carta branca)
+
+**O que mudou**
+- **Refeições de verdade:** quem está na tela come nas horas de refeição (7h, 12h e a ceia das 19h) **sentado em roda
+  da fogueira** (`eat`), com a comida saindo do estoque e seguindo o decreto de ração.
+- **Noite na fogueira:** às 20h, quem sente falta de companhia **senta à fogueira** (`sit`).
+- **Crianças brincam** (`play`) perto de casa.
+- **Chuva:** alguns dias chove; as pessoas vão para baixo de um teto (os guardas não), as fazendas rendem menos, o céu
+  fica cinza e gotas caem em volta do jogador.
+- **Fofoca:** quem conversa puxa a opinião do outro sobre o fundador e passa a desgostar de quem o outro odeia (nunca
+  do próprio cônjuge ou parente).
+
+**Capturas:** `life_meal` (comendo sentados), `life_fireside` (a roda ao anoitecer), `rain_look` (a chuva) e as
+anteriores da etapa 10 em `tests/visual/life_watch.gd`.
+
+**Revisão final (subagente):** corrigidos, com teste: fogueira que quase nunca acontecia, refeição dando comida em
+dobro, ração ignorada na tela, guardas largando o posto na chuva, brincadeira e fogueira debaixo de chuva, fofoca
+contra a própria família.
+
+**Pendências**
+- Lugar da refeição ou da brincadeira pode cair atrás de uma casa ou árvore (quem não chega perde a vez).
+- Numa recuperação de vários dias de uma vez só vale a chuva do último dia.
+- A troca para o céu nublado é instantânea (sem transição).
+
+Suíte: 641 testes passando.

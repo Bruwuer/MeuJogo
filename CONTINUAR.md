@@ -19,10 +19,9 @@ primeiro e atualizá-lo ao concluir cada tarefa** (seção "Estado atual").
 
 ## Estado atual
 
-- Etapas 1 a 10: concluídas e no `main` (630 testes passando). Resumo em `docs/ENTREGAS.md`.
-- Etapa 10 (Vida) entrou no roadmap a pedido do autor (2026-10-25): morte, corpo e enterro com animação, sentimentos,
-  necessidades, vontades, mercadores e itens. O acabamento passou a ser a etapa 12 (a 11 é o cotidiano).
-- **Próxima: etapa 11 (Cotidiano)** — ver `docs/superpowers/specs/` quando existir; depois a 12 (Acabamento).
+- Etapas 1 a 11: concluídas e no `main` (641 testes passando). Resumo em `docs/ENTREGAS.md`.
+- Etapas 10 (Vida) e 11 (Cotidiano) entraram no roadmap a pedido do autor na noite de 2026-10-25.
+- **Próxima: etapa 12 (Acabamento)** — menu, salvar/carregar, som, balanceamento.
 
 ## Execução automática
 
