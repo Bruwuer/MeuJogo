@@ -16,6 +16,7 @@ var _scenes: Dictionary[int, PackedScene] = {} # Building type -> scene
 var _parts: Dictionary[String, PackedScene] = {} # creature part name -> scene
 var _house_levels: Dictionary[int, PackedScene] = {} # house level (1, 2) -> scene
 var _weapons: Dictionary[int, PackedScene] = {} # Weapon -> scene (own materials: never faded)
+var _tools: Dictionary[String, PackedScene] = {} # "shovel", "pack" -> scene (own materials)
 var _arrow: PackedScene
 var _scaffold: PackedScene
 var _person: PackedScene # humanoid for villagers (own materials: recolored per person)
@@ -35,6 +36,8 @@ func start_loading() -> void:
 		_queue.append(["part", part, GameConstants.CREATURE_PART_PATH % part])
 	for w in GameConstants.WEAPONS:
 		_queue.append(["weapon", w, GameConstants.WEAPONS[w].scene])
+	for t in GameConstants.TOOL_SCENES:
+		_queue.append(["tool", t, GameConstants.TOOL_SCENES[t]])
 	_queue.append(["arrow", 0, GameConstants.ARROW_SCENE])
 	_queue.append(["scaffold", 0, GameConstants.SCAFFOLD_SCENE])
 	_queue.append(["person", 0, GameConstants.HUMANOID_SCENE])
@@ -58,6 +61,10 @@ func scene_for(building: int) -> PackedScene:
 
 func weapon_scene(weapon: int) -> PackedScene:
 	return _weapons.get(weapon)
+
+
+func tool_scene(tool_name: String) -> PackedScene:
+	return _tools.get(tool_name)
 
 
 func arrow_scene() -> PackedScene:
@@ -100,7 +107,7 @@ func _process(_delta: float) -> void:
 		var scene: PackedScene = ResourceLoader.load_threaded_get(path)
 		var root := scene.instantiate()
 		var meshes := root.find_children("*", "MeshInstance3D", true, false)
-		if not (_current[0] in ["weapon", "arrow", "person", "crest"]): # held items and people keep their own materials
+		if not (_current[0] in ["weapon", "arrow", "person", "crest", "tool"]): # held items and people keep their own materials
 			for mi: MeshInstance3D in meshes:
 				_use_occlusion_shader(mi.mesh)
 		if _current[0] == "prop":
@@ -108,6 +115,8 @@ func _process(_delta: float) -> void:
 				_meshes[_current[1]] = (meshes[0] as MeshInstance3D).mesh
 		elif _current[0] == "weapon":
 			_weapons[_current[1]] = scene
+		elif _current[0] == "tool":
+			_tools[_current[1]] = scene
 		elif _current[0] == "scaffold":
 			_scaffold = scene
 		elif _current[0] == "crest":

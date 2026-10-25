@@ -50,6 +50,7 @@ func setup(state: WorldState, gen: TerrainGenerator, scatter: PropScatter, strea
 	sim.person_died.connect(func(r: Dictionary) -> void: _free_node(r.id))
 	sim.site_abandoned.connect(_hide_building)
 	sim.building_burned.connect(_hide_building)
+	sim.body_removed.connect(_free_node)
 	sim.prop_removed.connect(_remove_prop)
 	sim.traveler_spawned.connect(func(_r: Dictionary) -> void: _fill())
 	streamer.chunk_loaded.connect(func(_c: Vector2i) -> void:
@@ -85,7 +86,7 @@ func nearest_person(pos: Vector3, max_dist: float) -> Person:
 	var best: Person = null
 	var best_d := max_dist
 	for n in active_people():
-		if not n.visible:
+		if not n.visible or n.is_dead():
 			continue
 		var d := _flat(n.global_position, pos)
 		if d <= best_d:
@@ -112,6 +113,10 @@ func _sync() -> void:
 		var n := node_for(id)
 		if n == null:
 			_nodes.erase(id)
+			continue
+		var rec := _state.person(int(id))
+		if rec.is_empty() or (rec.status == "dead" and int(rec.get("carrier_id", -1)) >= 0):
+			_free_node(id) # buried, or picked up: the body is in someone's arms now
 			continue
 		var p := n.global_position
 		var ground := _gen.height_at(p.x, p.z)
@@ -148,6 +153,8 @@ func _on_chunk_unloaded(c: Vector2i) -> void:
 func _fill() -> void:
 	var waiting: Array[Dictionary] = []
 	for rec in _state.all_people():
+		if rec.status == "dead" and int(rec.get("carrier_id", -1)) >= 0:
+			continue # carried: drawn in the bearer's arms
 		if not _nodes.has(rec.id) and _streamer.is_loaded(ChunkMath.world_to_chunk(rec.pos)):
 			waiting.append(rec)
 	var center := _player.global_position if is_instance_valid(_player) else Vector3.ZERO

@@ -42,11 +42,16 @@ var _stuck_for := 0.0
 var _detour := Vector3.ZERO
 var _detour_left := 0.0
 var _goal_reach := 0.0 ## How close the goal needs us (work targets are prop or site centres).
+var _library: ModelLibrary
+var _carried: Node3D ## The body in this person's arms (stage 10).
+var _tool: Node3D ## The shovel while digging.
+var _tool_name := ""
 
 
 func setup(rec: Dictionary, library: ModelLibrary, mgr: Node) -> void:
 	record = rec
 	manager = mgr
+	_library = library
 	name = "Person%d" % rec.id
 	add_to_group("people")
 	collision_layer = GameConstants.LAYER_PEOPLE
@@ -73,7 +78,7 @@ func setup(rec: Dictionary, library: ModelLibrary, mgr: Node) -> void:
 		var players := _model.find_children("*", "AnimationPlayer", true, false)
 		if not players.is_empty():
 			_anim = players[0]
-			for clip in [GameConstants.ANIM_IDLE, GameConstants.ANIM_WALK, GameConstants.ANIM_RUN, GameConstants.ANIM_WORK]:
+			for clip in GameConstants.LOOPED_CLIPS:
 				if _anim.has_animation(clip):
 					_anim.get_animation(clip).loop_mode = Animation.LOOP_LINEAR
 	var shape := CollisionShape3D.new()
@@ -86,6 +91,14 @@ func setup(rec: Dictionary, library: ModelLibrary, mgr: Node) -> void:
 	_play(GameConstants.ANIM_IDLE)
 	if int(rec.get("inside", -1)) >= 0:
 		visible = false
+	if is_dead():
+		collision_layer = 0 # a body lies on the ground, nobody bumps into it
+		_play(GameConstants.ANIM_DEAD)
+
+
+## A body lying where the person fell (stage 10): no thinking, no moving.
+func is_dead() -> bool:
+	return String(record.get("status", "")) == "dead"
 
 
 ## Walks to `pos` (or within `reach` of it) and stays there (tests and scripted moves): the brain is
@@ -116,6 +129,8 @@ func sync_record() -> void:
 
 
 func _physics_process(delta: float) -> void:
+	if is_dead():
+		return
 	if not _commanded:
 		_brain_left -= delta
 		if _brain_left <= 0.0:
@@ -137,7 +152,9 @@ func _physics_process(delta: float) -> void:
 		A.DEED:
 			_stand(delta)
 			_face(target_pos, delta)
-			_play(GameConstants.ANIM_WORK)
+			var clip := String((record.get("deed", {}) as Dictionary).get("anim", GameConstants.ANIM_WORK))
+			_hold_tool("shovel" if clip == GameConstants.ANIM_DIG else "")
+			_play(clip)
 			if not _done:
 				work_left -= delta
 				if work_left <= 0.0:
@@ -174,6 +191,9 @@ func _physics_process(delta: float) -> void:
 
 
 func _think() -> void:
+	_update_carried()
+	if act != A.DEED:
+		_hold_tool("")
 	if _model:
 		var s := body_scale(record)
 		if absf(_model.scale.x - s) > 0.001: # children grow
@@ -219,8 +239,8 @@ func _stand(delta: float) -> void:
 	velocity.z = 0.0
 	_apply_gravity(delta)
 	move_and_slide()
-	if act != A.WORK:
-		_play(GameConstants.ANIM_IDLE)
+	if act != A.WORK and act != A.DEED:
+		_play(_idle_clip())
 
 
 func _move(delta: float, speed: float) -> void:
@@ -244,9 +264,12 @@ func _move(delta: float, speed: float) -> void:
 	move_and_slide()
 	if dir != Vector3.ZERO:
 		rotation.y = lerp_angle(rotation.y, atan2(dir.x, dir.z), clampf(GameConstants.TURN_SPEED * delta, 0.0, 1.0))
-		_play(GameConstants.ANIM_RUN if speed > GameConstants.PERSON_WALK_SPEED else GameConstants.ANIM_WALK)
+		if int(record.get("carrying_body", -1)) >= 0:
+			_play(GameConstants.ANIM_CARRY) # slow steps, the body in the arms
+		else:
+			_play(GameConstants.ANIM_RUN if speed > GameConstants.PERSON_WALK_SPEED else GameConstants.ANIM_WALK)
 	else:
-		_play(GameConstants.ANIM_IDLE)
+		_play(_idle_clip())
 
 
 ## Failsafe for corners and steps the rays miss: no progress for a while -> a short sidestep;
@@ -317,6 +340,58 @@ func _apply_gravity(delta: float) -> void:
 		velocity.y = 0.0
 	else:
 		velocity.y -= GameConstants.GRAVITY * delta
+
+
+## Standing still: head down in mourning when the grief runs deep.
+func _idle_clip() -> String:
+	var grief := float((record.get("mood", {}) as Dictionary).get("grief", 0.0))
+	return GameConstants.ANIM_MOURN if grief >= GameConstants.MOOD_MOURN_AT else GameConstants.ANIM_IDLE
+
+
+## Shows (or drops) the body this person carries: a villager lying across the arms.
+func _update_carried() -> void:
+	var carrying := int(record.get("carrying_body", -1)) >= 0
+	if carrying and _carried == null and _library and _model:
+		var scene := _library.person_scene()
+		if scene == null:
+			return
+		_carried = scene.instantiate() as Node3D
+		_carried.name = "CarriedBody"
+		_carried.position = GameConstants.CARRY_OFFSET
+		_carried.rotation_degrees = GameConstants.CARRY_ROTATION
+		_carried.scale = Vector3.ONE * GameConstants.CARRY_SCALE
+		_model.add_child(_carried)
+		var players := _carried.find_children("*", "AnimationPlayer", true, false)
+		if not players.is_empty():
+			(players[0] as AnimationPlayer).play(GameConstants.ANIM_DEAD)
+	elif not carrying and _carried:
+		_carried.queue_free()
+		_carried = null
+
+
+## Puts a tool ("shovel") in the right hand, or empties it ("").
+func _hold_tool(tool_name: String) -> void:
+	if tool_name == _tool_name:
+		return
+	if _tool:
+		_tool.get_parent().get_parent().queue_free() # the hand attachment made for it
+		_tool = null
+	_tool_name = tool_name
+	if tool_name == "" or _library == null or _model == null:
+		return
+	var scene := _library.tool_scene(tool_name)
+	var holder := WeaponHolder.add(_model)
+	if scene and holder:
+		_tool = scene.instantiate() as Node3D
+		holder.add_child(_tool)
+
+
+func carried_body() -> Node3D:
+	return _carried
+
+
+func held_tool() -> String:
+	return _tool_name
 
 
 func _play(clip: String) -> void:

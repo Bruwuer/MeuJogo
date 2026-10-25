@@ -1113,6 +1113,9 @@ const GOV_PANEL_HINT := "↑↓ escolhe · ←→ muda · P fecha"
 
 # Life (stage 10): death, burial, feelings, needs
 const PICKUP_SEC := 3.0 ## Kneeling by the body and lifting it.
+const CARRY_OFFSET := Vector3(-0.8, 1.05, 0.35) ## The carried body, in the bearer's model space (in front, at the chest).
+const CARRY_ROTATION := Vector3(0.0, 90.0, 0.0) ## Lying across the arms.
+const CARRY_SCALE := 0.92
 const DIG_SEC := 8.0 ## Digging the grave (on screen; the effect waits for it).
 const BURY_HOURS := 6.0 ## Window to carry a body to the cemetery and bury it.
 const GRAVE_SPACING := 1.8 ## Between graves in a row.

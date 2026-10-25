@@ -37,6 +37,24 @@ func _run() -> void:
 			anim.pause()
 		else:
 			print("MISSING clip ", CLIPS[i])
+	# In use: a bearer with the body in the arms, a digger with the shovel (as the game builds them).
+	var bearer: Node3D = person.instantiate()
+	stage.add_child(bearer)
+	bearer.position = Vector3(-3.0, 0, -3.0)
+	_freeze(bearer, "carry")
+	var carried: Node3D = person.instantiate()
+	carried.position = GameConstants.CARRY_OFFSET
+	carried.rotation_degrees = GameConstants.CARRY_ROTATION
+	carried.scale = Vector3.ONE * GameConstants.CARRY_SCALE
+	bearer.add_child(carried)
+	_freeze(carried, "dead")
+	var digger: Node3D = person.instantiate()
+	stage.add_child(digger)
+	digger.position = Vector3(0.0, 0, -3.0)
+	_freeze(digger, "dig")
+	var holder := WeaponHolder.add(digger)
+	if holder:
+		holder.add_child((load(GameConstants.TOOL_SCENES.shovel) as PackedScene).instantiate())
 	var props := ["grave", "shovel", "pack"]
 	for i in props.size():
 		var scene: PackedScene = load("res://assets/models/%s.glb" % props[i])
@@ -45,7 +63,7 @@ func _run() -> void:
 		p.position = Vector3(i * 2.5 - 2.5, 0.0 if i == 0 else 1.0, 3.5)
 		if props[i] == "shovel":
 			p.rotation_degrees.x = 180.0 # blade down
-	var cam := _camera(Vector3(0, 0.8, 1.0), Vector3(GameConstants.CAM_PITCH_DEG, GameConstants.CAM_YAW_DEG, 0), 11.0)
+	var cam := _camera(Vector3(0, 0.8, -0.5), Vector3(GameConstants.CAM_PITCH_DEG, GameConstants.CAM_YAW_DEG, 0), 11.0)
 	await _frames(5)
 	await _shot("poses_iso")
 	cam.rotation_degrees = Vector3(-8, 0, 0)
@@ -59,6 +77,13 @@ func _run() -> void:
 	await _frames(3)
 	await _shot("poses_side")
 	quit(0)
+
+
+func _freeze(model: Node3D, clip: String) -> void:
+	var anim: AnimationPlayer = model.find_children("*", "AnimationPlayer", true, false)[0]
+	anim.play(clip)
+	anim.seek(anim.current_animation_length * 0.3, true)
+	anim.pause()
 
 
 func _lighting(stage: Node3D) -> void:

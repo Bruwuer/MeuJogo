@@ -187,3 +187,71 @@ func test_failsafe_never_lands_inside_the_target() -> void:
 	assert_true(absf(q.x - 9.0) > 2.7 or absf(q.z) > 2.7, "not inside the target (%s)" % str(q))
 	p.queue_free()
 	pen.queue_free()
+
+
+# --- Stage 10: the body, the arms and the shovel ---
+
+func _clip(p: Person) -> String:
+	var players := p.find_children("*", "AnimationPlayer", true, false)
+	return String((players[0] as AnimationPlayer).current_animation) if not players.is_empty() else ""
+
+
+func test_a_body_lies_still() -> void:
+	_floor()
+	var p := await _spawn(Vector3(0, 0.2, 0), 41)
+	p.queue_free()
+	var lib: ModelLibrary = await _library()
+	var rec := PersonGen.generate(RandomNumberGenerator.new())
+	rec.merge({id = 42, pos = Vector3(2, 0.2, 0), status = "dead", carrying = {}, home_id = -1, inside = -1, job = ""}, true)
+	var body := Person.new()
+	add_child(body)
+	body.setup(rec, lib, null)
+	await wait_physics_frames(30)
+	assert_true(body.is_dead())
+	assert_eq(_clip(body), GameConstants.ANIM_DEAD)
+	assert_eq(body.collision_layer, 0, "nobody bumps into a body")
+	assert_near(body.global_position.x, 2.0, 0.01, "a body does not walk")
+	body.queue_free()
+
+
+func test_carrying_a_body_shows_it_in_the_arms() -> void:
+	_floor()
+	var p := await _spawn(Vector3(0, 0.2, 0), 43)
+	p.record.carrying_body = 99
+	p._think()
+	assert_true(p.carried_body() != null, "the body is drawn in the arms")
+	p.walk_to(Vector3(8, 0, 0))
+	await wait_physics_frames(20)
+	assert_eq(_clip(p), GameConstants.ANIM_CARRY, "slow steps carrying")
+	p.record.carrying_body = -1
+	p._think()
+	await wait_frames(2)
+	assert_true(p.carried_body() == null)
+	p.queue_free()
+
+
+func test_digging_holds_a_shovel() -> void:
+	_floor()
+	var p := await _spawn(Vector3(0, 0.2, 0), 44)
+	p.record.deed = {kind = "bury", anim = GameConstants.ANIM_DIG}
+	p.act = PersonBrain.Act.DEED
+	p._commanded = true
+	await wait_physics_frames(5)
+	assert_eq(_clip(p), GameConstants.ANIM_DIG)
+	assert_eq(p.held_tool(), "shovel")
+	p.record.deed = {}
+	p.act = PersonBrain.Act.IDLE
+	p._think()
+	assert_eq(p.held_tool(), "")
+	p.queue_free()
+
+
+func test_deep_grief_bows_the_head() -> void:
+	_floor()
+	var p := await _spawn(Vector3(0, 0.2, 0), 45)
+	p.record.mood = {joy = 0.0, grief = 0.9, fear = 0.0, anger = 0.0}
+	p._commanded = true
+	p.act = PersonBrain.Act.IDLE
+	await wait_physics_frames(5)
+	assert_eq(_clip(p), GameConstants.ANIM_MOURN)
+	p.queue_free()
