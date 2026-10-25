@@ -46,6 +46,19 @@ func _run(world_seed: int) -> void:
 	var graves := s.all_buildings().filter(func(b: Dictionary) -> bool: return int(b.type) == GameConstants.Building.GRAVE)
 	var merchants := s.all_people().filter(func(p: Dictionary) -> bool: return p.status == "merchant")
 	print("  LIFE: graves=%d bodies_lying=%d (over 2 days: %d) merchants=%d" % [graves.size(), bodies.size(), stale.size(), merchants.size()])
+	# What happened, by kind (the whole chronicle; kingdoms keep their last CHRONICLE_MAX entries).
+	var kinds := {"nasceu": "Nasceu", "morte na batalha": "morreu na batalha", "morte (outra)": "morreu",
+			"foi embora: fome": "passava fome", "foi embora: medo": "medo dos ataques", "foi embora (outro)": "deixou o Reino",
+			"chegou e ficou": "decidiu ficar", "seguiu viagem": "seguiu viagem", "mercador": "mercador",
+			"casamento": "se casaram", "enterro": "enterr"}
+	var tally := {}
+	for e in s.chronicle_all(-2, 100000):
+		var t := String(e.text)
+		for kind: String in kinds:
+			if t.contains(kinds[kind]):
+				tally[kind] = int(tally.get(kind, 0)) + 1
+				break
+	print("  TALLY: %s" % ", ".join(tally.keys().map(func(kk: String) -> String: return "%s=%d" % [kk, tally[kk]])))
 	var seen := {}
 	for e in s.chronicle_all(-2, 100000):
 		var t := String(e.text)

@@ -343,3 +343,23 @@ func test_live_farm_food_before_any_offscreen_hour() -> void:
 	assert_eq((a[0] as WorldState).stock_of(k, R.FOOD), 1, "whole units go to the stock")
 	sim.add_fraction(k, "food", R.FOOD, 0.5)
 	assert_eq((a[0] as WorldState).stock_of(k, R.FOOD), 2, "fractions add up")
+
+
+func test_gatherers_go_farther_when_the_near_trees_are_gone() -> void:
+	var a := _setup(false)
+	var s: WorldState = a[0]
+	var k: Dictionary = a[1]
+	var sim: VillageSim = a[2]
+	var trees := [GameConstants.Prop.OAK, GameConstants.Prop.PINE]
+	var near := sim.nearest_prop(k.center, trees)
+	assert_true(not near.is_empty())
+	# Every tree within 35 m is cut.
+	for p in _scatter.props_near(k.center, 35.0):
+		if p.type in trees:
+			s.mark_removed(ChunkMath.world_to_chunk(p.pos), p.id)
+	var far := sim.nearest_prop(k.center, trees)
+	assert_true(not far.is_empty(), "the woodcutters walk farther instead of giving up")
+	if not far.is_empty():
+		var d := Vector2(far.pos.x - k.center.x, far.pos.z - k.center.z).length()
+		assert_true(d > 35.0, "the nearest standing tree is now farther (%.1f m)" % d)
+	assert_true(sim.snapshot(k).props_left.wood, "the kingdom still has wood to get")

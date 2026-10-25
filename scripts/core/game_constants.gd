@@ -645,7 +645,8 @@ const SLEEP_END_HOUR := 6.0
 ## Summarized output of one work hour of a person without a node.
 const OFFSCREEN_RATE := { "wood": 2.0, "stone": 1.2, "berries": 1.5 }
 const FARM_FOOD_PER_HOUR := 0.75 ## Food per farmer-hour on a farm (one farmer per farm counts).
-const VILLAGE_HARVEST_RADIUS := 35.0 ## Villagers gather props this close to the kingdom center.
+const VILLAGE_HARVEST_RADIUS := 80.0 ## Villagers gather the nearest props first, up to this far from the center
+## once the near ones are gone (35 m left a kingdom without wood in three days).
 const SITE_STALL_HOURS := 48.0 ## A site with no work for this long is abandoned (cost back).
 const VILLAGE_MSG_STAYS := "%s decidiu ficar: %s"
 const VILLAGE_MSG_GOES := "%s seguiu viagem: %s"
