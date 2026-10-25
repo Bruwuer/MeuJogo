@@ -176,6 +176,14 @@ static func _kingdom_defaults(k: Dictionary) -> void:
 		k.last_raid_hour = -1e9
 	if not k.has("people_ever"):
 		k.people_ever = 0
+	# Government (stage 8): old saves are ruled by the player with the default decrees.
+	if not k.has("ruler_id"):
+		k.ruler_id = GameConstants.GOV_PLAYER
+	if not k.has("decrees"):
+		k.decrees = GovRules.default_decrees()
+	for key in ["ruler_way", "ruler_corrupt", "ruler_since", "away_hours", "ruler_skimmed"]:
+		if not k.has(key):
+			k[key] = {ruler_way = "", ruler_corrupt = false, ruler_since = 0.0, away_hours = 0.0, ruler_skimmed = 0}[key]
 
 
 func kingdoms() -> Array[Dictionary]:

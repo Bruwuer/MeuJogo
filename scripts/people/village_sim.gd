@@ -338,6 +338,8 @@ func complete_site(rec: Dictionary) -> void:
 	if k.is_empty():
 		return
 	var text: String = GameConstants.VILLAGE_MSG_DONE % [k.name, GameConstants.BUILD_NAMES[rec.type]]
+	if int(k.decrees.build) == int(rec.type): # the decreed work is done: back to the usual plan
+		k.decrees.build = GameConstants.GOV_BUILD_FREE
 	if rec.type == B.HOUSE:
 		var adults := _state.residents(k.id).filter(func(p: Dictionary) -> bool:
 			return p.home_id < 0 and SocietyRules.is_adult(p))

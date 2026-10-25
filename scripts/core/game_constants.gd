@@ -962,3 +962,51 @@ const CARD_DESIRE := "Deseja: %s"
 const CARD_HOUSE_GOAL := "A Casa quer: %s"
 const FAMILIES_MAX_ROWS := 6 ## Houses listed in the C panel (most prestigious first).
 const FAMILIES_MORE := "… e mais %d Casas"
+
+# Government (stage 8)
+const GOV_PLAYER := -1 ## `ruler_id` of a kingdom the player governs.
+const GOV_ABSENCE_HOURS := 48.0 ## The player away this long: a regent takes over.
+const GOV_CULT_OPINION := 0.7 ## A loyal, devout ruler this fond of the founder starts a cult.
+const GOV_CORRUPT_WEALTH := 0.7 ## A ruler whose House values wealth this much is corrupt.
+const GOV_CULT_TARGET := 0.6 ## Under a cult, opinions drift toward this while the founder is away.
+const GOV_ENEMY_TARGET := -0.6 ## Under an enemy ruler, toward this.
+const GOV_SUPPORT_MEMBER := 0.5 ## Support per adult member of a House (added to its prestige).
+const GOV_SUPPORT_RELATION := 2.0 ## Support per point of the other heads' mean relation with the candidate.
+const GOV_TAX_LEVELS := ["none", "low", "high"]
+const GOV_TAX_RATE := { none = 0.0, low = 0.05, high = 0.15 } ## Share of a House's wealth paid per day.
+const GOV_TAX_FLOOR := 20.0 ## Houses poorer than this pay nothing.
+const GOV_RATION_LEVELS := ["curta", "normal", "farta"]
+## A meal happens at this share of HUNGER_MEAL and removes max(1, share) x HUNGER_MEAL.
+const GOV_RATION_EAT_AT := { curta = 1.5, normal = 1.0, farta = 0.5 }
+const GOV_CONTENT_TAX := { none = 0.005, low = 0.0, high = -0.01 } ## Contentment per hour.
+const GOV_CONTENT_RATION := { curta = -0.015, normal = 0.0, farta = 0.01 }
+const GOV_GUARDS_FREE := -1 ## Guard decree: no muster nor dismissal.
+const GOV_GUARDS_MAX := 4
+const GOV_BUILD_FREE := -1 ## Build decree: the usual plan.
+const GOV_BUILD_CHOICES := [-1, Building.HOUSE, Building.FARM, Building.WELL, Building.STORAGE, Building.MARKET]
+const GOV_OPINION_STEP := 0.08 ## Opinion change per level of a decree that touches a person.
+const GOV_DEPOSE_AT := -0.4 ## Mean relation of the other heads with the ruler below this: deposition.
+const GOV_MIN_REIGN_HOURS := 72.0
+const GOV_WORSHIP_OPINION := 0.03 ## Opinion of the founder gained by each prayer at the flag.
+const GOV_SKIM_PER_DAY := 0.5 ## Chance a corrupt ruler skims on a given night.
+const DEED_DUSK := Vector2(18.0, 21.0) ## Window of the prayer at the flag.
+const GOV_DECREE_NAMES := { tax = "Imposto", ration = "Ração", guards = "Guarda", build = "Obra" }
+const GOV_TAX_NAMES := { none = "nenhum", low = "baixo", high = "alto" }
+const GOV_RATION_NAMES := { curta = "curta", normal = "normal", farta = "farta" }
+const GOV_WAY_NAMES := { "": "", "leal": "leal", "culto": "culto ao fundador", "neutro": "neutro", "inimigo": "inimigo do fundador" }
+const GOV_MSG_CROWNED := "%s assumiu o governo do Reino de %s (%s)"
+const GOV_MSG_HEIR := "%s herdou o governo do Reino de %s"
+const GOV_MSG_HANDOVER := "%s devolveu o governo do Reino de %s ao fundador"
+const GOV_MSG_REFUSED := "%s não devolve o governo do Reino de %s"
+const GOV_MSG_TAX := "A Casa %s pagou o imposto: %d de %s"
+const GOV_MSG_MUSTER := "%s foi convocado para a guarda"
+const GOV_MSG_DISMISS := "%s foi dispensado da guarda"
+const GOV_MSG_WORSHIP := "%s rezou ao fundador junto à bandeira"
+const GOV_MSG_DEPOSED := "%s foi deposto: os chefes das Casas se reuniram de madrugada"
+const GOV_MSG_DECREE := "Decreto: %s %s"
+const GOV_MSG_RULER_SKIM := "%s, governante, levou %d de %s do estoque para a própria Casa"
+const GOV_NOT_YOURS := "O Reino de %s não é seu: %s governa"
+const GOV_LABEL_YOU := "Governo: você"
+const GOV_LABEL_RULER := "Governo: %s"
+const GOV_PANEL_TITLE := "Governo do Reino de %s"
+const GOV_PANEL_HINT := "↑↓ escolhe · ←→ muda · P fecha"

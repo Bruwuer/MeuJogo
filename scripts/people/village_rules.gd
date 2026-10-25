@@ -60,6 +60,7 @@ static func snapshot(state: WorldState, k: Dictionary, hour: float) -> Dictionar
 		people_ever = k.people_ever, apart = apart,
 		surnames = state.families_of(k.id).map(func(f: Dictionary) -> String: return f.surname),
 		families = state.families_of(k.id).size(),
+		decrees = (k.get("decrees", GovRules.default_decrees()) as Dictionary).duplicate(),
 	}
 
 
@@ -150,6 +151,9 @@ static func hourly_contentment(person: Dictionary, snap: Dictionary, fed: bool) 
 		d += GameConstants.CONTENT_WELL
 	if snap.has_market:
 		d += GameConstants.CONTENT_MARKET
+	var decrees: Dictionary = snap.get("decrees", {})
+	d += float(GameConstants.GOV_CONTENT_TAX.get(decrees.get("tax", "low"), 0.0))
+	d += float(GameConstants.GOV_CONTENT_RATION.get(decrees.get("ration", "normal"), 0.0))
 	return d
 
 
@@ -165,14 +169,17 @@ static func leave_reason(person: Dictionary, snap: Dictionary) -> String:
 
 
 ## A meal from the kingdom stock when hungry (Comida first, then Frutas). Returns whether the
-## person is fed (not hungry, or just ate).
+## person is fed (not hungry, or just ate). The ration decree sets how hungry one gets before a meal
+## (a generous ration means more meals, a short one fewer).
 static func eat(person: Dictionary, k: Dictionary, state: WorldState) -> bool:
-	if person.hunger < GameConstants.HUNGER_MEAL:
+	var ration: String = (k.get("decrees", {}) as Dictionary).get("ration", "normal")
+	var share: float = GameConstants.GOV_RATION_EAT_AT.get(ration, 1.0)
+	if person.hunger < GameConstants.HUNGER_MEAL * share:
 		return true
 	for res in [R.FOOD, R.BERRIES]:
 		if state.stock_of(k, res) > 0:
 			state.add_stock(k, res, -1)
-			person.hunger = maxf(0.0, person.hunger - GameConstants.HUNGER_MEAL)
+			person.hunger = maxf(0.0, person.hunger - GameConstants.HUNGER_MEAL * maxf(1.0, share))
 			return true
 	return false
 
@@ -181,6 +188,10 @@ static func eat(person: Dictionary, k: Dictionary, state: WorldState) -> bool:
 static func next_project(snap: Dictionary) -> int:
 	if snap.site >= 0 or snap.residents == 0:
 		return -1
+	# The ruler's build decree comes first when the stock pays for it.
+	var pref := int((snap.get("decrees", {}) as Dictionary).get("build", GameConstants.GOV_BUILD_FREE))
+	if pref >= 0 and _stock_pays(snap.stock, GameConstants.BUILD_COST[pref]):
+		return pref
 	if snap.food_days < GameConstants.PROJECT_FOOD_DAYS \
 			and snap.farms < ceili(float(snap.residents) / GameConstants.PROJECT_FARM_PER_PEOPLE):
 		return B.FARM
@@ -195,6 +206,13 @@ static func next_project(snap: Dictionary) -> int:
 	if not snap.has_storage:
 		return B.STORAGE
 	return -1
+
+
+static func _stock_pays(stock: Dictionary, cost: Dictionary) -> bool:
+	for res in cost:
+		if int(stock.get(res, 0)) < int(cost[res]):
+			return false
+	return true
 
 
 ## A valid place for `type`: a golden-angle spiral from the kingdom center (at most
