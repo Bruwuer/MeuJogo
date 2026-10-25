@@ -19,8 +19,11 @@ const _PLAYER_CENTER := 0.9 ## Height of the point props fade around (prop occlu
 @export var spawn_seed := GameConstants.SPAWN_SEED
 ## -1 = new worlds get a random seed; ignored when a save is loaded.
 @export var world_seed := -1
-## Where the world is saved; "" disables saving and loading.
-@export var save_path := GameConstants.SAVE_PATH
+## Where the world is saved; "" disables saving and loading. SAVE_FROM_SESSION: the slot chosen in
+## the menu (slot 1 without the menu).
+@export var save_path := GameConstants.SAVE_FROM_SESSION
+## The save slots (tests point it at their own folder).
+var slots := SaveSlots.new()
 ## Place the NPC kingdoms the first time this world is loaded (stage 9).
 @export var seed_realms := true
 
@@ -45,6 +48,9 @@ var _autosave_left := GameConstants.AUTOSAVE_SEC
 
 
 func _ready() -> void:
+	if save_path == GameConstants.SAVE_FROM_SESSION:
+		slots.migrate_legacy()
+		save_path = slots.path(Session.slot if Session.slot > 0 else 1)
 	_state = WorldState.load_from(save_path) if save_path != "" else null
 	if _state == null and save_path != "" and WorldState.any_file_exists(save_path):
 		_set_aside_unreadable_save()
@@ -191,7 +197,11 @@ func save_now() -> Error:
 	_state.has_player_position = true
 	_state.time_of_day = _day_night.time_of_day
 	_state.day = _day_night.day
-	return _state.save_to(save_path)
+	var err := _state.save_to(save_path)
+	var slot := slots.slot_of(save_path)
+	if err == OK and slot > 0:
+		slots.write_summary(slot, _state, int(Time.get_unix_time_from_system()))
+	return err
 
 
 ## Packs (hourly motives, raids) and the creature nodes in loaded chunks. A new world gets its

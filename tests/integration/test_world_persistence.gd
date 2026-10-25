@@ -196,3 +196,56 @@ func test_people_persist_across_save() -> void:
 	assert_eq(q.get("status"), "resident")
 	assert_near(float(q.get("opinion", 0.0)), 0.33, 0.0001)
 	assert_eq(b.get_state().stock_of(b.get_state().kingdom(k.id), GameConstants.Res.FOOD), 7)
+
+
+func _slots_dir() -> String:
+	var dir := "user://test_slots_%d/" % (hash(_path) & 0xffff)
+	DirAccess.make_dir_recursive_absolute(ProjectSettings.globalize_path(dir))
+	return dir
+
+
+func _clear_slots(slots: SaveSlots) -> void:
+	for i in range(1, GameConstants.SAVE_SLOTS + 1):
+		slots.clear(i)
+	DirAccess.remove_absolute(ProjectSettings.globalize_path(slots.dir))
+
+
+func test_save_writes_the_slot_summary() -> void:
+	var slots := SaveSlots.new(_slots_dir())
+	var w: World = load(MAIN_SCENE).instantiate()
+	w.world_seed = 1337
+	w.spawn_seed = 42
+	w.slots = slots
+	w.save_path = slots.path(2)
+	add_child(w)
+	for i in READY_TIMEOUT_FRAMES:
+		if w.is_world_ready():
+			break
+		await get_tree().process_frame
+	assert_eq(w.save_now(), OK)
+	var m := slots.summary(2)
+	assert_true(not m.is_empty(), "a good save leaves its summary beside it")
+	assert_true(int(m.get("saved_unix", 0)) > 0)
+	w.free()
+	_clear_slots(slots)
+
+
+func test_default_save_goes_to_the_session_slot() -> void:
+	var slots := SaveSlots.new(_slots_dir())
+	Session.slot = 3
+	var w: World = load(MAIN_SCENE).instantiate()
+	w.world_seed = 1337
+	w.spawn_seed = 42
+	w.slots = slots
+	add_child(w)
+	assert_eq(w.save_path, slots.path(3), "the world plays in the slot chosen in the menu")
+	Session.slot = 0
+	w.free()
+	var w2: World = load(MAIN_SCENE).instantiate()
+	w2.world_seed = 1337
+	w2.spawn_seed = 42
+	w2.slots = slots
+	add_child(w2)
+	assert_eq(w2.save_path, slots.path(1), "without the menu: slot 1")
+	w2.free()
+	_clear_slots(slots)

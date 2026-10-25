@@ -440,7 +440,7 @@ const AMBIENT_DAY_COLOR := Color(0.70, 0.74, 0.80)
 const AMBIENT_NIGHT_COLOR := Color(0.40, 0.48, 0.72)
 
 # Save
-const SAVE_PATH := "user://save.bin"
+const SAVE_FROM_SESSION := "session" ## World.save_path: play in the slot the menu chose (Session.slot).
 const AUTOSAVE_SEC := 60.0
 
 # Performance budget
