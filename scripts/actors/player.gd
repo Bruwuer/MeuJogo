@@ -8,6 +8,8 @@ extends CharacterBody3D
 
 signal died
 signal attacked(weapon: int)
+## A melee strike landed on at least one creature.
+signal struck
 signal message(text: String)
 signal talked(person: Node3D)
 
@@ -252,9 +254,12 @@ func _resolve_hit() -> void:
 	var alive: Array = creature_source.call().filter(func(c: Node) -> bool:
 		return is_instance_valid(c) and not (c as Creature).is_dead())
 	var f := facing()
-	for c: Creature in Combat.melee_targets(global_position, f, data.range, data.arc, alive):
+	var targets := Combat.melee_targets(global_position, f, data.range, data.arc, alive)
+	for c: Creature in targets:
 		c.health.damage(data.damage, self)
 		c.knockback(f * float(data.knockback))
+	if not targets.is_empty():
+		struck.emit()
 
 
 func _shoot(data: Dictionary) -> void:

@@ -35,6 +35,7 @@ var _commanded := false
 var _avoid_sign := 1.0
 var _idle_offset := Vector3.ZERO
 var _done := false # the current goal's action already happened (work finished, deposited...)
+var _sound_left := 0.0 # until the next stroke heard while working
 var _rng := RandomNumberGenerator.new()
 var _stuck_dist := INF
 var _stuck_check_left := GameConstants.PERSON_STUCK_CHECK_SEC
@@ -209,6 +210,7 @@ func _physics_process(delta: float) -> void:
 			_stand(delta)
 			_face(target_pos, delta)
 			_play(GameConstants.ANIM_WORK)
+			_work_sound(delta, String(record.get("job", "")), GameConstants.ANIM_WORK)
 			if not _done:
 				work_left -= delta
 				if work_left <= 0.0:
@@ -222,6 +224,7 @@ func _physics_process(delta: float) -> void:
 			var clip := String((record.get("deed", {}) as Dictionary).get("anim", GameConstants.ANIM_WORK))
 			_hold_tool("shovel" if clip == GameConstants.ANIM_DIG else "")
 			_play(clip)
+			_work_sound(delta, "", clip)
 			if not _done:
 				work_left -= delta
 				if work_left <= 0.0:
@@ -471,6 +474,33 @@ func carried_body() -> Node3D:
 
 func held_tool() -> String:
 	return _tool_name
+
+
+## The sound of someone working: by trade while working, by gesture during a deed ("" = silent).
+static func work_sound(job: String, anim: String) -> String:
+	if anim == GameConstants.ANIM_DIG:
+		return "dig"
+	if anim != GameConstants.ANIM_WORK:
+		return ""
+	match job:
+		"wood", "build", "":
+			return "chop"
+		"stone":
+			return "pick"
+		"farm":
+			return "dig"
+	return ""
+
+
+func _work_sound(delta: float, job: String, anim: String) -> void:
+	_sound_left -= delta
+	if _sound_left > 0.0 or not visible:
+		return
+	_sound_left = GameConstants.SOUND_WORK_EVERY
+	var name := work_sound(job, anim)
+	var sound := get_node_or_null("/root/Sound")
+	if name != "" and sound:
+		sound.play_at(name, global_position)
 
 
 func _play(clip: String) -> void:

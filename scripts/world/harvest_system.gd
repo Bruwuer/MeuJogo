@@ -5,6 +5,8 @@ extends Node
 
 signal resources_changed
 signal harvested(prop_type: int)
+## Every hit on a prop (the axe on a tree, the pick on a rock...).
+signal struck(prop_type: int)
 
 var _chunk_lookup: Callable # func(c: Vector2i) -> Chunk (null when not loaded)
 var _state: WorldState
@@ -49,6 +51,7 @@ func hit(target: Dictionary) -> bool:
 		return false
 	var key := _key(target)
 	_hits[key] = _hits.get(key, 0) + 1
+	struck.emit(prop.type)
 	if _hits[key] < GameConstants.HARVEST_HITS[prop.type]:
 		return false
 	_hits.erase(key)

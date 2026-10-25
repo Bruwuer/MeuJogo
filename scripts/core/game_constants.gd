@@ -1293,3 +1293,16 @@ const PAUSE_SAVED := "Jogo salvo"
 const PAUSE_SAVE_FAILED := "Não foi possível salvar"
 const MENU_SCENE := "res://scenes/menu.tscn"
 const WORLD_SCENE := "res://scenes/main.tscn"
+
+# Sound (stage 12): every .wav comes from tools/sounds/make_sounds.py
+const SOUND_DIR := "res://assets/sounds/"
+const SOUND_LOOPS := ["campfire", "rain", "wind", "crickets", "music_day", "music_night"]
+const SOUND_VOICES := 8 ## 3D voices for the world (work, digging, strikes); the oldest is reused.
+const SOUND_RANGE := 25.0 ## Nothing farther than this from the listener is played.
+const SOUND_FIRE_VOICES := 3 ## Campfire loops heard at once (the nearest).
+const SOUND_FADE_SEC := 3.0 ## Music and ambience crossfade time.
+const SOUND_STEP_WALK := 1.5 ## Metres walked per footstep.
+const SOUND_STEP_RUN := 2.3
+const SOUND_WORK_EVERY := 1.1 ## Seconds between strokes of someone working nearby.
+const SOUND_BIRDS_EVERY := Vector2(7.0, 18.0) ## Seconds between bird calls by day.
+const SOUND_ONESHOT_2D := 4

@@ -46,6 +46,8 @@ var _is_ready := false
 var _rain: RainFx
 var _autosave_left := GameConstants.AUTOSAVE_SEC
 var _pause: PauseMenu
+var _last_step_pos := Vector3.ZERO
+var _fires_left := 0.0
 
 
 func _ready() -> void:
@@ -127,6 +129,7 @@ func _ready() -> void:
 	_pause.name = "PauseMenu"
 	add_child(_pause)
 	_pause.setup(self, _hud)
+	_wire_sound()
 	# Kingdom events go to the ADM log, never to the player's HUD (tests run without a save).
 	var admin := AdminLog.new()
 	admin.name = "AdminLog"
@@ -143,6 +146,48 @@ func _physics_process(_delta: float) -> void:
 	var pos := _player.global_position
 	_streamer.update_center(pos)
 	_player.frozen = not _streamer.is_loaded(ChunkMath.world_to_chunk(pos)) or _hud.gov_visible()
+	_footsteps(pos)
+
+
+# --- Sound (stage 12) ---
+
+func _wire_sound() -> void:
+	Sound.attach_listener(_player)
+	_last_step_pos = _player.global_position
+	_player.attacked.connect(func(w: int) -> void: Sound.play("bow" if w == GameConstants.Weapon.BOW else "swing"))
+	_player.struck.connect(func() -> void: Sound.play("hit"))
+	_harvest.struck.connect(func(prop_type: int) -> void:
+		Sound.play("pick" if prop_type == GameConstants.Prop.ROCK else ("chop" if prop_type != GameConstants.Prop.BUSH else "ui_move")))
+
+
+## A footstep every SOUND_STEP_WALK metres walked on the ground (longer strides running).
+func _footsteps(pos: Vector3) -> void:
+	if not _player.is_on_floor():
+		_last_step_pos = pos
+		return
+	var stride := GameConstants.SOUND_STEP_RUN if Input.is_action_pressed("run") else GameConstants.SOUND_STEP_WALK
+	var moved := Vector2(pos.x - _last_step_pos.x, pos.z - _last_step_pos.z).length()
+	if moved > stride * 4.0: # a teleport or respawn, not a step
+		_last_step_pos = pos
+	elif moved >= stride:
+		_last_step_pos = pos
+		Sound.step()
+
+
+## Music and ambience follow the day, the night and the rain; the nearest campfires crackle.
+func _sound_scene(delta: float, wet: bool) -> void:
+	Sound.set_scene(_day_night.is_night(), wet)
+	_fires_left -= delta
+	if _fires_left > 0.0:
+		return
+	_fires_left = 0.5
+	var fires: Array[Vector3] = []
+	var at := _player.global_position
+	for b in _state.all_buildings():
+		if b.type == GameConstants.Building.CAMPFIRE and not b.get("site", false) \
+				and (b.pos as Vector3).distance_to(at) <= GameConstants.SOUND_RANGE:
+			fires.append(b.pos)
+	Sound.update_fires(fires)
 
 
 func _process(delta: float) -> void:
@@ -153,6 +198,7 @@ func _process(delta: float) -> void:
 		if _day_night.overcast != wet:
 			_day_night.overcast = wet
 			_day_night.apply()
+		_sound_scene(delta, wet)
 	var globals := shader_globals()
 	for param in globals:
 		RenderingServer.global_shader_parameter_set(param, globals[param])
