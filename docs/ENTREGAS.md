@@ -339,3 +339,46 @@ de novo; painel abrindo numa linha que não existe; baixas sempre começando pel
   falhava igual no `main` da etapa 8, é a velocidade do computador.
 
 Suíte: 600 testes passando.
+
+
+## Etapa 10 — Vida (2026-10-25, noite de carta branca)
+
+**O que mudou**
+- **A morte fica no mundo:** quem morre (velhice, batalha) vira um **corpo deitado** onde caiu. Um adulto livre — a
+  família primeiro — vai até ele, **se abaixa e pega** (`pickup`), **carrega o corpo nos braços** com passos lentos
+  (`carry`) até o **cemitério** do reino, **cava com uma pá** (`dig`) e ali fica a **sepultura** (monte de terra e cruz,
+  com o nome). A família **reza ajoelhada** junto à sepultura (`pray`) numa cerimônia de dia. O cemitério é escolhido
+  em chão plano e livre e as fileiras crescem para dentro do reino. Corpo esquecido assusta o reino.
+- **Sentimentos:** alegria, luto, medo e raiva vêm (morte de parente ou amigo, vontade realizada, corpo por perto) e
+  passam; pesam no contentamento. Quem está de luto fica de **cabeça baixa** (`mourn`). O cartão (E) diz o sentimento.
+- **Necessidades:** além de fome e sono, **companhia** (no fim do dia, quem sente falta anda até um amigo e eles
+  **conversam frente a frente**, `talk`) e **fé** (os devotos **rezam junto à bandeira** ao entardecer).
+- **Vontades:** cada adulto quer algo (casar com quem ama, ficar rico, proteger os seus, sair da Casa, superar o pai);
+  realizar dá alegria e vai para o log.
+- **Mercadores ambulantes:** com **mochila nas costas**, surgem na borda do mapa e andam de sede em sede; ao chegar,
+  negociam (`talk`): reino com fome compra comida pagando com madeira ou pedra, sobras grandes viram moedas.
+- **Itens e moedas:** o jogador negocia com o mercador por teclado (Z compra pão, C compra flechas, V vende madeira);
+  **pão** cura mais que fruta e é comido primeiro (H); moedas e pão aparecem no HUD quando o jogador tem.
+- **Blender:** clipes novos do humanoide (`dead`, `pickup`, `carry`, `dig`, `pray`, `mourn`, `talk`) e modelos novos
+  (`grave`, `shovel`, `pack`); `tools/build_models.ps1` acha o Blender da Microsoft Store (instalado sem
+  administrador) e gera só alguns modelos com `-Only`. Galeria de poses: `tests/visual/poses.gd`.
+
+**Captura orgânica (`tests/visual/life_watch.gd`):** o mundo vive 30 dias sozinho; depois a câmera segue os mortos
+onde for. Vistos acontecendo, sem encenar: o corpo deitado (`life_body`), alguém ajoelhado pegando o corpo
+(`life_fetch_body`), carregando (`life_carry`), cavando entre as cruzes (`life_bury`), a família rezando na sepultura
+(`life_funeral`), amigos conversando (`life_talk`), um devoto rezando (`life_prayer`) e o mercador negociando
+(`life_trade`). Simulação longa: em 60 dias, 60 a 92 sepulturas por mundo e **nenhum corpo esquecido**.
+
+**Revisão final (subagente):** corrigidos, com teste que falhava antes: corpo nunca enterrado se quem o carregava
+morresse, fosse embora ou perdesse o feito (Crítico); corpo flutuando acima do chão; corpos servindo de testemunha;
+encontro secreto com amante morto; crônica inundada por conversas e rezas; mercador parado na borda fora da tela;
+mercador levando mercadoria por quase nada e dando comida de graça; matar quem já morreu; nome do mercador sem
+concordância de gênero.
+
+**Pendências**
+- O guarda que vira coveiro segura a lança e a pá ao mesmo tempo.
+- Corpos contam no teto de pessoas com nó na tela.
+- Mercadores dormem na fogueira do reino em que estão quando não têm negócio.
+- A cova "reservada" conta mesmo se o enterro não acontecer (fica um espaço vazio na fileira).
+
+Suíte: 630 testes passando.

@@ -109,6 +109,11 @@ docs/superpowers/     specs/ e plans/
     (depois de todos os reinos, por hora); guerra, paz, presente, bando de guerra e êxodo são feitos de pessoas que
     andam de uma sede à outra. Nada disso vai para o HUD. Balanceamento: `tests/visual/long_world.gd` (60 dias sem janela).
 
+20. **Vida:** quem morre vira corpo (`status = "dead"`) até ser enterrado; tudo que o `LifeSim` e o `MerchantSim` fazem
+    é feito de uma pessoa com a animação do ato (`deed.anim`). Clipes novos vêm do `tools/blender/humanoid.py`;
+    `tools/build_models.ps1 -Only nome` gera só os modelos pedidos. Verificação visual: `tests/visual/poses.gd` e
+    `tests/visual/life_watch.gd`.
+
 ## Comandos
 
 - Testes: `powershell -ExecutionPolicy Bypass -File tools/run_tests.ps1 [filtro]`
@@ -120,6 +125,7 @@ docs/superpowers/     specs/ e plans/
   rocha 5 = 2 pedra, arbusto 1 = 2 frutas), G doa ao reino (até 10 de madeira, pedra e frutas).
   P abre o governo (setas escolhem e mudam os decretos: imposto, ração, guarda, obra; nos reinos já visitados
   escolhem presente ou proposta de paz e Enter manda o enviado; P ou Esc fecha).
+  Perto de um mercador: Z compra pão, C compra flechas, V vende madeira (H come pão antes de fruta).
   Só para o ADM (desenvolvimento): F9 crônica do reino com segredos, F10 Casas do reino (e a linha do governo)
 - Construção: B liga/desliga, 1–5 escolhe (Cabana, Fogueira, Depósito, Cerca, Poço), R gira, clique ou E constrói,
   Esc ou clique direito sai; X demole (devolve 50 %). A primeira Cabana funda o reino.
@@ -143,4 +149,7 @@ docs/superpowers/     specs/ e plans/
    união de Casas, corrupção, infiltração, desligamentos (amigável/neutro/hostil, às claras/escondido), guardas.
 8. ✅ **Governo:** decisões com efeito, sucessão, governante NPC (corrupção, lealdade, culto ou inimizade).
 9. ✅ **Mundo vivo:** reinos NPC, simulação resumida fora da tela, diplomacia e guerras, novos reinos.
-10. **Polimento:** menu, salvar/carregar, som, balanceamento.
+10. ✅ **Vida:** morte com corpo, recolher, carregar, cavar e enterrar (com animação), velório, sentimentos,
+    necessidades (companhia, fé), vontades, mercadores ambulantes, moedas e pão.
+11. **Cotidiano:** mais da vida de todo dia (a definir no design da etapa).
+12. **Polimento:** menu, salvar/carregar, som, balanceamento.

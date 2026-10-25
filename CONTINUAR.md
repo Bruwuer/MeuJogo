@@ -19,11 +19,10 @@ primeiro e atualizá-lo ao concluir cada tarefa** (seção "Estado atual").
 
 ## Estado atual
 
-- Etapas 1 a 9: concluídas e no `main` (600 testes passando). Resumo em `docs/ENTREGAS.md`.
-- Etapa 9 (Mundo vivo) terminou em 2026-10-25: reinos NPC, diplomacia por enviados, guerras com bandos e batalhas,
-  êxodo que funda reinos, painel de reinos; captura orgânica, simulação longa de equilíbrio
-  (`tests/visual/long_world.gd`) e revisão final com correções (design §6 e §7).
-- **Próxima: etapa 10 (Acabamento)** — menu, salvar/carregar, som, balanceamento. Começar pelo design curto.
+- Etapas 1 a 10: concluídas e no `main` (630 testes passando). Resumo em `docs/ENTREGAS.md`.
+- Etapa 10 (Vida) entrou no roadmap a pedido do autor (2026-10-25): morte, corpo e enterro com animação, sentimentos,
+  necessidades, vontades, mercadores e itens. O acabamento passou a ser a etapa 12 (a 11 é o cotidiano).
+- **Próxima: etapa 11 (Cotidiano)** — ver `docs/superpowers/specs/` quando existir; depois a 12 (Acabamento).
 
 ## Execução automática
 
