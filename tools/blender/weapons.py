@@ -1,6 +1,6 @@
 """Low-poly medieval weapons held by the player: sword, spear, bow, and the arrow it shoots.
 
-    blender -b --factory-startup --python tools/blender/weapons.py -- <sword|spear|bow|arrow> <out.glb>
+    blender -b --factory-startup --python tools/blender/weapons.py -- <sword|spear|bow|arrow|shovel|pack> <out.glb>
 
 Origin at the grip (the arrow: at its nock). The weapon points along +Z in Blender, which is
 +Y in Godot; the game turns that axis to the character's front. Limbs of the bow lie along Y.
@@ -65,6 +65,32 @@ def bow():
     return parts
 
 
+def shovel():
+    """Gravedigger's shovel (stage 10): held at the grip, the blade points along +Z (down to the ground)."""
+    wood = common.flat_material("wood", WOOD)
+    steel = common.flat_material("steel", STEEL)
+    return [
+        common.box("handle", (0.12, 0.035, 0.04), (0, 0, -0.18), wood, "w"),
+        common.box("shaft", (0.035, 0.035, 1.05), (0, 0, 0.35), wood, "w"),
+        common.box("blade", (0.2, 0.025, 0.26), (0, 0, 0.98), steel, "w", top_scale=0.75),
+    ]
+
+
+def pack():
+    """A wandering merchant's pack (stage 10): a bundle with a rolled blanket, worn on the back.
+    Origin where it touches the back; it sticks out along -Z (behind the wearer)."""
+    cloth = common.flat_material("cloth", (0.52, 0.42, 0.28))
+    blanket = common.flat_material("blanket", (0.40, 0.18, 0.14))
+    leather = common.flat_material("leather", LEATHER)
+    return [
+        common.box("bundle", (0.36, 0.42, 0.24), (0, 0.0, -0.13), cloth, "w"),
+        common.box("flap", (0.37, 0.12, 0.25), (0, 0.18, -0.13), leather, "w"),
+        common.box("roll", (0.44, 0.12, 0.12), (0, 0.26, -0.13), blanket, "w"),
+        common.box("strap.L", (0.04, 0.44, 0.02), (0.12, 0.0, 0.0), leather, "w"),
+        common.box("strap.R", (0.04, 0.44, 0.02), (-0.12, 0.0, 0.0), leather, "w"),
+    ]
+
+
 def arrow():
     wood = common.flat_material("wood", WOOD)
     steel = common.flat_material("steel", STEEL)
@@ -77,7 +103,7 @@ def arrow():
     ]
 
 
-BUILDERS = {"sword": sword, "spear": spear, "bow": bow, "arrow": arrow}
+BUILDERS = {"sword": sword, "spear": spear, "bow": bow, "arrow": arrow, "shovel": shovel, "pack": pack}
 
 argv = sys.argv[sys.argv.index("--") + 1:]
 if len(argv) != 2 or argv[0] not in BUILDERS:

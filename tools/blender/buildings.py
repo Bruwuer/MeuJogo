@@ -282,6 +282,20 @@ CREST_H = 1.05
 CREST_SPLIT = 22.0 / 40.0  # where the straight sides start curving into the point
 
 
+def grave():
+    """A grave (stage 10): a mound of fresh earth, a wooden cross at the head (+Y) and a few stones."""
+    soil = common.flat_material("soil", (0.36, 0.25, 0.15))
+    wood = common.flat_material("cross", (0.42, 0.29, 0.17))
+    stone = common.flat_material("stone", STONE)
+    return [
+        common.box("mound", (0.8, 1.7, 0.28), (0, -0.05, 0.14), soil, "none", top_scale=0.7),
+        box("post", (0.09, 0.09, 1.0), (0, 0.85, 0.5), wood),
+        box("arm", (0.5, 0.08, 0.09), (0, 0.85, 0.72), wood),
+        box("stone.a", (0.16, 0.14, 0.1), (0.38, -0.6, 0.05), stone),
+        box("stone.b", (0.12, 0.12, 0.08), (-0.4, 0.2, 0.04), stone),
+    ]
+
+
 def crest_banner():
     """Family banner: pole, crossbar and a shield-shaped cloth (material `crest`, UV 0..1 over the
     crest image) facing -Y (Godot +Z). Godot paints the family's crest on the cloth."""
@@ -327,7 +341,8 @@ def crest_banner():
 
 
 BUILDERS = {"stake": stake, "house_stone": house_stone, "manor": manor, "cabin": cabin, "campfire": campfire, "storage": storage, "fence": fence, "well": well, "flag": flag,
-            "house": house, "farm": farm, "market": market, "scaffold": scaffold, "crest_banner": crest_banner}
+            "house": house, "farm": farm, "market": market, "scaffold": scaffold, "crest_banner": crest_banner,
+            "grave": grave}
 
 if __name__ == "__main__":
     argv = sys.argv[sys.argv.index("--") + 1:]
