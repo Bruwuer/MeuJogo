@@ -21,6 +21,8 @@ signal person_died(rec: Dictionary)
 signal families_changed
 ## A building burned in a battle between kingdoms (its node must go).
 signal building_burned(rec: Dictionary)
+## A body was buried: its node (lying or carried) must go.
+signal body_removed(id: int)
 
 const B := GameConstants.Building
 const R := GameConstants.Res
@@ -50,6 +52,8 @@ var houses := HouseSim.new()
 var gov := GovSim.new()
 ## Relations, envoys, wars and new kingdoms between kingdoms (stage 9).
 var realms := RealmSim.new()
+## Bodies and burials, feelings, needs and wants (stage 10).
+var life := LifeSim.new()
 
 
 func setup(state: WorldState, gen: TerrainGenerator, scatter: PropScatter, day_night: DayNight) -> void:
@@ -66,6 +70,9 @@ func setup(state: WorldState, gen: TerrainGenerator, scatter: PropScatter, day_n
 	houses.has_node = func(id: int) -> bool: return has_node.call(id)
 	gov.setup(state, houses, func(k: Dictionary) -> bool: return is_player_in.call(k))
 	realms.setup(state, houses, society, gov)
+	life.setup(state, houses, society)
+	life.set_terrain(gen, scatter)
+	life.body_removed.connect(func(id: int) -> void: body_removed.emit(id))
 	realms.set_terrain(gen, scatter)
 	realms.building_burned.connect(func(r: Dictionary) -> void: building_burned.emit(r))
 	realms.prop_removed.connect(func(c: Vector2i, id: int) -> void: prop_removed.emit(c, id))
@@ -121,6 +128,7 @@ func _tick_hour(hour: float) -> void:
 		society.tick_hour(k, hour)
 		houses.tick_hour(k, hour)
 		gov.tick_hour(k, hour)
+		life.tick_hour(k, hour)
 		_plan(k)
 		_offscreen_work(k)
 		_stalled_site(k)

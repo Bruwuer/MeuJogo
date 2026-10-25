@@ -149,7 +149,7 @@ func test_old_person_dies_and_spouse_widowed() -> void:
 		if not died.is_empty():
 			break
 	assert_eq(died.size(), 1, "the old man dies")
-	assert_true(s.person(old.id).is_empty(), "record removed")
+	assert_eq(String(s.person(old.id).get("status", "")), "dead", "a body lies there until buried (stage 10)")
 	assert_eq(wife.spouse_id, -1)
 	assert_true(wife.widowed, "widowed")
 	assert_eq(h.owner, wife.id, "the widow keeps the house")

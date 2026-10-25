@@ -117,13 +117,14 @@ const SPAWN_MAX_TRIES := 64
 const SPAWN_PROP_CLEARANCE := 2.0 ## Free space between spawn and any solid prop's edge.
 
 # Buildings
-enum Building { CABIN, CAMPFIRE, STORAGE, FENCE, WELL, FLAG, HOUSE, FARM, MARKET, STAKE } ## New values only at the end.
+enum Building { CABIN, CAMPFIRE, STORAGE, FENCE, WELL, FLAG, HOUSE, FARM, MARKET, STAKE, GRAVE } ## New values only at the end.
 ## What the player can choose in build mode (keys 1-5, in this order). FLAG is placed automatically.
 const BUILDABLE := [Building.CABIN, Building.CAMPFIRE, Building.STORAGE, Building.FENCE, Building.WELL]
 const BUILD_NAMES := {
 	Building.CABIN: "Cabana", Building.CAMPFIRE: "Fogueira", Building.STORAGE: "Depósito",
 	Building.FENCE: "Cerca", Building.WELL: "Poço", Building.FLAG: "Bandeira",
 	Building.HOUSE: "Casa", Building.FARM: "Fazenda", Building.MARKET: "Comércio", Building.STAKE: "Estaca",
+	Building.GRAVE: "Sepultura",
 }
 const BUILD_COST := {
 	Building.CABIN: { Res.WOOD: 30, Res.STONE: 10 },
@@ -136,6 +137,7 @@ const BUILD_COST := {
 	Building.FARM: { Res.WOOD: 12 },
 	Building.MARKET: { Res.WOOD: 25, Res.STONE: 8 },
 	Building.STAKE: {},
+	Building.GRAVE: {},
 }
 ## Footprint (x = local X, y = local Z) in meters at rotation 0.
 const BUILD_FOOTPRINT := {
@@ -149,6 +151,7 @@ const BUILD_FOOTPRINT := {
 	Building.FARM: Vector2(6.0, 6.0),
 	Building.MARKET: Vector2(4.0, 3.0),
 	Building.STAKE: Vector2(0.25, 0.25),
+	Building.GRAVE: Vector2(1.0, 2.0),
 }
 ## Collision boxes per type at rotation 0: [center, size], local to the building origin.
 const BUILD_COLLIDERS := {
@@ -162,6 +165,7 @@ const BUILD_COLLIDERS := {
 	Building.FARM: [], # walkable field
 	Building.MARKET: [[Vector3(0, 1.2, 0), Vector3(4.0, 2.4, 3.0)]],
 	Building.STAKE: [],
+	Building.GRAVE: [], # a mound one can step over
 }
 const BUILD_SCENES := {
 	Building.CABIN: "res://assets/models/cabin.glb",
@@ -174,6 +178,7 @@ const BUILD_SCENES := {
 	Building.FARM: "res://assets/models/farm.glb",
 	Building.MARKET: "res://assets/models/market.glb",
 	Building.STAKE: "res://assets/models/stake.glb",
+	Building.GRAVE: "res://assets/models/grave.glb",
 }
 const BUILD_REFUND := 0.5 ## Share of the cost returned on demolish (rounded down).
 const BUILD_MAX_HEIGHT_DIFF := 1.2 ## Max ground height difference under a footprint.
@@ -195,7 +200,7 @@ const BUILD_MSG_SITE := "É uma obra dos moradores: não pode ser demolida"
 const OWNER_PLAYER := -1
 const OWNER_KINGDOM := -2
 ## Buildings that get no stone foundation nor collision (fields).
-const BUILD_FLAT := [Building.FARM, Building.STAKE]
+const BUILD_FLAT := [Building.FARM, Building.STAKE, Building.GRAVE]
 const BUILD_PLAYER_RADIUS := 0.4 ## Capsule radius plus margin kept free of new footprints.
 ## Space a footprint must keep from each prop (crowns are wider than trunks), at scale 1.
 const BUILD_PROP_CLEARANCE := { Prop.OAK: 1.3, Prop.PINE: 1.4, Prop.ROCK: 0.9, Prop.BUSH: 0.0 }
@@ -403,12 +408,14 @@ const BUILD_DESTROYED_MSG := {
 	Building.HOUSE: "Uma Casa foi destruída pelos %s", Building.FARM: "Uma Fazenda foi destruída pelos %s",
 	Building.MARKET: "Um Comércio foi destruído pelos %s",
 	Building.STAKE: "Uma Estaca foi derrubada pelos %s",
+	Building.GRAVE: "Uma Sepultura foi revirada pelos %s",
 }
 ## Building hit points; the seat cabin never drops below 1.
 const BUILD_HP := {
 	Building.CABIN: 300.0, Building.CAMPFIRE: 60.0, Building.STORAGE: 250.0,
 	Building.FENCE: 80.0, Building.WELL: 200.0, Building.FLAG: 50.0,
 	Building.HOUSE: 300.0, Building.FARM: 60.0, Building.MARKET: 200.0, Building.STAKE: 20.0,
+	Building.GRAVE: 40.0,
 }
 
 # Day / night
@@ -442,6 +449,17 @@ const ANIM_IDLE := "idle"
 const ANIM_WALK := "walk"
 const ANIM_RUN := "run"
 const ANIM_WORK := "work"
+# Stage 10 clips (tools/blender/humanoid.py).
+const ANIM_DEAD := "dead"
+const ANIM_PICKUP := "pickup"
+const ANIM_CARRY := "carry"
+const ANIM_DIG := "dig"
+const ANIM_PRAY := "pray"
+const ANIM_MOURN := "mourn"
+const ANIM_TALK := "talk"
+const LOOPED_CLIPS := ["idle", "walk", "run", "work", "dead", "pickup", "carry", "dig", "pray", "mourn", "talk"]
+## Held tools and worn things (stage 10).
+const TOOL_SCENES := { "shovel": "res://assets/models/shovel.glb", "pack": "res://assets/models/pack.glb" }
 const HUMANOID_SCENE := "res://assets/models/humanoid.glb"
 const PROP_SCENES := {
 	Prop.OAK: "res://assets/models/oak.glb",
@@ -523,6 +541,7 @@ const KINGDOM_START_STOCK := { Res.WOOD: 20, Res.BERRIES: 24 }
 const BUILD_WORK_HOURS := {
 	Building.CABIN: 8.0, Building.CAMPFIRE: 1.0, Building.STORAGE: 6.0, Building.FENCE: 1.0, Building.WELL: 5.0,
 	Building.FLAG: 1.0, Building.HOUSE: 8.0, Building.FARM: 4.0, Building.MARKET: 6.0, Building.STAKE: 1.0,
+	Building.GRAVE: 1.0,
 }
 ## Beds per building type for villagers (the seat cabin is the player's).
 const HOUSE_CAPACITY := { Building.HOUSE: 4, Building.CABIN: 2 } ## A house fits a couple and two children.
@@ -1091,3 +1110,29 @@ const GOV_FLAG_OFFSET := Vector3(0, 0, 1.5) ## Where the devout kneel, from the 
 const GOV_PANEL_OUTSIDE := "Entre no seu reino para governar"
 const GOV_ADM_LINE := "Governo: %s · %s · Decretos: imposto %s, ração %s, guarda %s, obra %s · Desviado: %d"
 const GOV_PANEL_HINT := "↑↓ escolhe · ←→ muda · P fecha"
+
+# Life (stage 10): death, burial, feelings, needs
+const PICKUP_SEC := 3.0 ## Kneeling by the body and lifting it.
+const DIG_SEC := 8.0 ## Digging the grave (on screen; the effect waits for it).
+const BURY_HOURS := 6.0 ## Window to carry a body to the cemetery and bury it.
+const GRAVE_SPACING := 1.8 ## Between graves in a row.
+const GRAVE_ROW := 2.8 ## Between rows.
+const GRAVE_COLS := 5
+const GRAVE_TRIES := 40 ## Slots tried for a grave clear of trees and buildings.
+const CEMETERY_SHARE := 0.65 ## The cemetery lies this far out from the center (share of the radius).
+const FUNERAL_OFFSET := 1.4 ## Mourners kneel this far from the grave.
+const FUNERAL_GRIEF_KEEP := 0.6 ## Share of grief left after praying at the grave.
+const GRIEF_KIN := 0.8
+const GRIEF_FRIEND := 0.4
+const MOOD_FADE := { joy = 0.96, grief = 0.99, fear = 0.97, anger = 0.975 } ## Kept per hour.
+const MOOD_CONTENT := { joy = 0.01, grief = -0.02, fear = -0.015, anger = -0.005 } ## Contentment per hour at 1.
+const MOOD_SHOW_AT := 0.2 ## Below this a feeling is not told on the card.
+const MOOD_MOURN_AT := 0.35 ## Grief this deep shows: head down when idle.
+const BODY_UNBURIED_HOURS := 12.0
+const BODY_FEAR_PER_HOUR := 0.02
+const BODY_CONTENT_PER_HOUR := -0.01
+const MOOD_TEXTS := { joy = "feliz", grief = "de luto", fear = "com medo", anger = "com raiva" }
+const MOOD_GRIEF_FOR := "de luto por %s"
+const LIFE_MSG_FETCH := "%s foi buscar o corpo de %s"
+const LIFE_MSG_BURIED := "%s enterrou %s"
+const LIFE_MSG_PRAYED := "%s rezou junto à sepultura de %s"

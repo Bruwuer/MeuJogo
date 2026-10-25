@@ -16,8 +16,9 @@ signal deed_completed(rec: Dictionary, deed: Dictionary, seen: Array)
 
 ## person id -> whether the person has a node (then deeds are done for real, not summarized).
 var has_node: Callable = func(_id: int) -> bool: return false
-## Deeds of other systems (government): func(k, p, deed, seen, hour) -> bool.
-var extra_deed := Callable()
+## Deeds of other systems (government, kingdoms, life): func(k, p, deed, seen, hour) -> bool; the
+## first that knows the kind handles it.
+var deed_handlers: Array[Callable] = []
 ## A ruler's skim was done: func(k, p, amount, res, hour).
 var ruler_skim := Callable()
 
@@ -336,8 +337,9 @@ func complete_deed(k: Dictionary, p: Dictionary, seen: Array, hour := -1.0) -> v
 					_state.add_relation(int(f.head_id), int(target.head_id), GameConstants.FEUD_RELATION_HIT)
 					_log(k, GameConstants.HOUSE_MSG_SEEN_REVENGE % [_witness_name(seen), PersonGen.full_name(p), target.surname])
 		_:
-			if extra_deed.is_valid():
-				extra_deed.call(k, p, deed, seen, _hour)
+			for handler in deed_handlers:
+				if handler.call(k, p, deed, seen, _hour):
+					break
 	deed_completed.emit(p, deed, seen)
 
 

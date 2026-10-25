@@ -28,7 +28,7 @@ func setup(state: WorldState, houses: HouseSim, society: SocietySim, gov: GovSim
 	_state = state
 	_houses = houses
 	_society = society
-	gov.next_deed = complete_deed
+	houses.deed_handlers.append(complete_deed)
 
 
 ## Terrain and props, to find where a House founds a new kingdom (no exodus without them).

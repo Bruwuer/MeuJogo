@@ -282,8 +282,8 @@ func kill(k: Dictionary, p: Dictionary, text := "") -> void:
 	transfer_houses(_state, p.id, [p.id])
 	if text != "":
 		_say.call(k, text)
+	_state.make_corpse(p.id, _hour) # the body stays where it fell until someone buries it
 	person_died.emit(p)
-	_state.remove_person(p.id)
 	_changed = true
 	families_changed.emit()
 
@@ -291,8 +291,8 @@ func kill(k: Dictionary, p: Dictionary, text := "") -> void:
 func _die(k: Dictionary, p: Dictionary) -> void:
 	transfer_houses(_state, p.id, [p.id])
 	_say.call(k, GameConstants.SOCIETY_MSG_DIED % [PersonGen.full_name(p), floori(float(p.age))])
+	_state.make_corpse(p.id, _hour)
 	person_died.emit(p)
-	_state.remove_person(p.id)
 	_changed = true
 
 

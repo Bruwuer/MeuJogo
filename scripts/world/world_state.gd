@@ -555,6 +555,27 @@ func add_person(p: Dictionary, pos: Vector3, kingdom_id := -1, hour := 0.0) -> D
 	return rec
 
 
+## `id` dies and becomes a body lying where it fell (stage 10): no longer a resident, out of its
+## home, its living spouse widowed. The record leaves the world when buried (remove_person).
+func make_corpse(id: int, hour: float) -> Dictionary:
+	var rec: Dictionary = _people.get(id, {})
+	if rec.is_empty():
+		return rec
+	rec.status = "dead"
+	rec.died_hour = hour
+	rec.home_id = -1
+	rec.inside = -1
+	rec.deed = {}
+	rec.job = ""
+	rec.carrier_id = -1
+	rec.carrying_body = -1
+	var spouse: Dictionary = _people.get(int(rec.get("spouse_id", -1)), {})
+	if not spouse.is_empty() and int(spouse.spouse_id) == id:
+		spouse.spouse_id = -1
+		spouse.widowed = true
+	return rec
+
+
 func remove_person(id: int) -> Dictionary:
 	if not _people.has(id):
 		return {}
@@ -578,7 +599,8 @@ static func person_defaults(p: Dictionary) -> void:
 	var defaults := {family_id = -1, spouse_id = -1, parents = [], stance = "", last_birth_hour = -1e9,
 			talk_day = -1, deed_day = -1, widowed = false,
 			vocation = -1, desire = {kind = GameConstants.Desire.NONE, target_id = -1}, resentment = 0.0,
-			secret = {}, adopted_by = [], deed = {}}
+			secret = {}, adopted_by = [], deed = {},
+			mood = {joy = 0.0, grief = 0.0, fear = 0.0, anger = 0.0}, carrying_body = -1, carrier_id = -1}
 	for key in defaults:
 		if not p.has(key):
 			p[key] = defaults[key]

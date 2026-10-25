@@ -181,7 +181,7 @@ func test_battle_deaths_go_through_the_society() -> void:
 	society.person_died.connect(func(rec: Dictionary) -> void: died.append(rec.id))
 	realms._casualties(b, [g[0]], 1)
 	assert_eq(died, [g[0].id])
-	assert_true(s.person(int(g[0].id)).is_empty())
+	assert_eq(String(s.person(int(g[0].id)).status), "dead", "the fallen lie on the field until buried")
 
 
 func test_weary_sides_make_peace_by_envoy() -> void:
