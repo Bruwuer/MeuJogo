@@ -219,9 +219,9 @@ func _creatures(scatter: PropScatter) -> void:
 ## whenever someone is carrying out a House deed. The whole ADM log is saved next to the shots.
 func _houses() -> void:
 	const HISTORY_DAYS := 12
-	const LIVE_DAYS := 3
+	const LIVE_DAYS := 5
 	const LIVE_SPEED := 8.0
-	const MAX_DEED_SHOTS := 10
+	const MAX_DEED_SHOTS := 16
 	if _village_spot.x < 0.0 or _home().is_empty():
 		print("SKIPPED houses: no village")
 		return
@@ -292,6 +292,16 @@ func _houses() -> void:
 	await _frames(5)
 	await _shot("45_gov_return")
 	hud.toggle_gov()
+
+	# 2a) Life and death (stage 10): the cemetery of the player's kingdom, if anyone was buried.
+	var graves := state.all_buildings().filter(func(b: Dictionary) -> bool:
+		return int(b.type) == GameConstants.Building.GRAVE and int(b.get("kingdom_id", -1)) == k.id)
+	print("LIFE: %d graves, %d bodies lying" % [graves.size(),
+			state.all_people().filter(func(p: Dictionary) -> bool: return p.status == "dead").size()])
+	if not graves.is_empty():
+		await _teleport((graves[0].pos as Vector3) + Vector3(0, 0, 6))
+		await _physics(30)
+		await _shot("47_cemetery")
 
 	# 2b) The world around (stage 9): relations between kingdoms and a visit to a neighbor.
 	print("REALMS: %d kingdoms · %s" % [state.kingdoms().size(), hud.realms_adm_line(k)])

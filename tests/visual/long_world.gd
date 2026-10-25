@@ -41,6 +41,11 @@ func _run(world_seed: int) -> void:
 		print("  %s: ruler=%d guards=%d strength=%.2f adults=%d decree=%d" % [k.name, int(k.ruler_id),
 				RealmRules.guards(s, k).size(), RealmRules.strength(s, k),
 				s.residents(k.id).filter(func(p: Dictionary) -> bool: return SocietyRules.is_adult(p)).size(), int(k.decrees.guards)])
+	var bodies := s.all_people().filter(func(p: Dictionary) -> bool: return p.status == "dead")
+	var stale := bodies.filter(func(p: Dictionary) -> bool: return float(DAYS * 24) - float(p.get("died_hour", 0.0)) > 48.0)
+	var graves := s.all_buildings().filter(func(b: Dictionary) -> bool: return int(b.type) == GameConstants.Building.GRAVE)
+	var merchants := s.all_people().filter(func(p: Dictionary) -> bool: return p.status == "merchant")
+	print("  LIFE: graves=%d bodies_lying=%d (over 2 days: %d) merchants=%d" % [graves.size(), bodies.size(), stale.size(), merchants.size()])
 	var seen := {}
 	for e in s.chronicle_all(-2, 100000):
 		var t := String(e.text)

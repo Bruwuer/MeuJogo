@@ -190,10 +190,12 @@ func _grave_spot(k: Dictionary) -> Vector3:
 		k.cemetery = k.center + dir * float(k.radius) * GameConstants.CEMETERY_SHARE
 		k.graves = 0
 	var base: Vector3 = k.cemetery
+	var inward := Vector3(k.center.x - base.x, 0.0, k.center.z - base.z).normalized() # new rows grow toward the center
+	var side := inward.cross(Vector3.UP)
 	for t in GameConstants.GRAVE_TRIES:
 		var n := int(k.graves) + t
-		var pos := base + Vector3((n % GameConstants.GRAVE_COLS) * GameConstants.GRAVE_SPACING, 0.0,
-				(n / GameConstants.GRAVE_COLS) * GameConstants.GRAVE_ROW)
+		var col := (n % GameConstants.GRAVE_COLS) - (GameConstants.GRAVE_COLS - 1) * 0.5
+		var pos := base + side * col * GameConstants.GRAVE_SPACING + inward * (n / GameConstants.GRAVE_COLS) * GameConstants.GRAVE_ROW
 		if _gen:
 			pos.y = _gen.height_at(pos.x, pos.z)
 			if not BuildRules.check_site(B.GRAVE, pos, 0, _gen, _scatter, _state, []).ok:
