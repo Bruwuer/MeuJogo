@@ -34,8 +34,13 @@ func tick_hour(k: Dictionary, hour: float) -> void:
 	if int(k.ruler_id) == GameConstants.GOV_PLAYER and float(k.away_hours) >= GameConstants.GOV_ABSENCE_HOURS \
 			and int(k.get("pending_ruler", -1)) < 0:
 		_name_ruler(k, GovRules.choose_regent(_state, k), false)
-	if int(k.ruler_id) == GameConstants.GOV_NOBODY and inside:
-		_set_player(k)
+	if int(k.ruler_id) == GameConstants.GOV_NOBODY and int(k.get("pending_ruler", -1)) < 0:
+		# Nobody is on the way to the seat: the founder takes over if the people want him back,
+		# else whoever can rule is named (an adult may have grown up meanwhile).
+		if inside and GovRules.mean_opinion(_state, k) >= 0.0:
+			_set_player(k)
+		else:
+			_name_ruler(k, GovRules.choose_regent(_state, k), false)
 	if inside and int(k.ruler_id) >= 0:
 		_return(k)
 	if int(fmod(hour, 24.0)) == int(GameConstants.DEED_HOUR):
@@ -51,14 +56,16 @@ func tick_hour(k: Dictionary, hour: float) -> void:
 ## The founder may build, demolish and donate here unless a ruler who keeps the kingdom governs.
 func player_may_act(k: Dictionary) -> bool:
 	var ruler := int(k.ruler_id)
-	if ruler < 0:
+	if ruler < 0 or _state.person(ruler).is_empty():
 		return true
 	return GovRules.gives_back(String(k.ruler_way), GovRules.mean_opinion(_state, k))
 
 
 ## The answer to the founder's act in a kingdom that is no longer theirs.
 func refusal(k: Dictionary) -> String:
-	return GameConstants.GOV_NOT_YOURS % [k.name, PersonGen.full_name(_state.person(int(k.ruler_id)))]
+	var ruler := _state.person(int(k.ruler_id))
+	return GameConstants.GOV_NOT_YOURS % [k.name,
+			PersonGen.full_name(ruler) if not ruler.is_empty() else GameConstants.GOV_SOMEONE]
 
 
 ## The founder changes a decree (only while governing). Opinions move; the decree is announced.
@@ -95,6 +102,7 @@ func _ruler_still_here(k: Dictionary) -> void:
 		return
 	var ruler := _state.person(ruler_id)
 	if not ruler.is_empty() and ruler.status == "resident" and int(ruler.kingdom_id) == k.id:
+		k.ruler_family = int(ruler.get("family_id", -1)) # unions move people between Houses
 		return
 	k.ruler_id = GameConstants.GOV_NOBODY
 	var heir := GovRules.heir_of(_state, k, int(k.get("ruler_family", -1)), ruler_id)
@@ -162,6 +170,9 @@ func _crowned(k: Dictionary, p: Dictionary) -> void:
 
 
 func _set_player(k: Dictionary) -> void:
+	var pending := _state.person(int(k.get("pending_ruler", -1)))
+	if (pending.get("deed", {}) as Dictionary).get("kind", "") == "crowning":
+		pending.deed = {}
 	k.ruler_id = GameConstants.GOV_PLAYER
 	k.ruler_way = ""
 	k.ruler_corrupt = false
@@ -195,20 +206,21 @@ func _taxes(k: Dictionary) -> void:
 		return
 	var today := floori(_hour / 24.0)
 	for f in _state.families_of(k.id):
-		if f.id == int(k.get("ruler_family", -2)) and int(k.ruler_id) >= 0:
-			continue
+		if f.id == int(k.ruler_family) and int(k.ruler_id) >= 0:
+			continue # the ruler's own House pays nothing
 		if float(f.wealth) < GameConstants.GOV_TAX_FLOOR or int(f.get("tax_day", -1)) >= today:
 			continue
 		var bearer := _free_adult_of(f)
 		if bearer.is_empty():
 			continue
-		f.tax_day = today
 		var w := Deeds.next_window(_hour, GameConstants.DEED_DAY.x, GameConstants.DEED_DAY.y)
-		_houses.plan_deed(bearer, Deeds.make("tax", _seat_door(k), GameConstants.PERSON_ARRIVE * 1.5, w.x, w.y,
+		_houses.plan_deed(bearer, Deeds.make("tax", _seat_door(k), GameConstants.PERSON_ARRIVE * GameConstants.GOV_REACH_MULT,
+				w.x, w.y,
 				GameConstants.DEED_WORK_SEC, {family_id = f.id, kingdom_id = k.id}))
 
 
 func _taxed(k: Dictionary, f: Dictionary) -> void:
+	f.tax_day = floori(_hour / 24.0) # paid: a lost errand is tried again tomorrow
 	var rate: float = GameConstants.GOV_TAX_RATE.get(String(k.decrees.tax), 0.0)
 	var n := floori(float(f.wealth) * rate / GameConstants.SKIM_VALUE)
 	if n <= 0:
@@ -268,9 +280,9 @@ func _worship(k: Dictionary) -> void:
 		if not SocietyRules.is_adult(p) or not PersonGen.has_trait(p, GameConstants.Trait.DEVOUT) \
 				or int(p.get("worship_day", -1)) >= today or not _free(p):
 			continue
-		p.worship_day = today
 		var w := Deeds.next_window(_hour, GameConstants.DEED_DUSK.x, GameConstants.DEED_DUSK.y)
-		_houses.plan_deed(p, Deeds.make("worship", _flag_spot(k), GameConstants.PERSON_ARRIVE * 1.5, w.x, w.y,
+		_houses.plan_deed(p, Deeds.make("worship", _flag_spot(k), GameConstants.PERSON_ARRIVE * GameConstants.GOV_REACH_MULT,
+				w.x, w.y,
 				GameConstants.DEED_WORK_SEC, {kingdom_id = k.id}))
 
 
@@ -286,15 +298,15 @@ func _deposition(k: Dictionary) -> void:
 	var worst := INF
 	for f in _state.families_of(k.id):
 		var head := _state.person(int(f.head_id))
-		if head.is_empty() or head.id == ruler_id or f.id == int(k.get("ruler_family", -2)) or not _free(head):
+		if head.is_empty() or head.id == ruler_id or f.id == int(k.ruler_family) or not _free(head):
 			continue
 		var rel := _state.relation(head.id, ruler_id)
 		if rel < worst:
 			worst = rel
 			leader = head
 	if not leader.is_empty():
-		_houses._night_deed(leader, "depose", _seat_door(k) + Vector3(0, 0, 3), {kingdom_id = k.id,
-				quiet = [int(leader.get("family_id", -1))]})
+		_houses._night_deed(leader, "depose", _seat_door(k) + GameConstants.GOV_PLOT_OFFSET, {kingdom_id = k.id,
+				ruler_id = ruler_id, quiet = [int(leader.get("family_id", -1))]})
 
 
 func _deposed(k: Dictionary, leader: Dictionary, seen: Array) -> void:
@@ -327,7 +339,7 @@ func complete_deed(k: Dictionary, p: Dictionary, deed: Dictionary, seen: Array, 
 		"crowning":
 			_crowned(k, p)
 		"handover":
-			if int(k.ruler_id) == p.id:
+			if int(k.ruler_id) == p.id and _is_player_in.call(k): # the founder is there to take it
 				_set_player(k)
 				_log(k, GameConstants.GOV_MSG_HANDOVER % [PersonGen.full_name(p), k.name])
 		"tax":
@@ -339,10 +351,12 @@ func complete_deed(k: Dictionary, p: Dictionary, deed: Dictionary, seen: Array, 
 				p.profession = P.GUARD
 				_log(k, GameConstants.GOV_MSG_MUSTER % PersonGen.full_name(p))
 		"worship":
+			p.worship_day = floori(_hour / 24.0)
 			p.opinion = clampf(float(p.opinion) + GameConstants.GOV_WORSHIP_OPINION, -1.0, 1.0)
 			_log(k, GameConstants.GOV_MSG_WORSHIP % PersonGen.full_name(p))
 		"depose":
-			_deposed(k, p, seen)
+			if int(data.get("ruler_id", k.ruler_id)) == int(k.ruler_id): # the plot was against this ruler
+				_deposed(k, p, seen)
 		_:
 			return false
 	return true
@@ -391,7 +405,7 @@ func _seat_door(k: Dictionary) -> Vector3:
 func _flag_spot(k: Dictionary) -> Vector3:
 	for b in VillageRules.kingdom_buildings(_state, k):
 		if b.type == GameConstants.Building.FLAG:
-			return b.pos + Vector3(0, 0, 1.5)
+			return b.pos + GameConstants.GOV_FLAG_OFFSET
 	return _seat_door(k)
 
 

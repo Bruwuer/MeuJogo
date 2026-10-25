@@ -119,3 +119,14 @@ func test_talking_changes_opinion_once_a_day() -> void:
 	w.get_player().talked.emit(n)
 	assert_near(float(p.opinion), GameConstants.TALK_OPINION.sociable, 0.0001, "once a day")
 	n.free()
+
+
+func test_government_panel_keeps_the_player_still() -> void:
+	var w: World = await _make_world()
+	await wait_physics_frames(30)
+	w.get_hud().toggle_gov()
+	await wait_physics_frames(5)
+	assert_true(w.get_player().frozen, "the world unfroze the player while the panel is open")
+	w.get_hud().toggle_gov()
+	await wait_physics_frames(5)
+	assert_true(not w.get_player().frozen)

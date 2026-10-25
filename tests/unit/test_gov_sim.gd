@@ -294,3 +294,112 @@ func test_founder_decree_moves_opinions() -> void:
 
 func tyrant_id() -> int:
 	return 12345
+
+
+# --- Final review fixes ---
+
+func test_deposition_with_the_founder_present_but_disliked_crowns_a_regent() -> void:
+	_fresh()
+	var tyrant := _house("Odioso", 3.0, 0.0)
+	var a := _house("Contra", 2.0, -0.5)
+	var b := _house("Oposto", 1.0, -0.5)
+	for f in [a, b]:
+		s.set_relation(int(f.head_id), int(tyrant.head_id), -0.9)
+	k.ruler_id = tyrant.head_id
+	k.ruler_family = tyrant.id
+	k.ruler_way = "inimigo"
+	k.ruler_since = 0.0
+	player_in = true # the founder is here, but the people do not want him back
+	_run(GameConstants.GOV_MIN_REIGN_HOURS, 72)
+	assert_true(int(k.ruler_id) >= 0 and int(k.ruler_id) != int(tyrant.head_id), "ruler: %d" % int(k.ruler_id))
+
+
+func test_heir_is_crowned_even_with_the_founder_present() -> void:
+	_fresh()
+	var f := _house("Dinastia", 3.0, -0.8)
+	var heir := _person("Filho", 30.0)
+	heir.family_id = f.id
+	heir.opinion = -0.8
+	k.ruler_id = f.head_id
+	k.ruler_family = f.id
+	k.ruler_way = "inimigo"
+	player_in = true
+	s.remove_person(int(f.head_id))
+	_run(0.0, 30)
+	assert_eq(int(k.ruler_id), int(heir.id), "the heir takes the throne, not the founder")
+
+
+func test_nobody_rules_until_someone_grows_up() -> void:
+	_fresh()
+	var kid := _person("Criança", 10.0)
+	k.ruler_id = GameConstants.GOV_NOBODY
+	player_in = false
+	_run(0.0, 5)
+	assert_eq(int(k.ruler_id), GameConstants.GOV_NOBODY)
+	kid.age = 30.0
+	_run(5.0, 40)
+	assert_eq(int(k.ruler_id), int(kid.id), "an adult at last: crowned")
+
+
+func test_refusal_with_a_vanished_ruler_does_not_crash() -> void:
+	_fresh()
+	var f := _house("Sumido", 3.0, -0.8)
+	k.ruler_id = f.head_id
+	k.ruler_way = "inimigo"
+	s.remove_person(int(f.head_id))
+	assert_true(gov.player_may_act(k), "nobody to keep the founder out")
+	assert_true(gov.refusal(k) != "")
+
+
+func test_deposition_only_hits_the_ruler_it_was_meant_for() -> void:
+	_fresh()
+	var old := _house("Antigo", 3.0)
+	var leader := _house("Chefe", 1.0)
+	var heir := _person("Novo", 30.0)
+	k.ruler_id = heir.id
+	k.ruler_way = "neutro"
+	var deed := Deeds.make("depose", k.center, 1.0, 0.0, 4.0, 5.0, {kingdom_id = k.id, ruler_id = old.head_id})
+	assert_true(gov.complete_deed(k, s.person(int(leader.head_id)), deed, [], 1.0))
+	assert_eq(int(k.ruler_id), int(heir.id), "a plot against the old ruler does not topple the new one")
+
+
+func test_handover_needs_the_founder_there() -> void:
+	_fresh()
+	var f := _house("Leal", 3.0, 0.8)
+	k.ruler_id = f.head_id
+	k.ruler_way = "leal"
+	player_in = false
+	var deed := Deeds.make("handover", k.center, 1.0, 0.0, 4.0, 5.0, {kingdom_id = k.id})
+	gov.complete_deed(k, s.person(int(f.head_id)), deed, [], 1.0)
+	assert_eq(int(k.ruler_id), int(f.head_id), "the founder left before the handover")
+	player_in = true
+
+
+func test_ruler_house_is_the_live_one() -> void:
+	_fresh()
+	var f := _house("Viva", 3.0)
+	var other := _house("Outra", 1.0)
+	other.wealth = 200.0
+	f.wealth = 200.0
+	k.ruler_id = f.head_id
+	k.ruler_family = 9999 # stale: the House was absorbed by a union
+	k.ruler_way = "neutro"
+	k.decrees.tax = "high"
+	player_in = false
+	_run(0.0, 30)
+	assert_eq(float(f.wealth), 200.0, "the ruler's own House pays no tax")
+	assert_true(float(other.wealth) < 200.0)
+	player_in = true
+
+
+func test_lost_tax_deed_is_tried_again() -> void:
+	_fresh()
+	var f := _house("Teimosa", 1.0)
+	f.wealth = 200.0
+	k.decrees.tax = "low"
+	_run(0.0, int(GameConstants.DEED_HOUR) + 1)
+	var head := s.person(int(f.head_id))
+	assert_eq(head.deed.get("kind", ""), "tax")
+	head.deed = {} # lost (replaced or dropped)
+	_run(GameConstants.DEED_HOUR + 1.0, 26)
+	assert_true(float(f.wealth) < 200.0, "the House pays the next day")

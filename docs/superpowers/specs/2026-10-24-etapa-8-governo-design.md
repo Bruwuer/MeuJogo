@@ -144,3 +144,15 @@ recupera um reino perdido: indiretamente, pelas pessoas).
   ui_left/ui_right` (setas); com o painel aberto o jogador fica `frozen` e o HUD consome as teclas.
 - **Ruling (desvio do governante):** usa o `skim` da etapa 7 na Casa do governante (mesmas testemunhas e
   escândalo) e soma `k.ruler_skimmed`.
+
+## 7. Revisão final (2026-10-24): correções
+
+- **Ruling (interregno):** sem governante e sem ninguém a caminho da posse, o fundador só reassume se estiver
+  no reino **e** a opinião média sobre ele for >= 0; senão nomeia-se quem pode governar (e, se ainda não há
+  adulto, tenta-se de novo a cada hora). Herdeiro tem posse mesmo com o fundador presente.
+- **Ruling (painel P):** o mundo mantém o jogador parado enquanto o painel está aberto; Esc também fecha.
+- **Ruling (deposição):** o feito guarda contra quem foi tramado; se o governante mudou no caminho, nada acontece.
+- **Ruling (devolução):** só acontece se o fundador ainda está no reino quando o regente chega à sede.
+- **Ruling (Casa do governante):** lida da pessoa a cada hora (uniões mudam pessoas de Casa).
+- **Ruling (imposto e reza):** o dia só conta como feito quando o feito acontece; perdido, tenta-se no dia seguinte.
+- **Ruling (exceção à regra 17):** a dispensa de um guarda é imediata (é só tirar a lança; não há caminhada).

@@ -120,7 +120,7 @@ func _ready() -> void:
 func _physics_process(_delta: float) -> void:
 	var pos := _player.global_position
 	_streamer.update_center(pos)
-	_player.frozen = not _streamer.is_loaded(ChunkMath.world_to_chunk(pos))
+	_player.frozen = not _streamer.is_loaded(ChunkMath.world_to_chunk(pos)) or _hud.gov_visible()
 
 
 func _process(delta: float) -> void:

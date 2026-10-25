@@ -355,7 +355,7 @@ func _make_families_panel(style: StyleBox) -> void:
 
 
 func _unhandled_input(event: InputEvent) -> void:
-	if event.is_action_pressed("gov_panel"):
+	if event.is_action_pressed("gov_panel") or (_gov_panel.visible and event.is_action_pressed("ui_cancel")):
 		toggle_gov()
 		get_viewport().set_input_as_handled()
 		return
@@ -382,6 +382,8 @@ func set_gov(gov: GovSim) -> void:
 ## "Governo: você" or "Governo: <ruler>" (who rules is public).
 func gov_line(k: Dictionary) -> String:
 	var ruler := _state.person(int(k.ruler_id))
+	if int(k.ruler_id) == GameConstants.GOV_NOBODY:
+		return GameConstants.GOV_LABEL_NOBODY
 	if int(k.ruler_id) < 0 or ruler.is_empty():
 		return GameConstants.GOV_LABEL_YOU
 	return GameConstants.GOV_LABEL_RULER % PersonGen.full_name(ruler)
@@ -452,7 +454,7 @@ func _fill_gov() -> void:
 	if k.is_empty() or _gov == null:
 		_gov_label.text = GameConstants.GOV_PANEL_OUTSIDE
 		return
-	if int(k.ruler_id) != GameConstants.GOV_PLAYER:
+	if int(k.ruler_id) != GameConstants.GOV_PLAYER and int(k.ruler_id) != GameConstants.GOV_NOBODY:
 		_gov_label.text = GameConstants.GOV_PANEL_TITLE % k.name + "
 
 " + (_gov.refusal(k) if not _gov.player_may_act(k)
