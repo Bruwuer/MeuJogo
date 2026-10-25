@@ -403,7 +403,7 @@ func _procession(k: Dictionary, body: Dictionary, grave_at: Vector3) -> void:
 	for i in kin.size():
 		var a := TAU * (i + 0.5) / maxf(1.0, kin.size())
 		var deed := Deeds.make("procession", grave_at + Vector3(cos(a), 0.0, sin(a)) * GameConstants.PROCESSION_RING,
-				GameConstants.PERSON_ARRIVE, _hour, _hour + GameConstants.BURY_HOURS, GameConstants.DIG_SEC, {body_id = body.id})
+				GameConstants.PERSON_ARRIVE, _hour, _hour + GameConstants.BURY_HOURS, GameConstants.PROCESSION_SEC, {body_id = body.id})
 		deed.anim = GameConstants.ANIM_MOURN
 		_houses.plan_deed(kin[i], deed)
 

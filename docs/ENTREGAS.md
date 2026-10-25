@@ -422,3 +422,13 @@ Suíte: 641 testes passando.
 
 Suíte: 644 testes passando.
 
+## Cortejo fúnebre (2026-10-25, noite de carta branca)
+
+- Quando alguém pega um corpo, a família próxima que está livre **anda atrás até a cova** e espera ali de cabeça
+  baixa (`mourn`) enquanto se cava; a reza no túmulo vem depois. Coberto por teste; **ainda não foi visto ao vivo**
+  nas capturas desta noite (nos enterros observados, quem carregou era o único parente adulto livre).
+- Estabilidade: `tests/visual/long_world.gd` com tudo ligado, 3 mundos × 60 dias em 2 min 35 s, nenhum corpo esquecido
+  (73, 26 e 72 sepulturas), guerras acontecendo.
+
+Suíte: 645 testes passando.
+

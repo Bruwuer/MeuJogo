@@ -1139,6 +1139,7 @@ const CEMETERY_SHARE := 0.65 ## The cemetery lies this far out from the center (
 const CEMETERY_TRIES := 16 ## Directions tried for flat, free ground.
 const FUNERAL_OFFSET := 1.4 ## Mourners kneel this far from the grave.
 const PROCESSION_RING := 2.4 ## The family waits this far around the grave being dug.
+const PROCESSION_SEC := 40.0 ## ... and stays there through the digging.
 const FUNERAL_GRIEF_KEEP := 0.6 ## Share of grief left after praying at the grave.
 const FUNERAL_ARC := Vector2(0.25, 0.5) ## Mourners kneel on this arc (start, span) of half turns around the grave.
 const GRIEF_KIN := 0.8
