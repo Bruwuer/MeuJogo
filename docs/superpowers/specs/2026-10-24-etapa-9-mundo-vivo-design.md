@@ -106,6 +106,11 @@ moradores só nos reinos do próprio jogador.
 - **Ruling (fronteira):** 320 m e 0,08 por dia a cada 100 m (a captura mostrou relações paradas em zero).
 - **Ruling (presente do visitante):** em reino NPC o governante não tem "jeito" com o jogador, então doar lá é sempre
   bem-vindo (a ressalva do governante inimigo só vale nos reinos do próprio jogador).
+- **Ruling (guerra que nunca vinha):** uma simulação sem janela de 60 dias em três mundos mostrou relações em −1
+  e nenhuma guerra: os reinos chegam todos ao mesmo tamanho e ninguém era 1,5 vez mais forte; e a convocação só
+  chamava Casas guerreiras ou corajosos, então ninguém passava de 1 guarda. Agora: basta não ser mais fraco
+  (`REALM_WAR_RATIO` 1,0); o governante em atrito com um vizinho (relação < −0,3) já se arma (guarda toda); e, sem
+  voluntários, convoca-se qualquer adulto livre.
 - **Ruling (baixas):** quem cai é sorteado (semeado), não sempre o líder.
 - **Ruling (cabana sem reino):** perto demais de outra sede, a cabana é só cabana e o jogador é avisado.
 

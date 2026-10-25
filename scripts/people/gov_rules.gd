@@ -31,11 +31,11 @@ static func away_target(k: Dictionary) -> float:
 
 
 ## Who is called to the guard (-1 when nobody fits): members of warrior Houses, then the brave or
-## those who dream of the guard, then adults of no House. Never children, guards, the ruler or
-## someone busy with a deed. Ties: lowest id.
+## those who dream of the guard, then adults of no House, and at last any adult (a lord calls up
+## whoever can serve). Never children, guards, the ruler or someone busy with a deed. Ties: lowest id.
 static func muster_candidate(state: WorldState, k: Dictionary) -> int:
 	var best := -1
-	var best_rank := 3
+	var best_rank := 4
 	for p in state.residents(k.id):
 		if not SocietyRules.is_adult(p) or int(p.profession) == GameConstants.Profession.GUARD \
 				or p.id == int(k.get("ruler_id", -1)) or not (p.get("deed", {}) as Dictionary).is_empty():
@@ -48,7 +48,7 @@ static func muster_candidate(state: WorldState, k: Dictionary) -> int:
 			rank = 1
 		elif f.is_empty():
 			rank = 2
-		if rank < best_rank or (rank == best_rank and rank < 3 and p.id < best):
+		if rank < best_rank or (rank == best_rank and p.id < best):
 			best = p.id
 			best_rank = rank
 	return best

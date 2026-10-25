@@ -58,7 +58,9 @@ func _daily() -> void:
 				k.war_guard = false # a regent's call-up ends with the founder; the decrees are his now
 			continue # the player decides for the own kingdoms; nobody decides in an interregnum
 		var enemies := ks.filter(func(o: Dictionary) -> bool: return o.id != k.id and _state.at_war(k.id, o.id))
-		_war_guard(k, not enemies.is_empty())
+		var tense := ks.any(func(o: Dictionary) -> bool:
+			return o.id != k.id and float(_state.realm(k.id, o.id).rel) < GameConstants.REALM_ARM_AT)
+		_war_guard(k, not enemies.is_empty() or tense) # arming before a war, too
 		for e: Dictionary in enemies:
 			if weary(k, e) >= GameConstants.REALM_PEACE_WEARY:
 				send_envoy(k, e, "peace", _hour)
@@ -172,7 +174,7 @@ func _found(old: Dictionary, head: Dictionary, f: Dictionary, site: Vector3) -> 
 	_log_both(old, nk, GameConstants.REALM_MSG_FOUNDED % [f.surname, old.name, nk.name])
 
 
-## A ruler at war calls up the whole guard; at peace again the usual guard comes back.
+## A ruler at war (or arming for one) calls up the whole guard; when it passes the usual guard comes back.
 func _war_guard(k: Dictionary, at_war: bool) -> void:
 	if at_war and not k.get("war_guard", false):
 		k.war_guard = true

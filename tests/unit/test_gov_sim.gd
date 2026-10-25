@@ -443,3 +443,17 @@ func test_npc_houses_give_no_gifts_to_the_visitor() -> void:
 	society._hour = GameConstants.DEED_HOUR
 	society._deeds(k)
 	assert_eq(s.get_resource(R.WOOD), before)
+
+
+func test_guard_is_filled_even_without_warrior_houses() -> void:
+	_fresh()
+	var f := _house("Lavoura", 1.0)
+	for i in 3:
+		var p := _person("Lavrador-%d" % i, 25.0)
+		p.family_id = f.id
+		p.profession = P.FARMER
+	k.decrees.guards = 2
+	_run(0.0, 24 * 3)
+	var guards := s.residents(k.id).filter(func(p: Dictionary) -> bool: return int(p.profession) == P.GUARD)
+	assert_eq(guards.size(), 2, "the ruler calls up whoever can serve when no warrior volunteers")
+	k.decrees.guards = GameConstants.GOV_GUARDS_FREE
