@@ -1125,6 +1125,7 @@ const GRAVE_ROW := 2.8 ## Between rows.
 const GRAVE_COLS := 5
 const GRAVE_TRIES := 40 ## Slots tried for a grave clear of trees and buildings.
 const CEMETERY_SHARE := 0.65 ## The cemetery lies this far out from the center (share of the radius).
+const CEMETERY_TRIES := 16 ## Directions tried for flat, free ground.
 const FUNERAL_OFFSET := 1.4 ## Mourners kneel this far from the grave.
 const FUNERAL_GRIEF_KEEP := 0.6 ## Share of grief left after praying at the grave.
 const FUNERAL_ARC := Vector2(0.25, 0.5) ## Mourners kneel on this arc (start, span) of half turns around the grave.

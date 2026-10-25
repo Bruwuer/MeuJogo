@@ -225,3 +225,16 @@ func test_killing_the_dead_does_nothing() -> void:
 	society.kill(k, p, "")
 	society.kill(k, p, "")
 	assert_eq(deaths.size(), 1)
+
+
+func test_the_cemetery_lies_on_flat_free_ground() -> void:
+	_fresh()
+	var gen := TerrainGenerator.new(GameConstants.WORLD_SEED)
+	var scatter := PropScatter.new(gen, GameConstants.WORLD_SEED)
+	life.set_terrain(gen, scatter)
+	var spot := TestSpots.flat_clear(gen, scatter, B.CABIN, 6.0, Vector2(200, 200))
+	k.center = spot
+	for i in 3:
+		var spot_i: Vector3 = life._grave_spot(k)
+		assert_true(gen.biome_at(spot_i.x, spot_i.z) != GameConstants.Biome.ROCKY, "no grave on a rocky slope")
+		assert_true(BuildRules.check_site(B.GRAVE, spot_i, 0, gen, scatter, s, []).ok, "free, flat ground")

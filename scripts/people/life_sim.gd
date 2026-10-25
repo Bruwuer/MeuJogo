@@ -7,7 +7,7 @@ extends RefCounted
 
 const B := GameConstants.Building
 
-## A body was buried (its node, lying or carried, must go).
+## A body was picked up or buried (its node lying on the ground must go).
 signal body_removed(id: int)
 
 var _state: WorldState
@@ -213,8 +213,16 @@ func _grave_spot(k: Dictionary) -> Vector3:
 	if not k.has("cemetery"):
 		var rng := RandomNumberGenerator.new()
 		rng.seed = hash([_state.seed, "cemetery", k.id])
-		var dir := Vector3.FORWARD.rotated(Vector3.UP, rng.randf() * TAU)
+		var start := rng.randf() * TAU
+		var dir := Vector3.FORWARD.rotated(Vector3.UP, start)
 		k.cemetery = k.center + dir * float(k.radius) * GameConstants.CEMETERY_SHARE
+		# Flat, free ground: the first whole row of graves must fit (never a rocky slope).
+		for i in GameConstants.CEMETERY_TRIES:
+			var d := Vector3.FORWARD.rotated(Vector3.UP, start + TAU * i / GameConstants.CEMETERY_TRIES)
+			var base: Vector3 = k.center + d * float(k.radius) * GameConstants.CEMETERY_SHARE
+			if _gen == null or _row_fits(k, base):
+				k.cemetery = base
+				break
 		k.graves = 0
 	var base: Vector3 = k.cemetery
 	var inward := Vector3(k.center.x - base.x, 0.0, k.center.z - base.z).normalized() # new rows grow toward the center
@@ -233,6 +241,19 @@ func _grave_spot(k: Dictionary) -> Vector3:
 	return base
 
 
+## Whether a whole row of graves fits at `base` (on flat, free ground).
+func _row_fits(k: Dictionary, base: Vector3) -> bool:
+	var inward := Vector3(k.center.x - base.x, 0.0, k.center.z - base.z).normalized()
+	var side := inward.cross(Vector3.UP)
+	for c in GameConstants.GRAVE_COLS:
+		var pos := base + side * (c - (GameConstants.GRAVE_COLS - 1) * 0.5) * GameConstants.GRAVE_SPACING
+		pos.y = _gen.height_at(pos.x, pos.z)
+		var check := BuildRules.check_site(B.GRAVE, pos, 0, _gen, _scatter, _state, [])
+		if not check.ok or _gen.biome_at(pos.x, pos.z) == GameConstants.Biome.ROCKY:
+			return false
+	return true
+
+
 # --- Deeds ----------------------------------------------------------------------------------
 
 func complete_deed(k: Dictionary, p: Dictionary, deed: Dictionary, _seen: Array, hour: float) -> bool:
@@ -245,6 +266,7 @@ func complete_deed(k: Dictionary, p: Dictionary, deed: Dictionary, _seen: Array,
 				return true
 			body.carrier_id = p.id
 			p.carrying_body = body.id
+			body_removed.emit(body.id) # off the ground: from now on it is drawn in the bearer's arms
 			var care := _state.kingdom(int(data.get("kingdom_id", k.id)))
 			var spot := _grave_spot(care)
 			var bury := Deeds.make("bury", spot, GameConstants.PERSON_ARRIVE, _hour, _hour + GameConstants.BURY_HOURS,
@@ -289,7 +311,7 @@ func complete_deed(k: Dictionary, p: Dictionary, deed: Dictionary, _seen: Array,
 
 ## The family kneels and prays at the new grave at dusk (each one free goes; nobody is forced).
 func _funeral(k: Dictionary, grave: Dictionary, mourners: Array) -> void:
-	var w := Deeds.next_window(_hour, GameConstants.DEED_DUSK.x, GameConstants.DEED_DUSK.y)
+	var w := Deeds.next_window(_hour, GameConstants.DEED_CEREMONY.x, GameConstants.DEED_CEREMONY.y) # a ceremony, by daylight
 	for i in mourners.size():
 		var m: Dictionary = mourners[i]
 		if not (m.get("deed", {}) as Dictionary).is_empty():
