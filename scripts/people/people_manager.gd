@@ -49,6 +49,7 @@ func setup(state: WorldState, gen: TerrainGenerator, scatter: PropScatter, strea
 	sim.person_born.connect(func(_r: Dictionary) -> void: _fill())
 	sim.person_died.connect(func(r: Dictionary) -> void: _free_node(r.id))
 	sim.site_abandoned.connect(_hide_building)
+	sim.building_burned.connect(_hide_building)
 	sim.prop_removed.connect(_remove_prop)
 	sim.traveler_spawned.connect(func(_r: Dictionary) -> void: _fill())
 	streamer.chunk_loaded.connect(func(_c: Vector2i) -> void:

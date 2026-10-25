@@ -9,6 +9,9 @@ extends RefCounted
 const P := GameConstants.Profession
 const R := GameConstants.Res
 
+## Deeds of the world between kingdoms (stage 9): func(k, p, deed, seen, hour) -> bool.
+var next_deed := Callable()
+
 var _state: WorldState
 var _houses: HouseSim
 var _is_player_in: Callable
@@ -373,7 +376,7 @@ func complete_deed(k: Dictionary, p: Dictionary, deed: Dictionary, seen: Array, 
 			if int(data.get("ruler_id", k.ruler_id)) == int(k.ruler_id): # the plot was against this ruler
 				_deposed(k, p, seen)
 		_:
-			return false
+			return next_deed.call(k, p, deed, seen, hour) if next_deed.is_valid() else false
 	return true
 
 

@@ -19,6 +19,8 @@ signal person_born(rec: Dictionary)
 signal person_died(rec: Dictionary)
 ## Families, homes or house owners changed (banners may need a new crest).
 signal families_changed
+## A building burned in a battle between kingdoms (its node must go).
+signal building_burned(rec: Dictionary)
 
 const B := GameConstants.Building
 const R := GameConstants.Res
@@ -46,6 +48,8 @@ var society := SocietySim.new()
 var houses := HouseSim.new()
 ## Who rules, decrees carried out, succession (stage 8).
 var gov := GovSim.new()
+## Relations, envoys, wars and new kingdoms between kingdoms (stage 9).
+var realms := RealmSim.new()
 
 
 func setup(state: WorldState, gen: TerrainGenerator, scatter: PropScatter, day_night: DayNight) -> void:
@@ -61,6 +65,8 @@ func setup(state: WorldState, gen: TerrainGenerator, scatter: PropScatter, day_n
 	houses.setup(state, _say, society, gen)
 	houses.has_node = func(id: int) -> bool: return has_node.call(id)
 	gov.setup(state, houses, func(k: Dictionary) -> bool: return is_player_in.call(k))
+	realms.setup(state, houses, society, gov)
+	realms.building_burned.connect(func(r: Dictionary) -> void: building_burned.emit(r))
 
 
 func _process(_delta: float) -> void:
@@ -124,6 +130,7 @@ func _tick_hour(hour: float) -> void:
 			if mine and SocietyRules.is_adult(p):
 				opinions += float(p.opinion)
 				count += 1
+	realms.tick_hour(hour)
 	if count > 0:
 		_state.fame = opinions / count
 	for p in _state.all_people(): # those who left and lost their node walk off the map
