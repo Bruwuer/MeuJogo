@@ -10,7 +10,7 @@ const OUT_DIR := "res://captures"
 const SKIP_DAYS := 30
 const WATCH_DAYS := 8
 const SPEED := 8.0
-const KINDS := ["body", "fetch_body", "carry", "bury", "funeral", "talk", "trade", "prayer"]
+const KINDS := ["body", "fetch_body", "carry", "bury", "funeral", "talk", "trade", "prayer", "meal", "fireside", "play", "rain"]
 
 var _world: World
 var _shots := {}
@@ -49,6 +49,15 @@ func _run() -> void:
 		if not body.is_empty() and (focus.x < 0.0 or focus.distance_to(body.pos) > 30.0):
 			focus = body.pos
 			await _go(focus + Vector3(0, 0, 8))
+		if state.raining(day_night.total_hours()) and not _shots.has("rain") and not mgr.active_people().is_empty():
+			_shots["rain"] = true # a rainy day: people under roofs, the drops falling
+			Engine.time_scale = 1.0
+			for f in 20:
+				await physics_frame
+			_pending = "life_rain"
+			await _frame_on(mgr.active_people()[0])
+			print("LIFE rain at %02dh" % floori(fmod(day_night.total_hours(), 24.0)))
+			Engine.time_scale = SPEED
 		for n in mgr.active_people():
 			var kind := _moment(n)
 			if kind == "" or _shots.has(kind):
