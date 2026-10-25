@@ -383,6 +383,18 @@ func _unhandled_input(event: InputEvent) -> void:
 		toggle_families()
 	elif event.is_action_pressed("adm_log"):
 		toggle_chronicle()
+	elif event.is_action_pressed("ui_cancel") and (families_visible() or chronicle_visible()):
+		if families_visible():
+			toggle_families()
+		if chronicle_visible():
+			toggle_chronicle()
+		get_viewport().set_input_as_handled()
+
+
+## Nothing on screen uses Esc (building, the government panel, the ADM panels): the pause menu may.
+func esc_free() -> bool:
+	return not (_build != null and _build.active) and not gov_visible() and not families_visible() \
+			and not chronicle_visible()
 
 
 # --- Government panel (P): the player's own decrees ---

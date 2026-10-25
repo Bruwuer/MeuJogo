@@ -217,3 +217,55 @@ func test_government_panel_starts_at_the_top() -> void:
 	_hud.toggle_gov()
 	assert_true(_hud.gov_text().contains("> Imposto"), "the panel opens on the first row: " + _hud.gov_text())
 	_hud.toggle_gov()
+
+
+## Records an Esc nobody used (it sits first in the tree, so it hears the event last).
+class EscProbe extends Node:
+	var heard := 0
+	func _unhandled_input(event: InputEvent) -> void:
+		if event.is_action_pressed("ui_cancel"):
+			heard += 1
+
+
+func _press_esc() -> void:
+	var ev := InputEventKey.new()
+	ev.physical_keycode = KEY_ESCAPE
+	ev.keycode = KEY_ESCAPE
+	ev.pressed = true
+	Input.parse_input_event(ev)
+	await wait_frames(2)
+	var up := ev.duplicate()
+	up.pressed = false
+	Input.parse_input_event(up)
+	await wait_frames(1)
+
+
+func test_esc_is_free_only_with_nothing_open() -> void:
+	await _setup()
+	assert_true(_hud.esc_free(), "nothing open")
+	_build.toggle()
+	assert_true(not _hud.esc_free(), "building uses Esc")
+	_build.toggle()
+	_hud.toggle_chronicle()
+	if _hud.chronicle_visible():
+		assert_true(not _hud.esc_free(), "an ADM panel uses Esc")
+		_hud.toggle_chronicle()
+	_hud.toggle_families()
+	if _hud.families_visible():
+		assert_true(not _hud.esc_free())
+		_hud.toggle_families()
+	assert_true(_hud.esc_free())
+
+
+func test_esc_leaving_build_mode_is_used_up() -> void:
+	await _setup()
+	var probe := EscProbe.new()
+	get_tree().root.add_child(probe)
+	get_tree().root.move_child(probe, 0)
+	_build.toggle()
+	await _press_esc()
+	assert_true(not _build.active, "Esc leaves build mode")
+	assert_eq(probe.heard, 0, "and nothing else hears it (no pause menu behind)")
+	await _press_esc()
+	assert_eq(probe.heard, 1, "with nothing open, Esc is free")
+	probe.queue_free()

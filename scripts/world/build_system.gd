@@ -168,6 +168,7 @@ func _unhandled_input(event: InputEvent) -> void:
 			try_place()
 		elif event.is_action_pressed("build_cancel"):
 			toggle()
+			get_viewport().set_input_as_handled() # this Esc does not also open the pause menu
 	elif event.is_action_pressed("demolish"):
 		try_demolish(_player.global_position)
 
