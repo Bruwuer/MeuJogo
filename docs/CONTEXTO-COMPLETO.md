@@ -58,7 +58,7 @@ do projeto), `CONTINUAR.md` (onde parou), `docs/ENTREGAS.md` (o que cada etapa e
 | 6 | Sociedade: famílias e brasões, relações, opinião sobre o jogador, aliados e inimigos internos | ✅ no `main` |
 | 7 | **Casas e ambições** (ver §4) | ✅ no `main` |
 | 8 | Governo: decisões com efeito, sucessão, governante NPC (corrupção, lealdade, culto ou inimizade) | ✅ no `main` |
-| 9 | Mundo vivo: reinos NPC, simulação resumida fora da tela, diplomacia e guerras, novos reinos | a fazer |
+| 9 | Mundo vivo: reinos NPC, simulação resumida fora da tela, diplomacia e guerras, novos reinos | ✅ no `main` |
 | 10 | Acabamento: menu, salvar/carregar, som, balanceamento | a fazer |
 
 ## 4. Etapa 7 — Casas e ambições (o que o autor pediu e o que existe)
@@ -122,7 +122,7 @@ Comandos (Windows, PowerShell):
 - Código: `scripts/` (core, world, people, creatures, combat, ui), `scenes/`, `shaders/`.
 - Testes: `tests/unit`, `tests/integration`, `tests/visual/capture.gd`.
 - Modelos: `assets/models/*.glb` (gerados por `tools/blender/*.py`).
-- Histórico git: `main` (etapas 1–8).
+- Histórico git: `main` (etapas 1–9).
 
 ## 8. Como levar o projeto inteiro (código + histórico)
 

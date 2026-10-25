@@ -292,3 +292,50 @@ perdidos pulavam o dia; Esc não fechava o painel; nome de governante sumido tra
   chefe (pode atrasar uma deposição).
 
 Suíte: 566 testes passando.
+
+
+## Etapa 9 — Mundo vivo (2026-10-25)
+
+**O que mudou**
+- **Reinos NPC desde o começo:** todo mundo novo (e os saves antigos, uma vez) ganha 2 reinos NPC longe de onde o
+  jogador surge: sede, bandeira, fogueira, fazenda, duas casas e duas famílias. O primeiro governante toma posse
+  sozinho na sede. Eles crescem, recebem viajantes, formam Casas e vivem como o reino do jogador, fora da tela.
+- **O jogador funda outros reinos:** uma Cabana longe de todas as sedes (160 m) funda mais um reino dele; perto de
+  outra sede é só uma cabana (e o jogador é avisado). Renasce na sede dele mais perto.
+- **Visitante em reino alheio:** não constrói nem demole lá; pode doar; não vê estoque nem moradores (só quem governa).
+- **Diplomacia:** cada par de reinos tem relação e estado (paz ou guerra) que mudam todo dia por fronteira, pelo
+  temperamento dos governantes, pelo comércio e pelo que o governante acha do jogador. Tudo por **enviados que
+  andam de uma sede à outra**: declaração de guerra, proposta de paz e presente valem quando o enviado chega.
+- **Guerra de verdade:** governante em atrito com um vizinho se arma (convoca a guarda toda); quem não é mais fraco
+  declara guerra; **bandos de guerra marcham até a sede inimiga** e a batalha acontece quando chegam. Quem vence
+  saqueia e queima uma construção (nunca a sede); os mortos morrem de verdade (com sucessão se era o governante).
+  O cansaço leva à paz por enviado.
+- **Novos reinos por êxodo:** Casa que odeia o governante, ou num reino lotado, parte para fundar um reino; o chefe
+  anda até um lugar livre e, ao chegar, funda (com cônjuges e filhos de outras Casas junto).
+- **Painel P:** no reino que governa, o jogador vê os reinos que já visitou (paz/guerra e relação) e manda um
+  enviado com presente ou proposta de paz (Enter). F10 mostra as relações do reino com todos.
+
+**Captura orgânica:** o mundo nasceu com os reinos NPC Ravmia e Casaria; o jogador fundou Seruvel longe deles; em 12
+dias uma Casa de Ravmia partiu e fundou Velderia; a visita a Ravmia (`46_npc_realm`) mostra a vila com governante
+próprio (Bento do Souto, 16 moradores). Não houve guerra nesses 12 dias.
+
+**Simulação longa (`tests/visual/long_world.gd`, 60 dias, 3 mundos, sem janela):** 24 guerras declaradas, 22
+pazes, 44 batalhas (7 vencidas pelos atacantes, com saque e fazendas ou comércio queimados), a primeira guerra
+por volta do dia 29. Foi ela que achou o defeito de a guerra nunca vir (todos do mesmo tamanho e convocação que
+só chamava guerreiros) e o de os defensores vencerem sempre.
+
+**Revisão final (subagente):** corrigidos, com teste que falhava antes: nomes trocados (pai com nome de mulher)
+nos reinos NPC; êxodo separando casais e filhos de Casas diferentes; declaração de guerra não conferida na chegada
+(trégua, fundador de volta); convocação de guerra presa quando o fundador reassume; lugar do êxodo não conferido
+de novo; painel abrindo numa linha que não existe; baixas sempre começando pelo líder.
+
+**Pendências**
+- O jogador não luta contra pessoas e reinos NPC não declaram guerra a reino que o jogador governa; não há
+  cerco, vassalagem, tributo nem conquista.
+- O log do ADM grava a mesma linha nos dois reinos de um evento entre reinos (aparece duas vezes no arquivo).
+- A crônica guarda só as últimas 200 entradas por reino (eventos antigos de um reino movimentado somem).
+- Bando de criaturas que não acha toca longe de todos os reinos fica onde está.
+- `test_world::test_streams_while_walking` falha às vezes nesta máquina (quadro de ~51–55 ms contra 50 ms); já
+  falhava igual no `main` da etapa 8, é a velocidade do computador.
+
+Suíte: 600 testes passando.

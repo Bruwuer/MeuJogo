@@ -19,12 +19,11 @@ primeiro e atualizá-lo ao concluir cada tarefa** (seção "Estado atual").
 
 ## Estado atual
 
-- Etapas 1 a 8: concluídas e no `main` (566 testes passando). Resumo em `docs/ENTREGAS.md`.
-- Etapa 8 (Governo) terminou em 2026-10-24: regente, decretos (painel P), governante NPC, volta do fundador,
-  deposição; captura orgânica e revisão final com correções (design §6 e §7).
-- **Próxima: etapa 9 (Mundo vivo)** — reinos NPC, simulação resumida fora da tela, diplomacia e guerras, novos
-  reinos. Começar pelo design curto em `docs/superpowers/specs/`.
-- Etapa 10: não iniciada (ver roadmap no `CLAUDE.md`).
+- Etapas 1 a 9: concluídas e no `main` (600 testes passando). Resumo em `docs/ENTREGAS.md`.
+- Etapa 9 (Mundo vivo) terminou em 2026-10-25: reinos NPC, diplomacia por enviados, guerras com bandos e batalhas,
+  êxodo que funda reinos, painel de reinos; captura orgânica, simulação longa de equilíbrio
+  (`tests/visual/long_world.gd`) e revisão final com correções (design §6 e §7).
+- **Próxima: etapa 10 (Acabamento)** — menu, salvar/carregar, som, balanceamento. Começar pelo design curto.
 
 ## Execução automática
 

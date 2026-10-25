@@ -104,6 +104,11 @@ docs/superpowers/     specs/ e plans/
     fundador e deposição; tudo que muda o reino é feito de uma pessoa (posse, devolução, imposto, convocação, reza,
     deposição, desvio do governante). O HUD só mostra quem governa e o painel P do próprio fundador.
 
+19. **Vários reinos:** reino tem `founder` ("player" ou "npc"). O jogador só constrói, decreta e reassume nos
+    reinos dele. Relações entre reinos ficam em `WorldState.realm(a, b)` e mudam uma vez por dia no `RealmSim`
+    (depois de todos os reinos, por hora); guerra, paz, presente, bando de guerra e êxodo são feitos de pessoas que
+    andam de uma sede à outra. Nada disso vai para o HUD. Balanceamento: `tests/visual/long_world.gd` (60 dias sem janela).
+
 ## Comandos
 
 - Testes: `powershell -ExecutionPolicy Bypass -File tools/run_tests.ps1 [filtro]`
@@ -113,7 +118,8 @@ docs/superpowers/     specs/ e plans/
 - Começar um mundo novo (apaga o save): `powershell -ExecutionPolicy Bypass -File tools/new_world.ps1`
 - Controles: WASD anda, Shift corre, E fala com quem está perto (cartão com família, brasão e relações) ou coleta (árvore 4 golpes = 3 madeira,
   rocha 5 = 2 pedra, arbusto 1 = 2 frutas), G doa ao reino (até 10 de madeira, pedra e frutas).
-  P abre o governo (setas escolhem e mudam os decretos: imposto, ração, guarda, obra; P ou Esc fecha).
+  P abre o governo (setas escolhem e mudam os decretos: imposto, ração, guarda, obra; nos reinos já visitados
+  escolhem presente ou proposta de paz e Enter manda o enviado; P ou Esc fecha).
   Só para o ADM (desenvolvimento): F9 crônica do reino com segredos, F10 Casas do reino (e a linha do governo)
 - Construção: B liga/desliga, 1–5 escolhe (Cabana, Fogueira, Depósito, Cerca, Poço), R gira, clique ou E constrói,
   Esc ou clique direito sai; X demole (devolve 50 %). A primeira Cabana funda o reino.
@@ -136,5 +142,5 @@ docs/superpowers/     specs/ e plans/
    objetivos próprios, vocações e desejos pessoais, parentesco completo e adoção, casamentos arranjados,
    união de Casas, corrupção, infiltração, desligamentos (amigável/neutro/hostil, às claras/escondido), guardas.
 8. ✅ **Governo:** decisões com efeito, sucessão, governante NPC (corrupção, lealdade, culto ou inimizade).
-9. **Mundo vivo:** reinos NPC, simulação resumida fora da tela, diplomacia e guerras, novos reinos.
+9. ✅ **Mundo vivo:** reinos NPC, simulação resumida fora da tela, diplomacia e guerras, novos reinos.
 10. **Polimento:** menu, salvar/carregar, som, balanceamento.
