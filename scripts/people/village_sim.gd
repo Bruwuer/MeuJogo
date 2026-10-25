@@ -56,6 +56,8 @@ var realms := RealmSim.new()
 var life := LifeSim.new()
 ## Wandering merchants (stage 10).
 var merchants := MerchantSim.new()
+## Rainy days (stage 11).
+var weather := WeatherSim.new()
 
 
 func setup(state: WorldState, gen: TerrainGenerator, scatter: PropScatter, day_night: DayNight) -> void:
@@ -75,6 +77,7 @@ func setup(state: WorldState, gen: TerrainGenerator, scatter: PropScatter, day_n
 	life.setup(state, houses, society)
 	life.set_terrain(gen, scatter)
 	merchants.setup(state, houses)
+	weather.setup(state)
 	merchants.set_terrain(gen)
 	life.body_removed.connect(func(id: int) -> void: body_removed.emit(id))
 	realms.set_terrain(gen, scatter)
@@ -123,6 +126,7 @@ func tick_hours(hours: float) -> void:
 
 
 func _tick_hour(hour: float) -> void:
+	weather.tick_hour(hour)
 	var opinions := 0.0
 	var count := 0
 	for k in _state.kingdoms():
@@ -235,7 +239,11 @@ func _needs(k: Dictionary) -> void:
 		if p.status != "resident":
 			continue # left with their family earlier in this loop
 		p.hunger = minf(1.0, float(p.hunger) + GameConstants.HUNGER_PER_HOUR)
-		var fed := VillageRules.eat(p, k, _state)
+		var fed: bool
+		if has_node.call(p.id) and float(p.hunger) < GameConstants.HUNGER_STARVING:
+			fed = float(p.hunger) < GameConstants.HUNGER_STARVING # on screen one eats by the fire at meal time (LifeSim)
+		else:
+			fed = VillageRules.eat(p, k, _state)
 		p.contentment = clampf(float(p.contentment) + VillageRules.hourly_contentment(p, snap, fed), 0.0, 1.0)
 		if p.contentment < GameConstants.LEAVE_CONTENTMENT and SocietyRules.is_adult(p):
 			p.unhappy_hours = float(p.unhappy_hours) + 1.0
@@ -425,6 +433,8 @@ func _offscreen_work(k: Dictionary) -> void:
 			"wood", "stone", "berries":
 				_harvest(k, job, GameConstants.OFFSCREEN_RATE[job])
 	var food := mini(farmers, snap.farms) * GameConstants.FARM_FOOD_PER_HOUR
+	if _state.raining(now_hours()):
+		food *= GameConstants.RAIN_WORK_SHARE
 	if food > 0.0:
 		add_fraction(k, "food", R.FOOD, food)
 

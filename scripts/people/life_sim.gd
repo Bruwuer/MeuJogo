@@ -37,7 +37,60 @@ func tick_hour(k: Dictionary, hour: float) -> void:
 		LifeRules.fade_moods(p, 1.0)
 	_bodies(k)
 	_needs(k)
+	_everyday(k)
 	_wishes(k)
+
+
+# --- Everyday life (stage 11) ---------------------------------------------------------------
+
+## Meals by the fire (people on screen: offscreen meals are summarized by VillageSim), the evening
+## at the fire, children at play.
+func _everyday(k: Dictionary) -> void:
+	var h := float(int(fmod(_hour, 24.0)))
+	for p in _state.residents(k.id):
+		if not (p.get("deed", {}) as Dictionary).is_empty():
+			continue
+		var deed := {}
+		if h in GameConstants.MEAL_HOURS and _houses.has_node.call(p.id) and float(p.get("hunger", 0.0)) >= GameConstants.MEAL_HUNGER:
+			deed = Deeds.make("meal", _ring_spot(k, p, GameConstants.MEAL_RING), GameConstants.PERSON_ARRIVE, _hour,
+					_hour + GameConstants.MEAL_WINDOW, GameConstants.MEAL_SEC, {})
+			deed.anim = GameConstants.ANIM_EAT
+		elif h == GameConstants.FIRESIDE_HOURS.x and SocietyRules.is_adult(p) \
+				and float((p.get("needs", {}) as Dictionary).get("social", 0.0)) >= GameConstants.FIRESIDE_WANT:
+			var w := Deeds.next_window(_hour, GameConstants.FIRESIDE_HOURS.x, GameConstants.FIRESIDE_HOURS.y)
+			deed = Deeds.make("fireside", _ring_spot(k, p, GameConstants.FIRESIDE_RING), GameConstants.PERSON_ARRIVE, w.x, w.y,
+					GameConstants.FIRESIDE_SEC, {})
+			deed.anim = GameConstants.ANIM_SIT
+		elif h in GameConstants.PLAY_HOURS and not SocietyRules.is_adult(p):
+			deed = Deeds.make("play", _play_spot(k, p), GameConstants.PERSON_ARRIVE * GameConstants.GOV_REACH_MULT, _hour,
+					_hour + GameConstants.MEAL_WINDOW, GameConstants.PLAY_SEC, {})
+			deed.anim = GameConstants.ANIM_PLAY
+		if not deed.is_empty():
+			_houses.plan_deed(p, deed)
+
+
+## A place in the ring around the kingdom's campfire (the seat's door when it has none).
+func _ring_spot(k: Dictionary, p: Dictionary, ring: float) -> Vector3:
+	var at: Vector3 = k.center
+	var seat := _state.building(int(k.get("seat_id", -1)))
+	if not seat.is_empty():
+		at = PeopleManager.door_of(seat)
+	for b in VillageRules.kingdom_buildings(_state, k):
+		if int(b.type) == B.CAMPFIRE and not b.get("site", false):
+			at = b.pos
+			break
+	var rng := RandomNumberGenerator.new()
+	rng.seed = hash([_state.seed, "ring", p.id])
+	return at + Vector3.FORWARD.rotated(Vector3.UP, rng.randf() * TAU) * ring
+
+
+## Around the child's home door (or the seat's), a little different each time.
+func _play_spot(k: Dictionary, p: Dictionary) -> Vector3:
+	var home := _state.building(int(p.get("home_id", -1)))
+	var at: Vector3 = PeopleManager.door_of(home) if not home.is_empty() else _ring_spot(k, p, GameConstants.PLAY_RADIUS)
+	var rng := RandomNumberGenerator.new()
+	rng.seed = hash([_state.seed, "play", p.id, int(_hour)])
+	return at + Vector3.FORWARD.rotated(Vector3.UP, rng.randf() * TAU) * rng.randf_range(1.0, GameConstants.PLAY_RADIUS)
 
 
 # --- Needs and wants ------------------------------------------------------------------------
@@ -241,6 +294,20 @@ func _grave_spot(k: Dictionary) -> Vector3:
 	return base
 
 
+## Talking, `p` hears what `other` thinks: of the founder, and of whom `other` can't stand.
+func _gossip(p: Dictionary, other: Dictionary) -> void:
+	p.opinion = clampf(float(p.opinion) + (float(other.opinion) - float(p.opinion)) * GameConstants.GOSSIP_PULL, -1.0, 1.0)
+	var rels := _state.relations_of(other.id)
+	var worst := -1
+	var worst_v := GameConstants.RIVAL_AT
+	for id in rels:
+		if id != p.id and float(rels[id]) <= worst_v:
+			worst = id
+			worst_v = float(rels[id])
+	if worst >= 0:
+		_state.add_relation(p.id, worst, -GameConstants.GOSSIP_RIVAL)
+
+
 ## Whether a whole row of graves fits at `base` (on flat, free ground).
 func _row_fits(k: Dictionary, base: Vector3) -> bool:
 	var inward := Vector3(k.center.x - base.x, 0.0, k.center.z - base.z).normalized()
@@ -292,11 +359,21 @@ func complete_deed(k: Dictionary, p: Dictionary, deed: Dictionary, _seen: Array,
 			_funeral(care, grave, mourners)
 		"talk":
 			var other := _state.person(int(data.get("with", -1)))
+			p.needs = p.get("needs", {social = 0.0, faith = 0.0})
 			p.needs.social = 0.0
 			LifeRules.add_mood(p, "joy", GameConstants.TALK_JOY)
 			if not other.is_empty():
+				_gossip(p, other)
 				_state.add_relation(p.id, other.id, GameConstants.TALK_REL / 2.0) # each side adds half
 
+		"meal":
+			LifeRules.meal(p, k, _state)
+		"fireside":
+			p.needs = p.get("needs", {social = 0.0, faith = 0.0})
+			p.needs.social = maxf(0.0, float(p.needs.get("social", 0.0)) - GameConstants.FIRESIDE_SOCIAL)
+			LifeRules.add_mood(p, "joy", GameConstants.PRAY_JOY)
+		"play":
+			LifeRules.add_mood(p, "joy", GameConstants.PLAY_JOY)
 		"prayer":
 			p.needs.faith = 0.0
 			LifeRules.add_mood(p, "joy", GameConstants.PRAY_JOY)

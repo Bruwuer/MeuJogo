@@ -52,6 +52,9 @@ var _realms: Dictionary[Vector2i, Dictionary] = {}
 var realms_seeded := false
 ## When the next wandering merchant comes (stage 10; -1: not scheduled yet).
 var next_merchant_hour := -1.0
+## The rain of the day (stage 11): it rains in [rain_from, rain_until).
+var rain_from := -1.0
+var rain_until := -1.0
 ## The player's reputation: average opinion of every resident (-1..1), refreshed hourly.
 var fame := 0.0
 
@@ -200,6 +203,10 @@ func kingdoms() -> Array[Dictionary]:
 	return _kingdoms
 
 
+func raining(hour: float) -> bool:
+	return hour >= rain_from and hour < rain_until
+
+
 ## The seat of the player's kingdom nearest to `pos` (where the player wakes up), or {}.
 func player_seat_near(pos: Vector3) -> Dictionary:
 	var best := {}
@@ -270,6 +277,8 @@ func save_to(path: String) -> Error:
 		realms = _realms_list(),
 		realms_seeded = realms_seeded,
 		next_merchant_hour = next_merchant_hour,
+		rain_from = rain_from,
+		rain_until = rain_until,
 		ancestry = _ancestry,
 		chronicle = _chronicle,
 	})
@@ -397,6 +406,8 @@ static func _from_dict(data: Dictionary) -> WorldState:
 		s._realms[Vector2i(r[0], r[1])] = r[2]
 	s.realms_seeded = data.get("realms_seeded", false)
 	s.next_merchant_hour = data.get("next_merchant_hour", -1.0)
+	s.rain_from = data.get("rain_from", -1.0)
+	s.rain_until = data.get("rain_until", -1.0)
 	for c in data.get("visited", []):
 		s._visited[c] = true
 	if data.get("version", -1) == GameConstants.WORLDGEN_VERSION:

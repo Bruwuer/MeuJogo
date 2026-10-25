@@ -220,6 +220,7 @@ func person_context(n: Person) -> Dictionary:
 		if not SocietyRules.is_adult(rec):
 			ctx.seat_pos = me.door_pos # children play by their front door
 	me.raid = _state.all_packs().any(func(p: Dictionary) -> bool: return p.raid_kingdom == k.id)
+	me.rain = _state.raining(_sim.now_hours())
 	me.threat_pos = _threat(n)
 	var guard: bool = rec.status == "resident" and int(rec.profession) == GameConstants.Profession.GUARD \
 			and SocietyRules.is_adult(rec)

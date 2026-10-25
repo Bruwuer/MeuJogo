@@ -80,6 +80,16 @@ static func pick_desire(state: WorldState, p: Dictionary) -> Dictionary:
 	return {kind = D.NONE, target_id = -1}
 
 
+## A meal from the kingdom stock (food first, then fruit): hunger goes down. False when there is none.
+static func meal(p: Dictionary, k: Dictionary, state: WorldState) -> bool:
+	for res in [GameConstants.Res.FOOD, GameConstants.Res.BERRIES]:
+		if state.stock_of(k, res) > 0:
+			state.add_stock(k, res, -1)
+			p.hunger = maxf(0.0, float(p.get("hunger", 0.0)) - GameConstants.HUNGER_MEAL)
+			return true
+	return false
+
+
 ## Who of `people` goes for the body of `dead`: a free adult, kin first, then the lowest id.
 static func bearer_for(state: WorldState, people: Array, dead: Dictionary) -> Dictionary:
 	var best := {}

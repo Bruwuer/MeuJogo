@@ -5,6 +5,8 @@ extends Node
 
 var time_of_day := GameConstants.START_TIME_OF_DAY
 var day := 1
+## Under rain clouds (stage 11): dimmer sun, grey sky.
+var overcast := false
 
 var _sun: DirectionalLight3D
 var _env: Environment
@@ -62,6 +64,11 @@ func apply() -> void:
 	_sky.sky_horizon_color = horizon
 	_sky.ground_horizon_color = horizon
 
+	if overcast:
+		_sun.light_energy *= GameConstants.RAIN_DIM
+		_sky.sky_top_color = _sky.sky_top_color.lerp(GameConstants.RAIN_SKY, 0.6 * daylight)
+		_sky.sky_horizon_color = _sky.sky_horizon_color.lerp(GameConstants.RAIN_SKY, 0.6 * daylight)
+		_sky.ground_horizon_color = _sky.sky_horizon_color
 	_env.ambient_light_color = GameConstants.AMBIENT_NIGHT_COLOR.lerp(GameConstants.AMBIENT_DAY_COLOR, daylight)
 	_env.ambient_light_energy = lerpf(GameConstants.NIGHT_MIN_AMBIENT, GameConstants.DAY_AMBIENT, daylight)
 

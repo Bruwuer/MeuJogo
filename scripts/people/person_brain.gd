@@ -29,7 +29,7 @@ static func decide(me: Dictionary, ctx: Dictionary) -> Dictionary:
 	var deed: Variant = me.get("deed")
 	if deed != null:
 		return _go(pos, Act.DEED, deed.pos, float(deed.reach))
-	if me.raid:
+	if me.raid or me.get("rain", false): # under a roof (or by the seat) while raiders or the rain are about
 		if me.door_pos != null:
 			return _go(pos, Act.ENTER, me.door_pos, GameConstants.PERSON_ARRIVE)
 		return _go(pos, Act.IDLE, ctx.seat_pos + offset.limit_length(2.0), GameConstants.PERSON_ARRIVE * 2.0)

@@ -40,6 +40,7 @@ var _creatures: CreatureManager
 var _village: VillageSim
 var _people: PeopleManager
 var _is_ready := false
+var _rain: RainFx
 var _autosave_left := GameConstants.AUTOSAVE_SEC
 
 
@@ -63,6 +64,8 @@ func _ready() -> void:
 	_streamer.setup(_gen, scatter, library, _state.removed_in, _state.buildings_in)
 	add_child(_streamer)
 	_add_environment()
+	_rain = RainFx.new()
+	add_child(_rain)
 	_add_edge_walls()
 
 	var new_world := not _state.has_player_position
@@ -132,6 +135,13 @@ func _physics_process(_delta: float) -> void:
 
 
 func _process(delta: float) -> void:
+	if _rain and _day_night:
+		var wet := _state.raining(_day_night.total_hours())
+		_rain.emitting = wet
+		_rain.global_position = _player.global_position + Vector3.UP * GameConstants.RAIN_HEIGHT
+		if _day_night.overcast != wet:
+			_day_night.overcast = wet
+			_day_night.apply()
 	var globals := shader_globals()
 	for param in globals:
 		RenderingServer.global_shader_parameter_set(param, globals[param])
