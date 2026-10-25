@@ -21,6 +21,8 @@ const _PLAYER_CENTER := 0.9 ## Height of the point props fade around (prop occlu
 @export var world_seed := -1
 ## Where the world is saved; "" disables saving and loading.
 @export var save_path := GameConstants.SAVE_PATH
+## Place the NPC kingdoms the first time this world is loaded (stage 9).
+@export var seed_realms := true
 
 var _state: WorldState
 var _gen: TerrainGenerator
@@ -74,6 +76,12 @@ func _ready() -> void:
 		else:
 			rng.randomize()
 		_spawn = SpawnPicker.pick(_gen, scatter, rng)
+
+	if seed_realms: # before the chunks load (their buildings must be there) and before the first wolves
+		var avoid: Array = [_spawn]
+		for k in _state.kingdoms():
+			avoid.append(k.center)
+		NpcRealms.seed(_state, _gen, scatter, avoid)
 
 	_harvest = HarvestSystem.new()
 	_harvest.name = "Harvest"

@@ -964,6 +964,15 @@ const FAMILIES_MAX_ROWS := 6 ## Houses listed in the C panel (most prestigious f
 const FAMILIES_MORE := "… e mais %d Casas"
 
 # Government (stage 8)
+const REALM_NPC_START := 2 ## NPC kingdoms a new world starts with (stage 9).
+const REALM_NPC_FAMILIES := 2
+const REALM_NPC_PEOPLE := 6 ## Two families of three.
+## Trades of the father, the mother and the grown child of each starting family.
+const REALM_NPC_TRADES := [[Profession.FARMER, Profession.BUILDER, Profession.GUARD],
+		[Profession.WOODCUTTER, Profession.GATHERER, Profession.MASON]]
+const REALM_NPC_GUARDS := 2 ## Starting guard decree of an NPC kingdom.
+const REALM_SEED_TRIES := 300
+const REALM_EDGE_MARGIN := 16.0 ## Extra room between a kingdom's territory and the map edge.
 const REALM_MIN_GAP := 160.0 ## A new kingdom's seat is at least this far from every other seat (stage 9).
 const GOV_PLAYER := -1 ## `ruler_id` of a kingdom the player governs.
 const GOV_NOBODY := -2 ## `ruler_id` between a ruler's fall (or death) and the next crowning.

@@ -139,7 +139,11 @@ func test_buildings_persist_across_save_and_reload() -> void:
 
 	var b: World = await _make_world(-1, _path)
 	assert_eq(b.get_state().all_buildings().map(func(r: Dictionary) -> int: return r.id), ids)
-	assert_eq(b.get_state().kingdoms().size(), 1)
+	assert_eq(b.get_state().kingdoms().filter(func(k: Dictionary) -> bool: return k.founder == "player").size(), 1)
+	# The NPC kingdoms' buildings are far away (not loaded): check the player's, around the cabin.
+	ids = ids.filter(func(id: int) -> bool:
+		var r := b.get_state().building(id)
+		return Vector2(r.pos.x - spot.x, r.pos.z - spot.z).length() <= GameConstants.KINGDOM_RADIUS)
 	for i in 600:
 		if b.get_streamer().is_loaded(ChunkMath.world_to_chunk(spot)):
 			break

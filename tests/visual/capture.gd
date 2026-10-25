@@ -222,14 +222,14 @@ func _houses() -> void:
 	const LIVE_DAYS := 3
 	const LIVE_SPEED := 8.0
 	const MAX_DEED_SHOTS := 10
-	if _village_spot.x < 0.0 or _world.get_state().kingdoms().is_empty():
+	if _village_spot.x < 0.0 or _home().is_empty():
 		print("SKIPPED houses: no village")
 		return
 	var state := _world.get_state()
 	var day_night := _world.get_day_night()
 	var mgr := _world.get_people_manager()
 	var hud := _world.get_hud()
-	var k: Dictionary = state.kingdoms()[0]
+	var k: Dictionary = _home()
 	var hour_sec := GameConstants.DAY_LENGTH_SEC / 24.0
 
 	# 0) The founder governs (stage 8): a low tax and a guard of two, by the panel (P).
@@ -371,6 +371,14 @@ func _clear_spot_near(pos: Vector3) -> Vector3:
 	return pos + cam_dir * 3.5
 
 
+## The player's own kingdom (the world also has NPC kingdoms), or {}.
+func _home() -> Dictionary:
+	for k in _world.get_state().kingdoms():
+		if String(k.founder) == "player":
+			return k
+	return {}
+
+
 func _ghost_at(target: Vector3) -> void:
 	var p := _world.get_player()
 	await _teleport(target - p.facing() * GameConstants.BUILD_GHOST_DISTANCE)
@@ -462,7 +470,7 @@ func _shot(shot_name: String) -> void:
 func _people() -> void:
 	const B := GameConstants.Building
 	const P := GameConstants.Profession
-	if _village_spot.x < 0.0 or _world.get_state().kingdoms().is_empty():
+	if _village_spot.x < 0.0 or _home().is_empty():
 		print("SKIPPED people: no village")
 		return
 	var state := _world.get_state()
@@ -470,7 +478,7 @@ func _people() -> void:
 	var sim := _world.get_village_sim()
 	var mgr := _world.get_people_manager()
 	var scatter := PropScatter.new(gen, state.seed)
-	var k: Dictionary = state.kingdoms()[0]
+	var k: Dictionary = _home()
 	k.next_traveler_hour = 1e9 # this script brings its own people
 	var raid_hours := {}
 	for pk in state.all_packs():
@@ -576,7 +584,7 @@ func _society() -> void:
 	const B := GameConstants.Building
 	const P := GameConstants.Profession
 	const T := GameConstants.Trait
-	if _village_spot.x < 0.0 or _world.get_state().kingdoms().is_empty():
+	if _village_spot.x < 0.0 or _home().is_empty():
 		print("SKIPPED society: no village")
 		return
 	var state := _world.get_state()
@@ -586,7 +594,7 @@ func _society() -> void:
 	var hud := _world.get_hud()
 	var p := _world.get_player()
 	var scatter := PropScatter.new(gen, state.seed)
-	var k: Dictionary = state.kingdoms()[0]
+	var k: Dictionary = _home()
 	k.next_traveler_hour = 1e9
 	var raid_hours := {}
 	for pk in state.all_packs():
