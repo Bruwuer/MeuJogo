@@ -45,6 +45,7 @@ var _people: PeopleManager
 var _is_ready := false
 var _rain: RainFx
 var _autosave_left := GameConstants.AUTOSAVE_SEC
+var _pause: PauseMenu
 
 
 func _ready() -> void:
@@ -122,6 +123,10 @@ func _ready() -> void:
 	_build.setup(_state, _gen, scatter, _streamer, library, _player, _camera)
 
 	_hud.setup(_state, _harvest, _day_night, _player, _build)
+	_pause = PauseMenu.new()
+	_pause.name = "PauseMenu"
+	add_child(_pause)
+	_pause.setup(self, _hud)
 	# Kingdom events go to the ADM log, never to the player's HUD (tests run without a save).
 	var admin := AdminLog.new()
 	admin.name = "AdminLog"
@@ -281,6 +286,10 @@ func get_day_night() -> DayNight:
 
 func get_hud() -> Hud:
 	return _hud
+
+
+func get_pause_menu() -> PauseMenu:
+	return _pause
 
 
 func get_build() -> BuildSystem:
