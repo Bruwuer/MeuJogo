@@ -244,7 +244,7 @@ func _discoveries(k: Dictionary) -> void:
 func _deeds(k: Dictionary) -> void:
 	for p in _state.residents(k.id):
 		var deed: Dictionary = p.get("deed", {})
-		if deed.is_empty() or _state.person(int(p.id)).is_empty(): # fell in a battle earlier this hour
+		if deed.is_empty() or _state.person(int(p.id)).get("status", "") != "resident": # fell in a battle this hour
 			continue
 		if Deeds.expired(deed, _hour):
 			if has_node.call(p.id):
@@ -1042,7 +1042,8 @@ func plan_spy_report(k: Dictionary, spy: Dictionary) -> void:
 ## The two secret lovers meet at night at a spot far from the houses.
 func plan_tryst(k: Dictionary, a: Dictionary) -> void:
 	var b := _state.person(int(a.secret.get("with", -1)))
-	if b.is_empty():
+	if b.is_empty() or b.status != "resident":
+		a.secret = {} # the lover is gone: the secret is buried with them
 		return
 	var rng := RandomNumberGenerator.new()
 	rng.seed = hash([_state.seed, "tryst", mini(a.id, b.id), floori(_hour / 24.0)])

@@ -279,6 +279,8 @@ func _age(k: Dictionary, rng: RandomNumberGenerator) -> void:
 
 ## `p` dies of something else than age (a battle): homes pass on, the node goes, `text` is told.
 func kill(k: Dictionary, p: Dictionary, text := "") -> void:
+	if String(p.get("status", "")) == "dead":
+		return # already a body
 	transfer_houses(_state, p.id, [p.id])
 	if text != "":
 		_say.call(k, text)

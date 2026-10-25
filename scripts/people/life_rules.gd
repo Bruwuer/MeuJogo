@@ -66,7 +66,7 @@ static func pick_desire(state: WorldState, p: Dictionary) -> Dictionary:
 			return {kind = D.LOVE, target_id = beloved.id}
 	if PersonGen.has_trait(p, GameConstants.Trait.GREEDY):
 		return {kind = D.RICH, target_id = -1}
-	if float(p.get("resentment", 0.0)) >= 0.5:
+	if float(p.get("resentment", 0.0)) >= GameConstants.DESIRE_LEAVE_AT:
 		return {kind = D.LEAVE, target_id = -1}
 	if PersonGen.has_trait(p, GameConstants.Trait.BRAVE):
 		for c in state.residents(int(p.kingdom_id)):

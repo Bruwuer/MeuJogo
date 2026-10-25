@@ -174,6 +174,8 @@ func _sense() -> Array:
 				species = c.genome.species, is_cub = c.is_cub() })
 	for n in get_tree().get_nodes_in_group("people"):
 		var person := n as Node3D
+		if person is Person and (person as Person).is_dead():
+			continue # bodies are not prey
 		if person.visible and person.global_position.distance_to(global_position) <= reach:
 			out.append({ id = person.get_instance_id(), kind = "person", pos = person.global_position,
 					diet = GameConstants.Diet.HERBIVORE, species = "", is_cub = false })

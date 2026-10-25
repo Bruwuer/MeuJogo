@@ -110,3 +110,31 @@ func test_player_buys_bread_and_arrows_and_sells_wood() -> void:
 
 func test_bread_heals_more_than_fruit() -> void:
 	assert_true(GameConstants.BREAD_HEAL > GameConstants.EAT_HEAL)
+
+
+func test_merchant_pays_fairly_and_does_not_give_food_away() -> void:
+	_fresh()
+	var m := merchants.spawn(0.0)
+	m.coins = 1
+	s.add_stock(a, R.WOOD, GameConstants.MERCHANT_SURPLUS + 20)
+	var before := s.stock_of(a, R.WOOD)
+	MerchantRules.kingdom_trade(s, m, a)
+	assert_eq(before - s.stock_of(a, R.WOOD), GameConstants.MERCHANT_SURPLUS_RATE, "one coin buys only its worth")
+	a.stock = {R.FOOD: 0, R.BERRIES: 0}
+	for i in 3:
+		var p := s.add_person(PersonGen.generate(RandomNumberGenerator.new()), a.center, a.id)
+		p.merge({status = "resident", age = 30.0}, true)
+	var food := int(m.goods[R.FOOD])
+	MerchantRules.kingdom_trade(s, m, a)
+	assert_eq(int(m.goods[R.FOOD]), food, "no wood or stone to pay: no food sold")
+
+
+func test_merchant_moves_along_offscreen() -> void:
+	_fresh()
+	var m := merchants.spawn(0.0)
+	var first := s.kingdom(int(m.kingdom_id))
+	_run(0.0, 30)
+	m = s.person(int(m.id))
+	if not m.is_empty() and m.status == "merchant":
+		assert_true(PackSim._flat_dist(m.pos, first.center) < 15.0 or int(m.kingdom_id) != first.id,
+				"the merchant is where the trade happened")

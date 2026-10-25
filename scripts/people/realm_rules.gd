@@ -8,7 +8,8 @@ const T := GameConstants.Trait
 
 ## The NPC ruling `k` ({} when the player rules or nobody does).
 static func ruler_of(state: WorldState, k: Dictionary) -> Dictionary:
-	return state.person(int(k.ruler_id)) if int(k.ruler_id) >= 0 else {}
+	var ruler := state.person(int(k.ruler_id)) if int(k.ruler_id) >= 0 else {}
+	return ruler if not ruler.is_empty() and ruler.status == "resident" else {}
 
 
 static func guards(state: WorldState, k: Dictionary) -> Array[Dictionary]:

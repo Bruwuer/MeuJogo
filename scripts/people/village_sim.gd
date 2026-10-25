@@ -261,6 +261,9 @@ func _leave(p: Dictionary, k: Dictionary, reason: String) -> void:
 	var text := GameConstants.VILLAGE_MSG_LEFT if group.size() == 1 else GameConstants.VILLAGE_MSG_LEFT_FAMILY
 	_say(k, text % [PersonGen.full_name(p), k.name, reason])
 	for g in group:
+		var held := _state.person(int(g.get("carrying_body", -1)))
+		if not held.is_empty():
+			life.release(held) # nobody walks off with a body
 		g.status = "leaving"
 		g.home_id = -1
 		g.inside = -1

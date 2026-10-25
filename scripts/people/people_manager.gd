@@ -456,7 +456,7 @@ func finish_deed(n: Person) -> void:
 	var pool := []
 	for o in active_people():
 		pool.append({id = o.record.id, family_id = int(o.record.get("family_id", -1)), pos = o.global_position,
-				adult = SocietyRules.is_adult(o.record), visible = o.visible})
+				adult = SocietyRules.is_adult(o.record) and not o.is_dead(), visible = o.visible})
 	var data: Dictionary = deed.data
 	var seen := witness_ids(rec.id, HouseSim.quiet_families(data, rec), data.get("party", []), n.global_position, pool)
 	_sim.houses.complete_deed(k, rec, seen, _sim.now_hours())
@@ -690,7 +690,7 @@ static func _ties_line(rec: Dictionary, state: WorldState) -> String:
 	var worst := {}
 	for id in rels:
 		var o := state.person(id)
-		if o.is_empty() or id == rec.get("spouse_id", -1):
+		if o.is_empty() or id == rec.get("spouse_id", -1) or String(o.get("status", "")) == "dead":
 			continue
 		var v: float = rels[id]
 		if v >= GameConstants.FRIEND_AT and (best.is_empty() or v > float(rels[best.id])):

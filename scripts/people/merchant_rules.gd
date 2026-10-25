@@ -14,22 +14,22 @@ static func kingdom_trade(state: WorldState, m: Dictionary, k: Dictionary) -> St
 	var goods: Dictionary = m.goods
 	var snap := VillageRules.snapshot(state, k, 0.0)
 	if float(snap.food_days) < GameConstants.MERCHANT_HUNGRY_DAYS and int(goods.get(R.FOOD, 0)) > 0:
-		var n := mini(GameConstants.MERCHANT_FOOD_LOT, int(goods[R.FOOD]))
 		var pay := SocietySim._most([R.WOOD, R.STONE], func(r: int) -> int: return state.stock_of(k, r))
-		var paid := mini(n, state.stock_of(k, pay))
-		goods[R.FOOD] = int(goods[R.FOOD]) - n
-		state.add_stock(k, R.FOOD, n)
-		state.add_stock(k, pay, -paid)
-		goods[pay] = int(goods.get(pay, 0)) + paid
-		parts.append(GameConstants.MERCHANT_SOLD_FOOD % [n, paid, SocietySim._res_name(pay)])
+		var n := mini(mini(GameConstants.MERCHANT_FOOD_LOT, int(goods[R.FOOD])), state.stock_of(k, pay)) # no pay, no food
+		if n > 0:
+			goods[R.FOOD] = int(goods[R.FOOD]) - n
+			state.add_stock(k, R.FOOD, n)
+			state.add_stock(k, pay, -n)
+			goods[pay] = int(goods.get(pay, 0)) + n
+			parts.append(GameConstants.MERCHANT_SOLD_FOOD % [n, n, SocietySim._res_name(pay)])
 	for res in [R.WOOD, R.STONE]:
 		var extra := state.stock_of(k, res) - GameConstants.MERCHANT_SURPLUS
 		if extra <= 0:
 			continue
-		var n := mini(GameConstants.MERCHANT_BUY_LOT, extra)
-		var coins := mini(int(m.coins), n / GameConstants.MERCHANT_SURPLUS_RATE)
+		var coins := mini(int(m.coins), mini(GameConstants.MERCHANT_BUY_LOT, extra) / GameConstants.MERCHANT_SURPLUS_RATE)
 		if coins <= 0:
 			continue
+		var n := coins * GameConstants.MERCHANT_SURPLUS_RATE # only what the coins pay for
 		state.add_stock(k, res, -n)
 		state.add_stock(k, R.COINS, coins)
 		goods[res] = int(goods.get(res, 0)) + n

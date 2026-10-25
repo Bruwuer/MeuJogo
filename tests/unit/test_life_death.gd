@@ -179,3 +179,49 @@ func test_the_card_tells_the_strongest_feeling() -> void:
 	p.mood.grief = 0.0
 	LifeRules.add_mood(p, "joy", 0.5)
 	assert_true(LifeRules.mood_text(p).contains("feliz"), LifeRules.mood_text(p))
+
+
+# --- Final review fixes ---
+
+func _carrying(bearer: Dictionary, body: Dictionary) -> void:
+	body.carrier_id = bearer.id
+	bearer.carrying_body = body.id
+
+
+func test_a_body_dropped_by_its_carrier_is_fetched_again() -> void:
+	_fresh()
+	var dead := _person("Largado", 70.0)
+	var bearer := _person("Carregador", 30.0)
+	var other := _person("Outro", 30.0)
+	society.kill(k, dead, "")
+	_carrying(bearer, dead)
+	bearer.deed = {} # the bury errand was lost (window passed on screen, an exodus cleared it...)
+	_run(0.0, int(GameConstants.DEED_DAY.x))
+	assert_eq(int(dead.carrier_id), -1, "the body is free again")
+	assert_eq(int(bearer.carrying_body), -1)
+	var going := s.residents(k.id).filter(func(p: Dictionary) -> bool:
+		return (p.get("deed", {}) as Dictionary).get("kind", "") == "fetch_body")
+	assert_eq(going.size(), 1, "someone goes for it again")
+
+
+func test_a_carrier_who_dies_drops_the_body() -> void:
+	_fresh()
+	var dead := _person("Primeiro", 70.0)
+	var bearer := _person("Segundo", 75.0)
+	_person("Terceiro", 30.0)
+	society.kill(k, dead, "")
+	_carrying(bearer, dead)
+	society.kill(k, bearer, "")
+	assert_eq(int(dead.carrier_id), -1, "the dead carrier lets go")
+	_run(0.0, 24 * 2)
+	assert_true(s.person(int(dead.id)).is_empty() and s.person(int(bearer.id)).is_empty(), "both were buried")
+
+
+func test_killing_the_dead_does_nothing() -> void:
+	_fresh()
+	var p := _person("Uma vez", 70.0)
+	var deaths := []
+	society.person_died.connect(func(r: Dictionary) -> void: deaths.append(r.id))
+	society.kill(k, p, "")
+	society.kill(k, p, "")
+	assert_eq(deaths.size(), 1)

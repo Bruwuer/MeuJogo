@@ -572,6 +572,7 @@ func make_corpse(id: int, hour: float) -> Dictionary:
 	rec.deed = {}
 	rec.job = ""
 	rec.carrier_id = -1
+	rec.carried_before = int(rec.get("carrying_body", -1)) # LifeSim puts that body down
 	rec.carrying_body = -1
 	var spouse: Dictionary = _people.get(int(rec.get("spouse_id", -1)), {})
 	if not spouse.is_empty() and int(spouse.spouse_id) == id:

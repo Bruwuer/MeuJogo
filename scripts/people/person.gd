@@ -152,7 +152,10 @@ func sync_record() -> void:
 
 
 func _physics_process(delta: float) -> void:
-	if is_dead():
+	if is_dead(): # lies still, but settles on the ground
+		velocity = Vector3(0.0, velocity.y, 0.0)
+		_apply_gravity(delta)
+		move_and_slide()
 		return
 	if not _commanded:
 		_brain_left -= delta

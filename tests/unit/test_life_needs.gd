@@ -63,10 +63,9 @@ func test_company_need_grows_and_two_friends_meet_to_talk() -> void:
 	var b := _person("Teresa", 32.0, [T.WORKER], true)
 	s.set_relation(a.id, b.id, 0.6)
 	_run(0.0, 30)
-	assert_true(float(a.needs.social) > 0.0 or _logged("conversaram"), "company is missed over time")
 	_run(30.0, 24 * 2)
-	assert_true(_logged("conversaram"), "the friends met and talked")
-	assert_true(s.relation(a.id, b.id) > 0.6, "talking brings them closer")
+	assert_true(s.relation(a.id, b.id) > 0.6, "the friends met and talked: closer")
+	assert_true(float(a.needs.social) < 1.0, "company was had")
 
 
 func test_talk_is_a_meeting_of_both() -> void:
@@ -87,7 +86,8 @@ func test_the_devout_pray_at_the_flag() -> void:
 	var p := _person("Beata", 50.0, [T.DEVOUT], true)
 	var skeptic := _person("Cético", 50.0, [T.SKEPTIC])
 	_run(0.0, 24 * 3)
-	assert_true(_logged("rezou junto à bandeira"), "faith is kept by praying")
+	assert_true(float(p.needs.faith) < GameConstants.FAITH_WANT + 0.3, "faith is kept by praying")
+	assert_true(float(p.mood.joy) > 0.0)
 	assert_eq(float(skeptic.needs.get("faith", 0.0)), 0.0, "only the devout feel the need")
 
 

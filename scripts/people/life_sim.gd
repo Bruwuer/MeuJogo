@@ -132,7 +132,7 @@ func _wishes(k: Dictionary) -> void:
 			D.RICH:
 				done = float(_state.family(int(p.get("family_id", -1))).get("wealth", 0.0)) >= GameConstants.WEALTH_COMFORT
 		if done:
-			LifeRules.add_mood(p, "joy", GameConstants.TALK_JOY * 3.0)
+			LifeRules.add_mood(p, "joy", GameConstants.WISH_JOY)
 			var text: String = GameConstants.DESIRE_TEXTS[kind]
 			if text.contains("%s"):
 				text = text % PersonGen.full_name(_state.person(int(want.get("target_id", -1))))
@@ -152,8 +152,12 @@ func care_of(body: Dictionary) -> Dictionary:
 
 func _bodies(k: Dictionary) -> void:
 	for body in _state.all_people():
-		if body.status != "dead" or care_of(body).get("id", -1) != k.id or int(body.get("carrier_id", -1)) >= 0:
+		if body.status != "dead" or care_of(body).get("id", -1) != k.id:
 			continue
+		if int(body.get("carrier_id", -1)) >= 0:
+			if _still_carried(body):
+				continue
+			release(body) # the carrier died, left, or lost the errand: someone else must come
 		if _hour - float(body.get("died_hour", _hour)) > GameConstants.BODY_UNBURIED_HOURS:
 			for p in _state.residents(k.id): # a body left lying frightens everyone
 				LifeRules.add_mood(p, "fear", GameConstants.BODY_FEAR_PER_HOUR)
@@ -173,8 +177,31 @@ func _bodies(k: Dictionary) -> void:
 		_log(k, GameConstants.LIFE_MSG_FETCH % [PersonGen.full_name(bearer), PersonGen.full_name(body)])
 
 
+## Whether `body`'s carrier is still a resident holding it on the way to bury it.
+func _still_carried(body: Dictionary) -> bool:
+	var c := _state.person(int(body.carrier_id))
+	if c.is_empty() or c.status != "resident" or int(c.get("carrying_body", -1)) != body.id:
+		return false
+	var deed: Dictionary = c.get("deed", {})
+	return deed.get("kind", "") == "bury" and int((deed.get("data", {}) as Dictionary).get("body_id", -1)) == body.id
+
+
+## The body is put down (where its carrier stood) and waits for another bearer.
+func release(body: Dictionary) -> void:
+	var c := _state.person(int(body.get("carrier_id", -1)))
+	if not c.is_empty():
+		if int(c.get("carrying_body", -1)) == body.id:
+			c.carrying_body = -1
+		_state.move_person(body.id, c.pos)
+	body.carrier_id = -1
+	body.bearer_id = -1
+
+
 ## Grief of the living for `dead` (called when anyone dies).
 func _mourn(dead: Dictionary) -> void:
+	var held := _state.person(int(dead.get("carried_before", -1)))
+	if not held.is_empty() and held.status == "dead":
+		release(held) # a carrier who dies drops the body
 	for p in _state.residents(int(dead.kingdom_id)):
 		var g := LifeRules.grief_for(_state, p, dead)
 		if g > 0.0:
@@ -246,13 +273,11 @@ func complete_deed(k: Dictionary, p: Dictionary, deed: Dictionary, _seen: Array,
 			p.needs.social = 0.0
 			LifeRules.add_mood(p, "joy", GameConstants.TALK_JOY)
 			if not other.is_empty():
-				_state.add_relation(p.id, other.id, GameConstants.TALK_REL * 0.5)
-				if data.get("lead", false):
-					_log(k, GameConstants.LIFE_MSG_TALKED % [PersonGen.full_name(p), PersonGen.full_name(other)])
+				_state.add_relation(p.id, other.id, GameConstants.TALK_REL / 2.0) # each side adds half
+
 		"prayer":
 			p.needs.faith = 0.0
 			LifeRules.add_mood(p, "joy", GameConstants.PRAY_JOY)
-			_log(k, GameConstants.LIFE_MSG_PRAYED_FLAG % PersonGen.full_name(p))
 		"funeral":
 			LifeRules.add_mood(p, "grief", 0.0)
 			p.mood.grief = float(p.mood.grief) * GameConstants.FUNERAL_GRIEF_KEEP
@@ -269,7 +294,7 @@ func _funeral(k: Dictionary, grave: Dictionary, mourners: Array) -> void:
 		var m: Dictionary = mourners[i]
 		if not (m.get("deed", {}) as Dictionary).is_empty():
 			continue
-		var a := PI * (0.25 + 0.5 * i / maxf(1.0, mourners.size()))
+		var a := PI * (GameConstants.FUNERAL_ARC.x + GameConstants.FUNERAL_ARC.y * i / maxf(1.0, mourners.size()))
 		var spot: Vector3 = grave.pos + Vector3(cos(a), 0.0, -sin(a)) * GameConstants.FUNERAL_OFFSET
 		var deed := Deeds.make("funeral", spot, GameConstants.PERSON_ARRIVE, w.x, w.y, GameConstants.DEED_CEREMONY_SEC,
 				{grave_id = grave.id, dead_name = grave.name})

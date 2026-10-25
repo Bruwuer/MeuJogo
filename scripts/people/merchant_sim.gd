@@ -53,15 +53,15 @@ func spawn(hour: float) -> Dictionary:
 	var size := ChunkMath.playable_size()
 	var e := GameConstants.MERCHANT_EDGE
 	var along := rng.randf_range(e, size - e)
-	var pos: Vector3 = [Vector3(along, 0, e), Vector3(along, 0, size - e), Vector3(e, 0, along),
-			Vector3(size - e, 0, along)][rng.randi() % 4]
+	var edges := [Vector3(along, 0, e), Vector3(along, 0, size - e), Vector3(e, 0, along), Vector3(size - e, 0, along)]
+	var pos: Vector3 = edges[rng.randi() % edges.size()]
 	if _gen:
 		pos.y = _gen.height_at(pos.x, pos.z)
 	var stops := _state.kingdoms().duplicate()
 	stops.sort_custom(func(a: Dictionary, b: Dictionary) -> bool:
 		return pos.distance_squared_to(a.center) < pos.distance_squared_to(b.center))
 	var p := PersonGen.generate(rng, 0.0, GameConstants.Profession.MERCHANT)
-	p.age = rng.randf_range(28.0, 50.0)
+	p.age = rng.randf_range(GameConstants.MERCHANT_AGE.x, GameConstants.MERCHANT_AGE.y)
 	var m := _state.add_person(p, pos, int(stops[0].id), hour)
 	m.status = "merchant"
 	m.route = stops.slice(0, GameConstants.MERCHANT_STOPS).map(func(k: Dictionary) -> int: return k.id)
@@ -100,8 +100,10 @@ func complete_deed(_k: Dictionary, p: Dictionary, deed: Dictionary, _seen: Array
 	_hour = hour
 	var k := _state.kingdom(int((deed.data as Dictionary).get("kingdom_id", -1)))
 	if not k.is_empty():
+		_state.move_person(p.id, deed.pos) # offscreen too, the merchant is at that seat now
 		var done := MerchantRules.kingdom_trade(_state, p, k)
-		_state.chronicle_add(hour, GameConstants.MERCHANT_MSG_ARRIVED % [PersonGen.full_name(p), k.name] +
+		var forms: Array = GameConstants.MERCHANT_MSG_ARRIVED
+		_state.chronicle_add(hour, forms[1 if p.female else 0] % [PersonGen.full_name(p), k.name] +
 				(": " + done if done != "" else ""), k.id)
 	_next_stop(p)
 	return true

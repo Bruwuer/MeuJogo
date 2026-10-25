@@ -71,7 +71,7 @@ func player_may_donate(k: Dictionary) -> bool:
 ## The founder may build, demolish and donate here unless a ruler who keeps the kingdom governs.
 func player_may_act(k: Dictionary) -> bool:
 	var ruler := int(k.ruler_id)
-	if ruler < 0 or _state.person(ruler).is_empty():
+	if ruler < 0 or _state.person(ruler).get("status", "") != "resident":
 		return true
 	return GovRules.gives_back(String(k.ruler_way), GovRules.mean_opinion(_state, k))
 
