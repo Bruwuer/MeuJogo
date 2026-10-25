@@ -1010,6 +1010,16 @@ const REALM_MSG_MARCH := "Um bando de guerra do Reino de %s partiu contra o Rein
 const REALM_MSG_BATTLE_WIN := "Na batalha às portas do Reino de %s, o Reino de %s venceu: levou %s e queimou %s"
 const REALM_MSG_BATTLE_LOSE := "Na batalha às portas do Reino de %s, os defensores repeliram o Reino de %s"
 const REALM_MSG_FELL := "%s morreu na batalha"
+const REALM_SETTLE_RING := 3.0 ## Settlers stand this far around the new seat.
+const REALM_MAX := 6 ## Kingdoms the map holds at most.
+const REALM_EXODUS_ADULTS := 3 ## Adults a House needs to set out and found a kingdom.
+const REALM_EXODUS_AT := -0.5 ## Head's relation with the ruler (or opinion of the player) below this.
+const REALM_EXODUS_CROWDED := 14 ## Or the kingdom is this crowded.
+const REALM_EXODUS_WEALTH := 100.0 ## What the settlement costs the House.
+const REALM_EXODUS_DAYS := 3 ## Days between two departures from one kingdom.
+const REALM_EXODUS_REL := { angry = -0.4, calm = 0.2 } ## First relation between the old and the new kingdom.
+const REALM_MSG_EXODUS := "A Casa %s partiu do Reino de %s para fundar um reino"
+const REALM_MSG_FOUNDED := "A Casa %s deixou o Reino de %s e fundou o Reino de %s"
 const REALM_MIN_GAP := 160.0 ## A new kingdom's seat is at least this far from every other seat (stage 9).
 const GOV_PLAYER := -1 ## `ruler_id` of a kingdom the player governs.
 const GOV_NOBODY := -2 ## `ruler_id` between a ruler's fall (or death) and the next crowning.

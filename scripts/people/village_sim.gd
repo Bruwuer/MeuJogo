@@ -66,6 +66,7 @@ func setup(state: WorldState, gen: TerrainGenerator, scatter: PropScatter, day_n
 	houses.has_node = func(id: int) -> bool: return has_node.call(id)
 	gov.setup(state, houses, func(k: Dictionary) -> bool: return is_player_in.call(k))
 	realms.setup(state, houses, society, gov)
+	realms.set_terrain(gen, scatter)
 	realms.building_burned.connect(func(r: Dictionary) -> void: building_burned.emit(r))
 
 

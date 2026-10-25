@@ -212,3 +212,54 @@ func test_npc_ruler_at_war_calls_up_the_guard() -> void:
 	s.realm(a.id, b.id).war = true
 	_run(0.0, int(GameConstants.REALM_HOUR) + 1)
 	assert_eq(int(a.decrees.guards), GameConstants.GOV_GUARDS_MAX)
+
+
+# --- Exodus ---
+
+func _rebel_house(k: Dictionary, wealth := 300.0) -> Dictionary:
+	var head := _person(k, "Rebelde-chefe", 40.0)
+	var f := s.add_family("Rebelde", Crest.generate(RandomNumberGenerator.new(), []), k.id, head.id, 0.0)
+	f.house_init = true
+	f.wealth = wealth
+	head.family_id = f.id
+	for i in GameConstants.REALM_EXODUS_ADULTS - 1:
+		_person(k, "Rebelde-%d" % i, 25.0).family_id = f.id
+	s.set_relation(head.id, int(k.ruler_id), -0.9)
+	return f
+
+
+func test_a_house_that_hates_the_ruler_founds_a_kingdom() -> void:
+	_fresh(400.0)
+	var gen := TerrainGenerator.new(GameConstants.WORLD_SEED)
+	realms.set_terrain(gen, PropScatter.new(gen, GameConstants.WORLD_SEED))
+	var f := _rebel_house(a)
+	var head := s.person(int(f.head_id))
+	var h := _run(0.0, int(GameConstants.REALM_HOUR) + 1)
+	assert_eq(head.deed.get("kind", ""), "exodus", "the head sets out to found a kingdom")
+	assert_eq(s.kingdoms().size(), 2, "nothing before the head arrives")
+	_run(h, 30)
+	assert_eq(s.kingdoms().size(), 3)
+	var nk: Dictionary = s.kingdoms()[2]
+	assert_eq(String(nk.founder), "npc")
+	assert_eq(int(nk.ruler_id), int(head.id), "the head rules the new kingdom")
+	assert_true(s.family_members(f.id).all(func(p: Dictionary) -> bool: return int(p.kingdom_id) == nk.id))
+	assert_eq(int(f.kingdom_id), nk.id)
+	assert_true(float(f.wealth) < 300.0, "the House paid for the settlement")
+	for o in s.kingdoms():
+		if o.id != nk.id:
+			assert_true(PackSim._flat_dist(o.center, nk.center) >= GameConstants.REALM_MIN_GAP)
+	assert_true(float(s.realm(a.id, nk.id).rel) < 0.0, "they left in anger")
+	assert_true(_logged(a, "fundou o Reino"))
+
+
+func test_no_exodus_without_means_or_anger() -> void:
+	_fresh(400.0)
+	var gen := TerrainGenerator.new(GameConstants.WORLD_SEED)
+	realms.set_terrain(gen, PropScatter.new(gen, GameConstants.WORLD_SEED))
+	var poor := _rebel_house(a, GameConstants.REALM_EXODUS_WEALTH - 1.0)
+	_run(0.0, 40)
+	assert_eq(s.kingdoms().size(), 2, "too poor to found a kingdom")
+	poor.wealth = 300.0
+	s.set_relation(int(poor.head_id), int(a.ruler_id), 0.5)
+	_run(40.0, 40)
+	assert_eq(s.kingdoms().size(), 2, "content Houses stay")

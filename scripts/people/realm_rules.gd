@@ -94,6 +94,34 @@ static func battle(state: WorldState, atk: Dictionary, def: Dictionary, party: i
 			def_loss = loser_loss if wins else winner_loss}
 
 
+## The House of `k` that sets out to found its own kingdom ({} when none): enough adults, enough
+## wealth, not the ruler's House, and either hating whoever rules or living in a crowded kingdom.
+## The most resentful goes first (ties: lowest id).
+static func exodus_house(state: WorldState, k: Dictionary) -> Dictionary:
+	if state.kingdoms().size() >= GameConstants.REALM_MAX:
+		return {}
+	var crowded := state.residents(k.id).size() >= GameConstants.REALM_EXODUS_CROWDED
+	var best := {}
+	var best_anger := INF
+	for f in state.families_of(k.id):
+		var head := state.person(int(f.head_id))
+		if head.is_empty() or head.status != "resident" or f.id == int(k.get("ruler_family", -2)) and int(k.ruler_id) >= 0:
+			continue
+		if float(f.wealth) < GameConstants.REALM_EXODUS_WEALTH:
+			continue
+		var adults := state.family_members(f.id).filter(func(p: Dictionary) -> bool:
+			return p.status == "resident" and SocietyRules.is_adult(p)).size()
+		if adults < GameConstants.REALM_EXODUS_ADULTS:
+			continue
+		var anger := float(head.opinion) if int(k.ruler_id) < 0 else state.relation(head.id, int(k.ruler_id))
+		if anger >= GameConstants.REALM_EXODUS_AT and not crowded:
+			continue
+		if anger < best_anger or (anger == best_anger and f.id < best.id):
+			best = f
+			best_anger = anger
+	return best
+
+
 ## Hours a person needs to walk between two points, with room to spare.
 static func travel_hours(from: Vector3, to: Vector3) -> float:
 	var d := Vector2(from.x - to.x, from.z - to.z).length()

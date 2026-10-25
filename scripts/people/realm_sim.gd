@@ -15,6 +15,8 @@ signal building_burned(rec: Dictionary)
 var _state: WorldState
 var _houses: HouseSim
 var _society: SocietySim
+var _gen: TerrainGenerator
+var _scatter: PropScatter
 var _hour := 0.0
 
 
@@ -23,6 +25,12 @@ func setup(state: WorldState, houses: HouseSim, society: SocietySim, gov: GovSim
 	_houses = houses
 	_society = society
 	gov.next_deed = complete_deed
+
+
+## Terrain and props, to find where a House founds a new kingdom (no exodus without them).
+func set_terrain(gen: TerrainGenerator, scatter: PropScatter) -> void:
+	_gen = gen
+	_scatter = scatter
 
 
 func tick_hour(hour: float) -> void:
@@ -53,6 +61,81 @@ func _daily() -> void:
 		for o in ks:
 			if o.id != k.id and RealmRules.wants_war(_state, k, o, _hour):
 				send_envoy(k, o, "war", _hour)
+	for k in _state.kingdoms():
+		_exodus(k)
+
+
+## A House that cannot stand its kingdom sets out: the head walks to a free place and founds a
+## kingdom there when he arrives. Only with the whole House offscreen (nobody vanishes on screen).
+func _exodus(k: Dictionary) -> void:
+	if _gen == null or _hour < float(k.get("next_exodus_hour", 0.0)):
+		return
+	if int(k.get("exodus_family", -1)) >= 0 and _hour <= float(k.get("exodus_until", 0.0)):
+		return
+	k.exodus_family = -1
+	var f := RealmRules.exodus_house(_state, k)
+	if f.is_empty():
+		return
+	var members := _state.family_members(f.id)
+	if members.any(func(p: Dictionary) -> bool: return _houses.has_node.call(p.id)):
+		return
+	var head := _state.person(int(f.head_id))
+	if not (head.get("deed", {}) as Dictionary).is_empty():
+		return
+	var rng := RandomNumberGenerator.new()
+	rng.seed = hash([_state.seed, "exodus", k.id, int(_hour)])
+	var site := NpcRealms._place(_state, _gen, _scatter, [], rng)
+	if site.x < 0.0:
+		return
+	var end := _hour + RealmRules.travel_hours(k.center, site)
+	_houses.plan_deed(head, Deeds.make("exodus", site, GameConstants.PERSON_ARRIVE * GameConstants.REALM_MARCH_REACH,
+			_hour, end, GameConstants.DEED_WORK_SEC, {kingdom_id = k.id, family_id = f.id, site = site}))
+	k.exodus_family = f.id
+	k.exodus_until = end
+	k.next_exodus_hour = _hour + GameConstants.REALM_EXODUS_DAYS * 24.0
+	_log(k, GameConstants.REALM_MSG_EXODUS % [f.surname, k.name])
+
+
+## The head reached the place: the kingdom is founded and the whole House moves there.
+func _found(old: Dictionary, head: Dictionary, f: Dictionary, site: Vector3) -> void:
+	old.exodus_family = -1
+	if f.is_empty() or head.status != "resident" or int(f.kingdom_id) != old.id \
+			or _state.kingdoms().size() >= GameConstants.REALM_MAX \
+			or _state.kingdoms().any(func(o: Dictionary) -> bool:
+				return Vector2(o.center.x - site.x, o.center.z - site.z).length() < GameConstants.REALM_MIN_GAP):
+		return
+	var index := _state.kingdoms().size()
+	var color := KingdomNames.color(_state.seed, index)
+	var seat := _state.add_building(B.CABIN, site, 0, Color.WHITE, GameConstants.OWNER_KINGDOM)
+	var flag_pos := site + GameConstants.FLAG_OFFSET
+	var flag := _state.add_building(B.FLAG, Vector3(flag_pos.x, _gen.height_at(flag_pos.x, flag_pos.z), flag_pos.z), 0,
+			color, GameConstants.OWNER_KINGDOM)
+	var nk := _state.add_kingdom(KingdomNames.generate(_state.seed, index), color, site, seat.id, "npc")
+	var members := _state.family_members(f.id).filter(func(p: Dictionary) -> bool:
+		return p.status == "resident" and int(p.kingdom_id) == old.id)
+	var ids := members.map(func(p: Dictionary) -> int: return p.id)
+	for i in members.size():
+		var m: Dictionary = members[i]
+		SocietySim.transfer_houses(_state, m.id, ids)
+		m.kingdom_id = nk.id
+		m.home_id = -1
+		m.inside = -1
+		m.deed = {}
+		var a := TAU * i / maxf(1.0, members.size())
+		_state.move_person(m.id, site + Vector3(cos(a), 0.0, sin(a)) * GameConstants.REALM_SETTLE_RING)
+	f.kingdom_id = nk.id
+	f.wealth = float(f.wealth) - GameConstants.REALM_EXODUS_WEALTH
+	nk.ruler_id = head.id
+	nk.ruler_family = f.id
+	nk.ruler_way = ""
+	nk.ruler_corrupt = GovRules.is_corrupt(head, f)
+	nk.ruler_since = _hour
+	nk.decrees.guards = GameConstants.REALM_NPC_GUARDS
+	nk.people_ever = members.size()
+	var angry := float(head.opinion) < 0.0 if int(old.ruler_id) < 0 else _state.relation(head.id, int(old.ruler_id)) < 0.0
+	_state.realm(old.id, nk.id).rel = GameConstants.REALM_EXODUS_REL.angry if angry else GameConstants.REALM_EXODUS_REL.calm
+	_houses.buildings_changed.emit([seat, flag])
+	_log_both(old, nk, GameConstants.REALM_MSG_FOUNDED % [f.surname, old.name, nk.name])
 
 
 ## A ruler at war calls up the whole guard; at peace again the usual guard comes back.
@@ -138,6 +221,8 @@ func complete_deed(_k: Dictionary, p: Dictionary, deed: Dictionary, _seen: Array
 			from.envoy_until = -1.0
 			if not from.is_empty() and not to.is_empty():
 				_envoy_arrived(from, to, String(data.act), p)
+		"exodus":
+			_found(from, p, _state.family(int(data.get("family_id", -1))), data.site)
 		"march":
 			if data.has("party") and not from.is_empty() and not to.is_empty() and _state.at_war(from.id, to.id):
 				_battle(from, to, data.party)
