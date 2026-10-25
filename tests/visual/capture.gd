@@ -232,6 +232,18 @@ func _houses() -> void:
 	var k: Dictionary = state.kingdoms()[0]
 	var hour_sec := GameConstants.DAY_LENGTH_SEC / 24.0
 
+	# 0) The founder governs (stage 8): a low tax and a guard of two, by the panel (P).
+	await _teleport(_village_spot + Vector3(0, 0, 10))
+	await _physics(10)
+	hud.toggle_gov()
+	hud.gov_change(1) # tax: none -> low
+	hud.gov_move(2)
+	hud.gov_change(3) # guard: free -> 2
+	await _frames(5)
+	await _shot("44_gov_panel")
+	hud.toggle_gov()
+	print("GOV decrees %s" % [k.decrees])
+
 	# 1) Away: the player walks off to a far corner; the days pass without anyone watching.
 	var far := Vector3(GameConstants.CHUNK_SIZE * 2.0, 0, GameConstants.CHUNK_SIZE * 2.0)
 	if far.distance_to(k.center) < GameConstants.CHUNK_SIZE * 8.0:
@@ -242,6 +254,7 @@ func _houses() -> void:
 		day_night.advance(hour_sec)
 		await process_frame
 	print("HISTORY: %d days, %d chronicle entries" % [HISTORY_DAYS, state.chronicle_all(-2, 100000).size()])
+	print("GOV away: ruler=%s way=%s corrupt=%s decrees=%s" % [hud.gov_line(k), k.ruler_way, k.ruler_corrupt, k.decrees])
 
 	# 2) Back home, watching: one shot per deed in progress (doer framed), at most one per kind.
 	await _teleport(_village_spot + Vector3(0, 0, 10))
@@ -272,6 +285,13 @@ func _houses() -> void:
 			break
 	Engine.time_scale = 1.0
 	print("LIVE: deeds seen %s" % [shot_kinds.keys()])
+	print("GOV back: %s" % hud.gov_adm_line(k))
+	await _teleport(_village_spot + Vector3(0, 0, 10))
+	await _physics(10)
+	hud.toggle_gov()
+	await _frames(5)
+	await _shot("45_gov_return")
+	hud.toggle_gov()
 
 	# 3) What the Houses made of their land and homes, by themselves.
 	_set_time(DAY_TIME)

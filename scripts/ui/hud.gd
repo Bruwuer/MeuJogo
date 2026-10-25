@@ -51,6 +51,7 @@ var _families_left := 0.0
 var _chronicle: PanelContainer
 var _chronicle_label: Label
 var _gov: GovSim
+var _ruler: Label
 var _gov_panel: PanelContainer
 var _gov_label: Label
 var _gov_row := 0
@@ -78,6 +79,10 @@ func setup(state: WorldState, harvest: HarvestSystem, day_night: DayNight, playe
 	_center_h(_village, _WIDE * 2.0)
 	_village.offset_top = _MARGIN + _FONT_SIZE * 1.5
 	_village.visible = false
+	_ruler = _make_label("Government", Control.PRESET_CENTER_TOP, HORIZONTAL_ALIGNMENT_CENTER)
+	_center_h(_ruler, _WIDE)
+	_ruler.offset_top = _MARGIN + _FONT_SIZE * 3.0
+	_ruler.visible = false
 	_card = PanelContainer.new()
 	_card.name = "Card"
 	_card.set_anchors_and_offsets_preset(Control.PRESET_CENTER_RIGHT)
@@ -175,10 +180,10 @@ func _physics_process(delta: float) -> void:
 	_kingdom.visible = not kingdom.is_empty()
 	if _kingdom.visible:
 		_kingdom.text = "Reino de %s" % kingdom.name
-		if _gov:
-			_kingdom.text += " · " + gov_line(kingdom)
+		_ruler.text = gov_line(kingdom)
 		_village.text = village_line(kingdom)
 	_village.visible = _kingdom.visible
+	_ruler.visible = _kingdom.visible and _gov != null
 	_update_families(delta, kingdom)
 	if _card_left > 0.0:
 		_card_left -= delta

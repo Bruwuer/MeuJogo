@@ -125,7 +125,8 @@ func test_government_panel_changes_decrees() -> void:
 	_hud.set_gov(gov)
 	_player.frozen = false
 	await wait_physics_frames(2)
-	assert_eq(_label("Kingdom").text, "Reino de %s · %s" % [k.name, GameConstants.GOV_LABEL_YOU])
+	assert_eq(_label("Kingdom").text, "Reino de %s" % k.name)
+	assert_eq(_label("Government").text, GameConstants.GOV_LABEL_YOU)
 	_hud.toggle_gov()
 	assert_true(_hud.gov_visible())
 	assert_true(_player.frozen, "the player stands still while governing")
@@ -152,5 +153,5 @@ func test_government_panel_changes_decrees() -> void:
 	_hud.gov_change(1)
 	assert_eq(String(k.decrees.tax), "low", "no decrees from someone who does not rule")
 	await wait_physics_frames(2)
-	assert_eq(_label("Kingdom").text, "Reino de %s · %s" % [k.name, GameConstants.GOV_LABEL_RULER % PersonGen.full_name(ruler)])
+	assert_eq(_label("Government").text, GameConstants.GOV_LABEL_RULER % PersonGen.full_name(ruler))
 	_hud.toggle_gov()
