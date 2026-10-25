@@ -200,9 +200,7 @@ func _rebuild_ghost() -> void:
 
 
 func _found_kingdom(cabin: Dictionary) -> void:
-	var rng := RandomNumberGenerator.new()
-	rng.seed = hash("kingdom_color_%d" % _state.seed)
-	var color := Color.from_hsv(rng.randf(), GameConstants.KINGDOM_COLOR_SAT, GameConstants.KINGDOM_COLOR_VAL)
+	var color := KingdomNames.color(_state.seed, _state.kingdoms().size())
 	var name := KingdomNames.generate(_state.seed, _state.kingdoms().size())
 	var offset := Basis(Vector3.UP, cabin.rot * PI * 0.5) * GameConstants.FLAG_OFFSET
 	var flag := _state.add_building(GameConstants.Building.FLAG, cabin.pos + offset, cabin.rot, color)

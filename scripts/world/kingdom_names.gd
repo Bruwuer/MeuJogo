@@ -10,6 +10,13 @@ const _ENDS := ["mar", "la", "mia", "nha", "ra", "dor", "lis", "ria", "vel", "ga
 const _MIDDLE_CHANCE := 0.55
 
 
+## A kingdom's banner color, different for each (seed, index).
+static func color(seed: int, index: int) -> Color:
+	var rng := RandomNumberGenerator.new()
+	rng.seed = hash([seed, "kingdom_color", index])
+	return Color.from_hsv(rng.randf(), GameConstants.KINGDOM_COLOR_SAT, GameConstants.KINGDOM_COLOR_VAL)
+
+
 static func generate(seed: int, index: int) -> String:
 	var rng := RandomNumberGenerator.new()
 	rng.seed = hash("kingdom_%d_%d" % [seed, index])

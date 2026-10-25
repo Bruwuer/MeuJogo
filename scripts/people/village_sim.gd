@@ -117,10 +117,11 @@ func _tick_hour(hour: float) -> void:
 		_stalled_site(k)
 		var away: bool = not is_player_in.call(k)
 		var target := GovRules.away_target(k) # neutral, or worship / hatred under the regent
+		var mine := String(k.get("founder", "player")) == "player" # the founder's name is made at home
 		for p in _state.residents(k.id):
 			if away:
 				p.opinion = move_toward(float(p.opinion), target, GameConstants.AWAY_OPINION_PER_DAY / 24.0)
-			if SocietyRules.is_adult(p):
+			if mine and SocietyRules.is_adult(p):
 				opinions += float(p.opinion)
 				count += 1
 	if count > 0:

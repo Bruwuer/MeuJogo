@@ -46,6 +46,10 @@ var _next_family_id := 1
 var _ancestry: Dictionary = {} # person id -> {parents, adopted_by, name, female}: kept after death or departure
 var _chronicle: Array = [] # {hour, text, kingdom_id, public}, oldest first
 var _relations: Dictionary[Vector2i, float] = {} # (lower id, higher id) -> -1..1, symmetric
+## Between kingdoms (stage 9): (lower id, higher id) -> {rel, war, since, weary_a, weary_b, truce_until}.
+var _realms: Dictionary[Vector2i, Dictionary] = {}
+## The NPC kingdoms were placed on the map (once per world).
+var realms_seeded := false
 ## The player's reputation: average opinion of every resident (-1..1), refreshed hourly.
 var fame := 0.0
 
@@ -148,10 +152,10 @@ func all_buildings() -> Array[Dictionary]:
 	return out
 
 
-func add_kingdom(kingdom_name: String, color: Color, center: Vector3, seat_id: int) -> Dictionary:
+func add_kingdom(kingdom_name: String, color: Color, center: Vector3, seat_id: int, founder := "player") -> Dictionary:
 	var k := {id = _kingdoms.size() + 1, name = kingdom_name, color = color, center = center,
 			radius = GameConstants.KINGDOM_RADIUS, seat_id = seat_id,
-			stock = GameConstants.KINGDOM_START_STOCK.duplicate()}
+			stock = GameConstants.KINGDOM_START_STOCK.duplicate(), founder = founder}
 	_kingdom_defaults(k)
 	_kingdoms.append(k)
 	return k
@@ -176,6 +180,8 @@ static func _kingdom_defaults(k: Dictionary) -> void:
 		k.last_raid_hour = -1e9
 	if not k.has("people_ever"):
 		k.people_ever = 0
+	if not k.has("founder"): # stage 9: kingdoms before it were all the player's
+		k.founder = "player"
 	# Government (stage 8): old saves are ruled by the player with the default decrees.
 	if not k.has("ruler_id"):
 		k.ruler_id = GameConstants.GOV_PLAYER
@@ -190,6 +196,33 @@ static func _kingdom_defaults(k: Dictionary) -> void:
 
 func kingdoms() -> Array[Dictionary]:
 	return _kingdoms
+
+
+## The seat of the player's kingdom nearest to `pos` (where the player wakes up), or {}.
+func player_seat_near(pos: Vector3) -> Dictionary:
+	var best := {}
+	var best_d := INF
+	for k in _kingdoms:
+		var seat := building(int(k.seat_id))
+		if String(k.get("founder", "player")) != "player" or seat.is_empty():
+			continue
+		var d := Vector2(seat.pos.x - pos.x, seat.pos.z - pos.z).length()
+		if d < best_d:
+			best_d = d
+			best = seat
+	return best
+
+
+## The relation between kingdoms `a` and `b` (created neutral and at peace the first time).
+func realm(a: int, b: int) -> Dictionary:
+	var key := _pair(a, b)
+	if not _realms.has(key):
+		_realms[key] = {rel = 0.0, war = false, since = 0.0, weary_a = 0.0, weary_b = 0.0, truce_until = -1.0}
+	return _realms[key]
+
+
+func at_war(a: int, b: int) -> bool:
+	return bool(_realms.get(_pair(a, b), {}).get("war", false))
 
 
 ## The kingdom whose territory contains `pos` (flat distance), or {}.
@@ -232,6 +265,8 @@ func save_to(path: String) -> Error:
 		families = _families.values(),
 		next_family_id = _next_family_id,
 		relations = _relation_list(),
+		realms = _realms_list(),
+		realms_seeded = realms_seeded,
 		ancestry = _ancestry,
 		chronicle = _chronicle,
 	})
@@ -355,6 +390,9 @@ static func _from_dict(data: Dictionary) -> WorldState:
 	s._next_family_id = data.get("next_family_id", 1)
 	for r: Array in data.get("relations", []):
 		s._relations[Vector2i(r[0], r[1])] = r[2]
+	for r: Array in data.get("realms", []):
+		s._realms[Vector2i(r[0], r[1])] = r[2]
+	s.realms_seeded = data.get("realms_seeded", false)
 	for c in data.get("visited", []):
 		s._visited[c] = true
 	if data.get("version", -1) == GameConstants.WORLDGEN_VERSION:
@@ -618,6 +656,13 @@ func relations_of(id: int) -> Dictionary:
 
 static func _pair(a: int, b: int) -> Vector2i:
 	return Vector2i(mini(a, b), maxi(a, b))
+
+
+func _realms_list() -> Array:
+	var out := []
+	for key: Vector2i in _realms:
+		out.append([key.x, key.y, _realms[key]])
+	return out
 
 
 func _relation_list() -> Array:

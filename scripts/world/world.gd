@@ -197,17 +197,16 @@ func _add_creatures(scatter: PropScatter, library: ModelLibrary, new_world: bool
 
 
 ## Death never costs buildings or resources: the player wakes up in front of the seat cabin of
-## its first kingdom (or at the spawn point) with full health.
+## the nearest of its own kingdoms (or at the spawn point) with full health.
 func _respawn() -> void:
 	var pos := _spawn
 	var text := GameConstants.RESPAWN_MSG_SPAWN
-	if not _state.kingdoms().is_empty():
-		var seat := _state.building(_state.kingdoms()[0].seat_id)
-		if not seat.is_empty():
-			var depth: float = GameConstants.BUILD_FOOTPRINT[GameConstants.Building.CABIN].y
-			var front := Vector3(0, 0, depth * 0.5 + _RESPAWN_GAP).rotated(Vector3.UP, seat.rot * PI * 0.5)
-			pos = SpawnPicker.nearest_clear(_gen, _scatter, seat.pos + front)
-			text = GameConstants.RESPAWN_MSG_SEAT
+	var seat := _state.player_seat_near(_player.global_position)
+	if not seat.is_empty():
+		var depth: float = GameConstants.BUILD_FOOTPRINT[GameConstants.Building.CABIN].y
+		var front := Vector3(0, 0, depth * 0.5 + _RESPAWN_GAP).rotated(Vector3.UP, seat.rot * PI * 0.5)
+		pos = SpawnPicker.nearest_clear(_gen, _scatter, seat.pos + front)
+		text = GameConstants.RESPAWN_MSG_SEAT
 	_player.global_position = pos + Vector3.UP * _SPAWN_DROP
 	_player.reset_physics_interpolation()
 	_player.revive()
