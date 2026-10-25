@@ -464,7 +464,15 @@ const ANIM_EAT := "eat"
 const ANIM_PLAY := "play"
 const LOOPED_CLIPS := ["idle", "walk", "run", "work", "dead", "pickup", "carry", "dig", "pray", "mourn", "talk", "sit", "eat", "play"]
 ## Held tools and worn things (stage 10).
-const TOOL_SCENES := { "shovel": "res://assets/models/shovel.glb", "pack": "res://assets/models/pack.glb" }
+const TOOL_SCENES := { "shovel": "res://assets/models/shovel.glb", "pack": "res://assets/models/pack.glb",
+		"hat_straw": "res://assets/models/hat_straw.glb", "hat_helmet": "res://assets/models/hat_helmet.glb",
+		"hat_hood": "res://assets/models/hat_hood.glb", "hat_cap": "res://assets/models/hat_cap.glb",
+		"hat_feather_cap": "res://assets/models/hat_feather_cap.glb" }
+## Headwear by trade (adults only): the look tells the trade.
+const PROFESSION_HATS := { Profession.FARMER: "hat_straw", Profession.GUARD: "hat_helmet",
+		Profession.WOODCUTTER: "hat_hood", Profession.GATHERER: "hat_hood", Profession.MASON: "hat_cap",
+		Profession.BUILDER: "hat_cap", Profession.MERCHANT: "hat_feather_cap" }
+const HAT_CROWN := Vector3(0.0, 1.81, 0.0) ## The top of the villager's hair, in the model's rest pose.
 const HUMANOID_SCENE := "res://assets/models/humanoid.glb"
 const PROP_SCENES := {
 	Prop.OAK: "res://assets/models/oak.glb",

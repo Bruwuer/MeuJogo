@@ -267,3 +267,52 @@ func test_a_merchant_wears_a_pack() -> void:
 	m.setup(rec, lib, null)
 	assert_true(m.has_pack(), "a wandering merchant carries a pack")
 	m.queue_free()
+
+
+func test_a_guard_puts_the_spear_away_to_dig_and_wears_a_helmet() -> void:
+	_floor()
+	var lib: ModelLibrary = await _library()
+	var rec := PersonGen.generate(RandomNumberGenerator.new(), 0.0, GameConstants.Profession.GUARD)
+	rec.merge({id = 47, pos = Vector3(0, 0.2, 0), status = "resident", carrying = {}, home_id = -1, inside = -1,
+			job = "", age = 30.0}, true)
+	var g := Person.new()
+	add_child(g)
+	g.setup(rec, lib, null)
+	assert_eq(g.hat(), "hat_helmet")
+	assert_true(g.spear_shown())
+	g.record.deed = {kind = "bury", anim = GameConstants.ANIM_DIG}
+	g.act = PersonBrain.Act.DEED
+	g._commanded = true
+	await wait_physics_frames(3)
+	assert_true(not g.spear_shown(), "the spear is put away to dig")
+	assert_eq(g.held_tool(), "shovel")
+	g.queue_free()
+
+
+func test_children_wear_no_hat() -> void:
+	_floor()
+	var lib: ModelLibrary = await _library()
+	var rec := PersonGen.generate(RandomNumberGenerator.new(), 0.0, GameConstants.Profession.FARMER)
+	rec.merge({id = 48, pos = Vector3(0, 0.2, 0), status = "resident", carrying = {}, home_id = -1, inside = -1,
+			job = "", age = 8.0}, true)
+	var c := Person.new()
+	add_child(c)
+	c.setup(rec, lib, null)
+	assert_eq(c.hat(), "")
+	c.queue_free()
+
+
+func test_the_hat_follows_the_trade() -> void:
+	_floor()
+	var lib: ModelLibrary = await _library()
+	var rec := PersonGen.generate(RandomNumberGenerator.new(), 0.0, GameConstants.Profession.FARMER)
+	rec.merge({id = 49, pos = Vector3(0, 0.2, 0), status = "resident", carrying = {}, home_id = -1, inside = -1,
+			job = "", age = 30.0}, true)
+	var p := Person.new()
+	add_child(p)
+	p.setup(rec, lib, null)
+	assert_eq(p.hat(), "hat_straw")
+	p.record.profession = GameConstants.Profession.GUARD # called up
+	p._think()
+	assert_eq(p.hat(), "hat_helmet")
+	p.queue_free()

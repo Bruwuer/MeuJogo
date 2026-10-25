@@ -46,6 +46,8 @@ var _library: ModelLibrary
 var _carried: Node3D ## The body in this person's arms (stage 10).
 var _tool: Node3D ## The shovel while digging.
 var _tool_name := ""
+var _spear: Node3D ## A guard's spear (put away while the hands are busy).
+var _hat_name := ""
 
 
 func setup(rec: Dictionary, library: ModelLibrary, mgr: Node) -> void:
@@ -75,6 +77,7 @@ func setup(rec: Dictionary, library: ModelLibrary, mgr: Node) -> void:
 			var spear := library.weapon_scene(GameConstants.Weapon.SPEAR)
 			if holder and spear:
 				holder.add_child(spear.instantiate())
+				_spear = holder
 		var players := _model.find_children("*", "AnimationPlayer", true, false)
 		if not players.is_empty():
 			_anim = players[0]
@@ -96,6 +99,43 @@ func setup(rec: Dictionary, library: ModelLibrary, mgr: Node) -> void:
 		_play(GameConstants.ANIM_DEAD)
 	if String(rec.get("status", "")) == "merchant" and library and _model:
 		_wear_pack(library)
+	_refresh_hat()
+
+
+## The hat of the trade, on the head bone, upright like the body (adults only). Follows the trade:
+## a child who grows up gets one, a farmer called to the guard changes it for a helmet.
+func _refresh_hat() -> void:
+	var want: String = GameConstants.PROFESSION_HATS.get(int(record.get("profession", -1)), "") 			if SocietyRules.is_adult(record) else ""
+	if want == _hat_name or _library == null or _model == null:
+		return
+	var old := _model.find_child("Head", true, false)
+	if old:
+		old.queue_free()
+	_hat_name = want
+	var scene := _library.tool_scene(want) if want != "" else null
+	var skels := _model.find_children("*", "Skeleton3D", true, false)
+	if scene == null or skels.is_empty():
+		return
+	var skel: Skeleton3D = skels[0]
+	var bone := skel.find_bone("head")
+	if bone < 0:
+		return
+	var attach := BoneAttachment3D.new()
+	attach.name = "Head"
+	attach.bone_name = "head"
+	skel.add_child(attach)
+	var rest := skel.get_bone_global_rest(bone)
+	var to_bone := rest.basis.orthonormalized().inverse()
+	var holder := Node3D.new()
+	holder.name = "Hat"
+	holder.basis = to_bone # the hat keeps the model's axes (upright, facing front)
+	holder.position = to_bone * (GameConstants.HAT_CROWN - rest.origin)
+	attach.add_child(holder)
+	holder.add_child(scene.instantiate())
+
+
+func hat() -> String:
+	return _hat_name
 
 
 ## A wandering merchant carries a pack on the back (stage 10).
@@ -219,6 +259,7 @@ func _physics_process(delta: float) -> void:
 
 func _think() -> void:
 	_update_carried()
+	_refresh_hat()
 	if act != A.DEED:
 		_hold_tool("")
 	if _model:
@@ -375,6 +416,17 @@ func _idle_clip() -> String:
 	return GameConstants.ANIM_MOURN if grief >= GameConstants.MOOD_MOURN_AT else GameConstants.ANIM_IDLE
 
 
+## A guard puts the spear away while the hands are busy (a body, a shovel, a meal, a prayer...).
+func _update_spear(clip: String) -> void:
+	if _spear:
+		_spear.visible = clip in [GameConstants.ANIM_IDLE, GameConstants.ANIM_WALK, GameConstants.ANIM_RUN,
+				GameConstants.ANIM_WORK, GameConstants.ANIM_MOURN]
+
+
+func spear_shown() -> bool:
+	return _spear != null and _spear.visible
+
+
 ## Shows (or drops) the body this person carries: a villager lying across the arms.
 func _update_carried() -> void:
 	var carrying := int(record.get("carrying_body", -1)) >= 0
@@ -422,6 +474,7 @@ func held_tool() -> String:
 
 
 func _play(clip: String) -> void:
+	_update_spear(clip)
 	if _anim == null or _current_anim == clip or not _anim.has_animation(clip):
 		return
 	_anim.play(clip, _ANIM_BLEND)
