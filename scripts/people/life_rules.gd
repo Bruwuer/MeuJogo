@@ -47,6 +47,39 @@ static func grief_for(state: WorldState, p: Dictionary, dead: Dictionary) -> flo
 	return 0.0
 
 
+## What an adult wishes for, from who they are and whom they love: {kind, target_id}.
+static func pick_desire(state: WorldState, p: Dictionary) -> Dictionary:
+	var D := GameConstants.Desire
+	if int(p.get("spouse_id", -1)) < 0:
+		var beloved := {}
+		var best := GameConstants.LOVE_AT
+		var rels := state.relations_of(p.id)
+		for other_id in rels:
+			var o := state.person(other_id)
+			if o.is_empty() or o.status != "resident" or bool(o.female) == bool(p.female) or not SocietyRules.is_adult(o) \
+					or int(o.get("spouse_id", -1)) >= 0 or Kinship.is_close_kin(state, p, o):
+				continue
+			if float(rels[other_id]) >= best:
+				best = float(rels[other_id])
+				beloved = o
+		if not beloved.is_empty():
+			return {kind = D.LOVE, target_id = beloved.id}
+	if PersonGen.has_trait(p, GameConstants.Trait.GREEDY):
+		return {kind = D.RICH, target_id = -1}
+	if float(p.get("resentment", 0.0)) >= 0.5:
+		return {kind = D.LEAVE, target_id = -1}
+	if PersonGen.has_trait(p, GameConstants.Trait.BRAVE):
+		for c in state.residents(int(p.kingdom_id)):
+			if not SocietyRules.is_adult(c) and Kinship.is_close_kin(state, p, c):
+				return {kind = D.PROTECT, target_id = -1}
+	if PersonGen.has_trait(p, GameConstants.Trait.WORKER):
+		for parent_id in (p.parents as Array):
+			var parent := state.person(int(parent_id))
+			if not parent.is_empty() and parent.status == "resident" and int(parent.profession) == int(p.profession):
+				return {kind = D.SURPASS_PARENT, target_id = parent.id}
+	return {kind = D.NONE, target_id = -1}
+
+
 ## Who of `people` goes for the body of `dead`: a free adult, kin first, then the lowest id.
 static func bearer_for(state: WorldState, people: Array, dead: Dictionary) -> Dictionary:
 	var best := {}

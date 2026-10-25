@@ -151,7 +151,8 @@ func _physics_process(delta: float) -> void:
 						manager.finish_work(self)
 		A.DEED:
 			_stand(delta)
-			_face(target_pos, delta)
+			var face: Variant = ((record.get("deed", {}) as Dictionary).get("data", {}) as Dictionary).get("face")
+			_face(face if face is Vector3 else target_pos, delta) # talking: to the other person
 			var clip := String((record.get("deed", {}) as Dictionary).get("anim", GameConstants.ANIM_WORK))
 			_hold_tool("shovel" if clip == GameConstants.ANIM_DIG else "")
 			_play(clip)

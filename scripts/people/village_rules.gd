@@ -154,6 +154,10 @@ static func hourly_contentment(person: Dictionary, snap: Dictionary, fed: bool) 
 	var mood: Dictionary = person.get("mood", {})
 	for m: String in GameConstants.MOOD_CONTENT:
 		d += float(mood.get(m, 0.0)) * float(GameConstants.MOOD_CONTENT[m])
+	var needs: Dictionary = person.get("needs", {})
+	for need: String in ["social", "faith"]:
+		d -= maxf(0.0, float(needs.get(need, 0.0)) - GameConstants.NEED_OK) * GameConstants.NEED_CONTENT \
+				/ (1.0 - GameConstants.NEED_OK)
 	var decrees: Dictionary = snap.get("decrees", {})
 	d += float(GameConstants.GOV_CONTENT_TAX.get(decrees.get("tax", "low"), 0.0))
 	d += float(GameConstants.GOV_CONTENT_RATION.get(decrees.get("ration", "normal"), 0.0))

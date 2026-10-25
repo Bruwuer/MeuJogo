@@ -248,12 +248,14 @@ func test_opinion_drifts_when_away() -> void:
 	var p := _resident(s, k, P.MERCHANT)
 	p.opinion = 0.5
 	var c0: float = p.contentment
+	p.needs = {social = 0.0, faith = 0.0}
 	sim.is_player_in = func(_k: Dictionary) -> bool: return true
 	for i in 24:
 		sim.tick_hours(1.0)
 	var near: float = p.opinion # stage 6: contentment moves it too, the same way in both runs
 	p.opinion = 0.5
 	p.contentment = c0
+	p.needs = {social = 0.0, faith = 0.0} # stage 10: the same company missed in both runs
 	sim.is_player_in = func(_k: Dictionary) -> bool: return false
 	for i in 24:
 		sim.tick_hours(1.0)

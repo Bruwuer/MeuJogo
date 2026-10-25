@@ -610,6 +610,9 @@ static func card_text(rec: Dictionary, state: WorldState) -> String:
 	if ties != "":
 		lines.append(ties)
 	lines.append("Agora: %s" % doing)
+	var feeling := LifeRules.mood_text(rec)
+	if feeling != "":
+		lines.append(GameConstants.CARD_FEELING % feeling)
 	lines.append("Precisa de: %s" % GameConstants.NEED_TEXTS[need])
 	var stance: String = rec.get("stance", "")
 	lines.append(opinion_text(float(rec.opinion)) + (GameConstants.CARD_STANCE[stance][g] if stance != "" else ""))

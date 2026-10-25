@@ -600,7 +600,8 @@ static func person_defaults(p: Dictionary) -> void:
 			talk_day = -1, deed_day = -1, widowed = false,
 			vocation = -1, desire = {kind = GameConstants.Desire.NONE, target_id = -1}, resentment = 0.0,
 			secret = {}, adopted_by = [], deed = {},
-			mood = {joy = 0.0, grief = 0.0, fear = 0.0, anger = 0.0}, carrying_body = -1, carrier_id = -1}
+			mood = {joy = 0.0, grief = 0.0, fear = 0.0, anger = 0.0}, carrying_body = -1, carrier_id = -1,
+			needs = {social = 0.0, faith = 0.0}}
 	for key in defaults:
 		if not p.has(key):
 			p[key] = defaults[key]

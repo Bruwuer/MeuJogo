@@ -36,6 +36,110 @@ func tick_hour(k: Dictionary, hour: float) -> void:
 	for p in _state.residents(k.id):
 		LifeRules.fade_moods(p, 1.0)
 	_bodies(k)
+	_needs(k)
+	_wishes(k)
+
+
+# --- Needs and wants ------------------------------------------------------------------------
+
+## Company is missed by every adult (sociable more, loners less), faith by the devout. In the free
+## evening hours whoever misses company goes to talk to a friend; at dusk the devout pray.
+func _needs(k: Dictionary) -> void:
+	var h := fmod(_hour, 24.0)
+	for p in _state.residents(k.id):
+		if not SocietyRules.is_adult(p):
+			continue
+		var needs: Dictionary = p.get("needs", {})
+		if needs.is_empty():
+			p.needs = {social = 0.0, faith = 0.0}
+			needs = p.needs
+		var rate := GameConstants.SOCIAL_PER_HOUR
+		if PersonGen.has_trait(p, GameConstants.Trait.SOCIABLE):
+			rate *= float(GameConstants.SOCIAL_TRAIT.sociable)
+		elif PersonGen.has_trait(p, GameConstants.Trait.LONER):
+			rate *= float(GameConstants.SOCIAL_TRAIT.loner)
+		needs.social = minf(1.0, float(needs.get("social", 0.0)) + rate)
+		if PersonGen.has_trait(p, GameConstants.Trait.DEVOUT):
+			needs.faith = minf(1.0, float(needs.get("faith", 0.0)) + GameConstants.FAITH_PER_HOUR)
+		if not (p.get("deed", {}) as Dictionary).is_empty():
+			continue
+		var talked := h >= GameConstants.TALK_HOURS.x and h < GameConstants.TALK_HOURS.y \
+				and float(needs.social) >= GameConstants.SOCIAL_WANT and plan_talk(k, p, _hour)
+		if not talked and int(h) == int(GameConstants.DEED_DUSK.x) - 1 and float(needs.get("faith", 0.0)) >= GameConstants.FAITH_WANT:
+			_plan_prayer(k, p)
+
+
+## `a` walks to meet a friend (or whom they love) halfway and they talk face to face. False when
+## nobody is free to meet.
+func plan_talk(k: Dictionary, a: Dictionary, hour: float) -> bool:
+	_hour = hour
+	var b := {}
+	var target := int((a.get("desire", {}) as Dictionary).get("target_id", -1))
+	var rels := _state.relations_of(a.id)
+	var best := GameConstants.FRIEND_AT
+	for other_id in rels:
+		var o := _state.person(other_id)
+		if o.is_empty() or o.status != "resident" or int(o.kingdom_id) != k.id or not SocietyRules.is_adult(o) \
+				or not (o.get("deed", {}) as Dictionary).is_empty():
+			continue
+		var score := float(rels[other_id]) + (1.0 if o.id == target else 0.0) # whom one loves comes first
+		if score >= best and (b.is_empty() or score > best or o.id < b.id):
+			best = score
+			b = o
+	if b.is_empty():
+		return false
+	var mid: Vector3 = (a.pos + b.pos) * 0.5
+	var dir: Vector3 = b.pos - a.pos
+	dir.y = 0.0
+	dir = dir.normalized() if dir.length() > 0.01 else Vector3.RIGHT
+	var spots := [mid - dir * GameConstants.TALK_GAP * 0.5, mid + dir * GameConstants.TALK_GAP * 0.5]
+	var people := [a, b]
+	for i in 2:
+		var other: Dictionary = people[1 - i]
+		var deed := Deeds.make("talk", spots[i], GameConstants.PERSON_ARRIVE, _hour, _hour + GameConstants.TALK_WINDOW,
+				GameConstants.TALK_SEC, {with = other.id, lead = i == 0, face = spots[1 - i]})
+		deed.anim = GameConstants.ANIM_TALK
+		_houses.plan_deed(people[i], deed)
+	return true
+
+
+func _plan_prayer(k: Dictionary, p: Dictionary) -> void:
+	var at: Vector3 = k.center
+	for b in VillageRules.kingdom_buildings(_state, k):
+		if int(b.type) == B.FLAG:
+			at = b.pos + GameConstants.GOV_FLAG_OFFSET
+			break
+	var w := Deeds.next_window(_hour, GameConstants.DEED_DUSK.x, GameConstants.DEED_DUSK.y)
+	var deed := Deeds.make("prayer", at, GameConstants.PERSON_ARRIVE * GameConstants.GOV_REACH_MULT, w.x, w.y,
+			GameConstants.DEED_CEREMONY_SEC, {})
+	deed.anim = GameConstants.ANIM_PRAY
+	_houses.plan_deed(p, deed)
+
+
+## Adults with no want find one once a day; a want come true is a joy.
+func _wishes(k: Dictionary) -> void:
+	var D := GameConstants.Desire
+	var daily := int(fmod(_hour, 24.0)) == int(GameConstants.DEED_HOUR)
+	for p in _state.residents(k.id):
+		if not SocietyRules.is_adult(p):
+			continue
+		var want: Dictionary = p.get("desire", {})
+		var kind := int(want.get("kind", D.NONE))
+		var done := false
+		match kind:
+			D.LOVE:
+				done = int(p.get("spouse_id", -1)) >= 0 and int(p.spouse_id) == int(want.get("target_id", -2))
+			D.RICH:
+				done = float(_state.family(int(p.get("family_id", -1))).get("wealth", 0.0)) >= GameConstants.WEALTH_COMFORT
+		if done:
+			LifeRules.add_mood(p, "joy", GameConstants.TALK_JOY * 3.0)
+			var text: String = GameConstants.DESIRE_TEXTS[kind]
+			if text.contains("%s"):
+				text = text % PersonGen.full_name(_state.person(int(want.get("target_id", -1))))
+			_log(k, GameConstants.LIFE_MSG_WISH % [PersonGen.full_name(p), text])
+			p.desire = {kind = D.NONE, target_id = -1}
+		elif kind == D.NONE and daily:
+			p.desire = LifeRules.pick_desire(_state, p)
 
 
 # --- Bodies ----------------------------------------------------------------------------------
@@ -135,6 +239,18 @@ func complete_deed(k: Dictionary, p: Dictionary, deed: Dictionary, _seen: Array,
 			body_removed.emit(body.id)
 			_houses.buildings_changed.emit([grave])
 			_funeral(care, grave, mourners)
+		"talk":
+			var other := _state.person(int(data.get("with", -1)))
+			p.needs.social = 0.0
+			LifeRules.add_mood(p, "joy", GameConstants.TALK_JOY)
+			if not other.is_empty():
+				_state.add_relation(p.id, other.id, GameConstants.TALK_REL * 0.5)
+				if data.get("lead", false):
+					_log(k, GameConstants.LIFE_MSG_TALKED % [PersonGen.full_name(p), PersonGen.full_name(other)])
+		"prayer":
+			p.needs.faith = 0.0
+			LifeRules.add_mood(p, "joy", GameConstants.PRAY_JOY)
+			_log(k, GameConstants.LIFE_MSG_PRAYED_FLAG % PersonGen.full_name(p))
 		"funeral":
 			LifeRules.add_mood(p, "grief", 0.0)
 			p.mood.grief = float(p.mood.grief) * GameConstants.FUNERAL_GRIEF_KEEP
