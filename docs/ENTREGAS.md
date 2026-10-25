@@ -432,3 +432,42 @@ Suíte: 644 testes passando.
   (73, 26 e 72 sepulturas), guerras acontecendo.
 
 Suíte: 646 testes passando (lugares de refeição, fogueira e brincadeira sempre alcançáveis).
+
+## Etapa 12 — Acabamento (2026-10-25)
+
+**O que mudou**
+- **Menu inicial** (a cena principal agora é `scenes/menu.tscn`), só teclado: Continuar (o último jogo salvo),
+  Novo jogo (escolhe um de 3 espaços; num espaço usado pergunta antes e apaga tudo dele), Carregar (os espaços
+  salvos com reino, dia e hora do save), Opções (volume da música e dos efeitos, música ligada/desligada) e Sair.
+- **Menu de pausa:** Esc sem nada aberto para o mundo (relógio e simulação); Continuar, Salvar, Opções, Voltar
+  ao menu e Sair — os dois últimos só depois de um save que deu certo. Esc da construção, do painel P e dos
+  painéis do ADM fecha só eles.
+- **3 espaços de save** (`user://save_1.bin`..`save_3.bin`, com um resumo ao lado); o save antigo vira o espaço 1;
+  `tools/new_world.ps1` apaga os 3.
+- **Som** (autoload `Sound`, sons gerados por `tools/sounds/make_sounds.py`): música e ambiente de dia, de noite e
+  com chuva, com transição; passos, espada, arco e acertos; machado e picareta na coleta; quem trabalha ou cava
+  por perto (3D, no máximo 8 vozes, nada além de 25 m); as fogueiras mais próximas crepitam; pássaros de dia;
+  cliques nos menus. Opções em `user://settings.cfg`.
+- **Balanceamento:** um reino deixado sozinho esgotava árvores, pedras e arbustos num raio de 35 m em 3 dias, não
+  conseguia mais madeira para refazer as fazendas e morria de fome (22 de 24 saíam em 15 dias). Agora os
+  moradores pegam o mais perto primeiro e vão até 80 m: o reino fica com 16 moradores depois de 15 dias, mesmo
+  com ataques; nos reinos NPC a saída por fome caiu de 14–20 para 0–7 em 60 dias. Ferramenta nova
+  `tests/visual/raid_world.gd`; `long_world.gd` agora conta os acontecimentos por tipo.
+
+**Decisões principais** (ledger da etapa)
+- Fundo do menu em cor sólida com o título (carregar um mundo atrás do menu custaria o dobro).
+- As fogueiras soam por um conjunto de 3 vozes no `Sound` (as mais próximas), não uma por chunk.
+- `World` e menu acham `Session` e `Sound` em `/root` (scripts rodados com `-s` compilam antes dos autoloads;
+  foi isso que travou a primeira captura).
+
+**Pendências**
+- A captura completa foi interrompida pelo autor depois dos feitos (faltaram as fotos finais e a da pausa);
+  o menu foi conferido numa foto à parte, já centralizado.
+- Sem revisão final por subagente nesta etapa (o autor pediu rapidez).
+- Reinos NPC lotados quase não têm nascimentos (os viajantes ocupam as vagas).
+- `test_save_slots` deixa pastas vazias `user://test_slots_empty_*`.
+
+**Capturas:** `29`–`37` (feitos acontecendo sozinhos: imposto, brincadeira, convocação, obra, refeição,
+conversa, desvio de madrugada, passagem do governo, fogueira), `50_menu`, `51_menu_slots`, `52_menu_options`.
+
+Suíte: 678 testes passando.

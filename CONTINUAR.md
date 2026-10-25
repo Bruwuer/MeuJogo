@@ -19,20 +19,10 @@ primeiro e atualizá-lo ao concluir cada tarefa** (seção "Estado atual").
 
 ## Estado atual
 
-- Etapas 1 a 11 e os chapéus por ofício: concluídos e no `main` (646 testes passando). Resumo em `docs/ENTREGAS.md`.
+- Etapas 1 a 12: concluídas e no `main` (678 testes passando). Resumo em `docs/ENTREGAS.md`.
 - Etapas 10 (Vida) e 11 (Cotidiano) entraram no roadmap a pedido do autor na noite de 2026-10-25.
-- **Em andamento: etapa 12 (Acabamento)** — menu, salvar/carregar, som, balanceamento. Ramo `etapa-12`.
-  - Feito: design com adendo da revisão (`docs/superpowers/specs/2026-10-25-etapa-12-acabamento-design.md`);
-    todos os sons gerados por `tools/sounds/make_sounds.py` em `assets/sounds/`; classe `SaveSlots`
-    (`scripts/core/save_slots.gd`) e constantes de espaços em `game_constants.gd`.
-  - A conferir primeiro: rodar `tools/run_tests.ps1 test_save_slots` (corrigido um erro de tipo em
-    `migrate_legacy`, ainda não rodado de novo).
-  - Falta, nesta ordem: autoload `Session` (espaço escolhido) e `World` usando o espaço 1 por padrão e
-    gravando o resumo depois de cada save; `tools/new_world.ps1` apagando os 3 espaços; construção marcando
-    o Esc como usado (`build_system.gd`, ramo `build_cancel`); menu inicial (`scenes/menu.tscn` como cena
-    principal) e menu de pausa; autoload `Sound` (canais, laços, vozes 3D, ouvinte no jogador, fogueira em
-    `chunk.gd`, passos, golpes, coleta, ambiente, música, cliques, `user://settings.cfg`); balanceamento
-    com `tests/visual/long_world.gd`; capturas; revisão final; docs; merge no `main`.
+- Roadmap cumprido. Pendências da etapa 12 em `docs/ENTREGAS.md` (revisão final por subagente não feita,
+  captura completa interrompida). Próximos passos só com pedido do autor.
 
 ## Execução automática
 
