@@ -248,3 +248,47 @@ tinha casado (ou criança escolhida como amante), e o texto "Casa ?" quando a Ca
 - O primeiro quadro depois de 12 dias longe carrega a área inteira de uma vez (pico de ~9,7 s só na captura).
 
 Suíte: 525 testes passando.
+
+
+## Etapa 8 — Governo (2026-10-24)
+
+**O que mudou**
+- **Quem governa:** cada reino tem um governante. O fundador governa enquanto está lá; fora por 2 dias de jogo,
+  o chefe de Casa com mais apoio (prestígio, membros adultos e simpatia das outras Casas) vira regente numa
+  **cerimônia de posse na sede** (feito de verdade). Governante que morre ou vai embora é seguido pelo herdeiro.
+- **Jeito do governante** (pela opinião dele sobre o fundador, na posse): leal, culto ao fundador, neutro ou
+  inimigo; e, à parte, corrupto (traço ganancioso ou Casa que preza riqueza).
+- **Decretos do fundador** (painel **P**, setas escolhem e mudam): imposto (nenhum/baixo/alto), ração
+  (curta/normal/farta), guarda (livre ou 0 a 4) e obra preferida. Cada um tem efeito real: as Casas **levam o
+  imposto à sede**, a ração muda quantas vezes se come, a guarda cresce com **convocados que vão à sede**, e a
+  obra pedida é a primeira a ser feita. Mudar um decreto mexe na opinião de quem é afetado.
+- **Governante NPC:** o corrupto sobe o imposto e **vai de madrugada ao armazém** levar estoque para a própria
+  Casa (pode ser visto); sob culto, os devotos **rezam ao entardecer junto à bandeira**; o inimigo faz a opinião
+  sobre o fundador cair enquanto ele está longe.
+- **Volta do fundador:** leal e culto (e neutro, se o povo gosta do fundador) **caminham até a sede e devolvem o
+  governo**. O inimigo não devolve: o fundador vira estrangeiro (não constrói, não demole, não doa ali).
+- **Deposição:** governante odiado pelos chefes das Casas é deposto numa **reunião de madrugada perto da sede**
+  (segredo com testemunhas: se alguém vê, a trama falha e a Casa do líder cai em desonra).
+- O HUD mostra só "Governo: você / Nome" (é público); todo o resto vai para o log do ADM. O F10 ganhou a linha
+  do governo (jeito, corrupção, decretos, quanto foi desviado).
+
+**Captura orgânica** (nada encenado): o fundador pôs imposto baixo e guarda de 2 pelo painel
+(`44_gov_panel`); dois moradores foram convocados; ele saiu e, 2 dias depois, Guiomar da Ponte tomou posse
+(neutra e corrupta), subiu o imposto e desviou 10 do estoque de madrugada; as Casas levaram o imposto à sede
+todo dia (`29_deed_tax`); na volta do fundador ela foi à sede e devolveu o governo (`30_deed_handover`,
+`45_gov_return`).
+
+**Revisão final (subagente):** corrigidos, com teste que falhava antes: o painel não segurava o jogador no
+jogo real; com o fundador presente, um governante deposto ou morto devolvia o reino a ele sem perguntar ao povo
+e pulava o herdeiro; reino podia ficar sem governante para sempre; trama contra um governante derrubava o
+seguinte; devolução com o fundador já longe; Casa do governante desatualizada depois de uniões; imposto e reza
+perdidos pulavam o dia; Esc não fechava o painel; nome de governante sumido travava a recusa.
+
+**Pendências**
+- A dispensa de guarda é imediata (exceção registrada à regra 17).
+- Guardas não enfrentam o fundador estrangeiro; prisão, julgamento e guerra civil ficam para a etapa 9.
+- Um convocado para a guarda pode virar regente e continuar guarda.
+- Escândalo de desvio do governante pesa nas relações com o chefe da Casa dele, não com ele, se ele não for o
+  chefe (pode atrasar uma deposição).
+
+Suíte: 566 testes passando.

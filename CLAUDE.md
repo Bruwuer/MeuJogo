@@ -99,6 +99,11 @@ docs/superpowers/     specs/ e plans/
     da Casa, perto do feito; fora da tela, sorteio por quem está acordado). Casamento e filhos só entre homem e
     mulher; romance do mesmo sexo é segredo malvisto (escândalo se descoberto).
 
+18. **Governo:** cada reino tem `ruler_id` (`GOV_PLAYER` = o fundador, `GOV_NOBODY` = sucessão em curso, ou um
+    morador). `GovRules` (puro) e `GovSim` (por hora, depois do `HouseSim`) cuidam de posse, decretos, volta do
+    fundador e deposição; tudo que muda o reino é feito de uma pessoa (posse, devolução, imposto, convocação, reza,
+    deposição, desvio do governante). O HUD só mostra quem governa e o painel P do próprio fundador.
+
 ## Comandos
 
 - Testes: `powershell -ExecutionPolicy Bypass -File tools/run_tests.ps1 [filtro]`
@@ -108,7 +113,8 @@ docs/superpowers/     specs/ e plans/
 - Começar um mundo novo (apaga o save): `powershell -ExecutionPolicy Bypass -File tools/new_world.ps1`
 - Controles: WASD anda, Shift corre, E fala com quem está perto (cartão com família, brasão e relações) ou coleta (árvore 4 golpes = 3 madeira,
   rocha 5 = 2 pedra, arbusto 1 = 2 frutas), G doa ao reino (até 10 de madeira, pedra e frutas).
-  Só para o ADM (desenvolvimento): F9 crônica do reino com segredos, F10 Casas do reino
+  P abre o governo (setas escolhem e mudam os decretos: imposto, ração, guarda, obra; P ou Esc fecha).
+  Só para o ADM (desenvolvimento): F9 crônica do reino com segredos, F10 Casas do reino (e a linha do governo)
 - Construção: B liga/desliga, 1–5 escolhe (Cabana, Fogueira, Depósito, Cerca, Poço), R gira, clique ou E constrói,
   Esc ou clique direito sai; X demole (devolve 50 %). A primeira Cabana funda o reino.
 - Combate (só teclado): Espaço ataca para onde o personagem olha, 1/2/3 escolhem Espada/Lança/Arco, Q troca,
@@ -129,6 +135,6 @@ docs/superpowers/     specs/ e plans/
 7. ✅ **Casas e ambições:** tradição e valores das Casas, riqueza, terras, especialização, melhoria de casa,
    objetivos próprios, vocações e desejos pessoais, parentesco completo e adoção, casamentos arranjados,
    união de Casas, corrupção, infiltração, desligamentos (amigável/neutro/hostil, às claras/escondido), guardas.
-8. **Governo:** decisões com efeito, sucessão, governante NPC (corrupção, lealdade, culto ou inimizade).
+8. ✅ **Governo:** decisões com efeito, sucessão, governante NPC (corrupção, lealdade, culto ou inimizade).
 9. **Mundo vivo:** reinos NPC, simulação resumida fora da tela, diplomacia e guerras, novos reinos.
 10. **Polimento:** menu, salvar/carregar, som, balanceamento.

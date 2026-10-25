@@ -64,11 +64,12 @@ O save fica em `user://` (no Windows: `%APPDATA%\Godot\app_userdata\MeuJogo\`). 
 | Espaço | ataca para onde o personagem olha |
 | 1/2/3, Q | Espada / Lança / Arco, troca |
 | F / H | faz 5 flechas com 1 madeira / come 1 fruta |
+| P, setas, Esc | governo: decretos de imposto, ração, guarda e obra (só no reino que você governa) |
 | F9 / F10 | **só ADM:** crônica do reino com segredos / Casas do reino |
 
 O log do ADM com tudo o que acontece no reino fica em `%APPDATA%\Godot\app_userdata\MeuJogo\adm_log.txt`.
 
 ## Estado
 
-Etapas 1 a 7 no `main` (525 testes). Próxima: etapa 8 (Governo). Etapas 8 a 10 por fazer — ver o roadmap
+Etapas 1 a 8 no `main` (566 testes). Próxima: etapa 9 (Mundo vivo). Etapas 9 e 10 por fazer — ver o roadmap
 no `CLAUDE.md`.

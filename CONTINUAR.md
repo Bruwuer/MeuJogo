@@ -19,12 +19,12 @@ primeiro e atualizá-lo ao concluir cada tarefa** (seção "Estado atual").
 
 ## Estado atual
 
-- Etapas 1 a 7: concluídas e no `main` (525 testes passando). Resumo em `docs/ENTREGAS.md`.
-- Etapa 7 (Casas e ambições) terminou em 2026-10-24: captura orgânica com o reino vivo, revisão final e
-  correções (design §6 e §7). Pendências menores listadas em `docs/ENTREGAS.md`.
-- **Próxima: etapa 8 (Governo)** — decisões com efeito, sucessão, governante NPC (corrupção, lealdade,
-  culto ou inimizade). Começar pelo design curto em `docs/superpowers/specs/`.
-- Etapas 9 e 10: não iniciadas (ver roadmap no `CLAUDE.md`).
+- Etapas 1 a 8: concluídas e no `main` (566 testes passando). Resumo em `docs/ENTREGAS.md`.
+- Etapa 8 (Governo) terminou em 2026-10-24: regente, decretos (painel P), governante NPC, volta do fundador,
+  deposição; captura orgânica e revisão final com correções (design §6 e §7).
+- **Próxima: etapa 9 (Mundo vivo)** — reinos NPC, simulação resumida fora da tela, diplomacia e guerras, novos
+  reinos. Começar pelo design curto em `docs/superpowers/specs/`.
+- Etapa 10: não iniciada (ver roadmap no `CLAUDE.md`).
 
 ## Execução automática
 
