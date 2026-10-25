@@ -198,3 +198,21 @@ func test_no_play_or_fire_in_the_rain() -> void:
 	s.rain_until = 48.0
 	_at_hour(GameConstants.PLAY_HOURS[0])
 	assert_true((kid.get("deed", {}) as Dictionary).is_empty(), "children stay in when it rains")
+
+
+func test_spots_are_never_inside_a_building() -> void:
+	_fresh()
+	var kid := _person("Pequeno", 7.0)
+	var home := s.add_building(B.HOUSE, k.center + Vector3(-12, 0, 0), 0, Color.WHITE, GameConstants.OWNER_KINGDOM)
+	kid.home_id = home.id
+	# A wall of houses all around the campfire and the door: every spot must still be outside them.
+	for a in 8:
+		var d := Vector3.FORWARD.rotated(Vector3.UP, TAU * a / 8.0)
+		s.add_building(B.FENCE, fire.pos + d * GameConstants.MEAL_RING, 0, Color.WHITE, GameConstants.OWNER_KINGDOM)
+	for h in 20:
+		life._hour = float(h)
+		for spot in [life._ring_spot(k, kid, GameConstants.MEAL_RING), life._play_spot(k, kid)]:
+			for b in s.all_buildings():
+				var r := BuildRules.footprint_rect(int(b.type), b.pos, int(b.rot))
+				assert_true(not r.grow(0.3).has_point(Vector2(spot.x, spot.z)),
+						"spot %s inside %s" % [spot, GameConstants.BUILD_NAMES[int(b.type)]])

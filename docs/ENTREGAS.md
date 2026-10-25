@@ -404,7 +404,8 @@ dobro, ração ignorada na tela, guardas largando o posto na chuva, brincadeira 
 contra a própria família.
 
 **Pendências**
-- Lugar da refeição ou da brincadeira pode cair atrás de uma casa ou árvore (quem não chega perde a vez).
+- ~~Lugar da refeição ou da brincadeira pode cair atrás de uma casa ou árvore~~ (corrigido na mesma noite: o lugar
+  desvia de construções, árvores e rochas).
 - Numa recuperação de vários dias de uma vez só vale a chuva do último dia.
 - A troca para o céu nublado é instantânea (sem transição).
 
@@ -430,5 +431,4 @@ Suíte: 644 testes passando.
 - Estabilidade: `tests/visual/long_world.gd` com tudo ligado, 3 mundos × 60 dias em 2 min 35 s, nenhum corpo esquecido
   (73, 26 e 72 sepulturas), guerras acontecendo.
 
-Suíte: 645 testes passando.
-
+Suíte: 646 testes passando (lugares de refeição, fogueira e brincadeira sempre alcançáveis).

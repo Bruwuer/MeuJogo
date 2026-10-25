@@ -84,7 +84,7 @@ func _ring_spot(k: Dictionary, p: Dictionary, ring: float) -> Vector3:
 			break
 	var rng := RandomNumberGenerator.new()
 	rng.seed = hash([_state.seed, "ring", p.id])
-	return at + Vector3.FORWARD.rotated(Vector3.UP, rng.randf() * TAU) * ring
+	return _free_around(at, ring, rng)
 
 
 ## Around the child's home door (or the seat's), a little different each time.
@@ -93,7 +93,33 @@ func _play_spot(k: Dictionary, p: Dictionary) -> Vector3:
 	var at: Vector3 = PeopleManager.door_of(home) if not home.is_empty() else _ring_spot(k, p, GameConstants.PLAY_RADIUS)
 	var rng := RandomNumberGenerator.new()
 	rng.seed = hash([_state.seed, "play", p.id, int(_hour)])
-	return at + Vector3.FORWARD.rotated(Vector3.UP, rng.randf() * TAU) * rng.randf_range(1.0, GameConstants.PLAY_RADIUS)
+	return _free_around(at, rng.randf_range(1.0, GameConstants.PLAY_RADIUS), rng)
+
+
+## A spot about `radius` from `at` that one can reach: outside every building and clear of trees and
+## rocks (tries around the circle, a little nearer and farther). `at` itself when nothing is free.
+func _free_around(at: Vector3, radius: float, rng: RandomNumberGenerator) -> Vector3:
+	var start := rng.randf() * TAU
+	for r in [radius, radius * 1.4, radius * 0.7, radius * 1.9]:
+		for i in GameConstants.SPOT_TRIES:
+			var spot: Vector3 = at + Vector3.FORWARD.rotated(Vector3.UP, start + TAU * i / GameConstants.SPOT_TRIES) * float(r)
+			if _reachable(spot):
+				return spot
+	return at
+
+
+func _reachable(spot: Vector3) -> bool:
+	for b in _state.all_buildings():
+		if Vector2(b.pos.x - spot.x, b.pos.z - spot.z).length() > GameConstants.SPOT_NEAR:
+			continue
+		var rect := BuildRules.footprint_rect(int(b.type), b.pos, int(b.rot))
+		if rect.grow(GameConstants.SPOT_CLEARANCE).has_point(Vector2(spot.x, spot.z)):
+			return false
+	if _scatter:
+		for prop in _scatter.props_near(spot, GameConstants.SPOT_CLEARANCE * 2.0):
+			if not _state.removed_in(ChunkMath.world_to_chunk(prop.pos)).has(prop.id):
+				return false
+	return true
 
 
 # --- Needs and wants ------------------------------------------------------------------------

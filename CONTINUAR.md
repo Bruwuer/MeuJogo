@@ -19,7 +19,7 @@ primeiro e atualizá-lo ao concluir cada tarefa** (seção "Estado atual").
 
 ## Estado atual
 
-- Etapas 1 a 11 e os chapéus por ofício: concluídos e no `main` (645 testes passando). Resumo em `docs/ENTREGAS.md`.
+- Etapas 1 a 11 e os chapéus por ofício: concluídos e no `main` (646 testes passando). Resumo em `docs/ENTREGAS.md`.
 - Etapas 10 (Vida) e 11 (Cotidiano) entraram no roadmap a pedido do autor na noite de 2026-10-25.
 - **Próxima: etapa 12 (Acabamento)** — menu, salvar/carregar, som, balanceamento.
 
