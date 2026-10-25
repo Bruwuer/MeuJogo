@@ -37,7 +37,8 @@ static func muster_candidate(state: WorldState, k: Dictionary) -> int:
 	var best := -1
 	var best_rank := 3
 	for p in state.residents(k.id):
-		if not SocietyRules.is_adult(p) or int(p.profession) == GameConstants.Profession.GUARD 				or p.id == int(k.get("ruler_id", -1)) or not (p.get("deed", {}) as Dictionary).is_empty():
+		if not SocietyRules.is_adult(p) or int(p.profession) == GameConstants.Profession.GUARD \
+				or p.id == int(k.get("ruler_id", -1)) or not (p.get("deed", {}) as Dictionary).is_empty():
 			continue
 		var f := state.family(int(p.get("family_id", -1)))
 		var rank := 3

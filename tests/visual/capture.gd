@@ -293,6 +293,16 @@ func _houses() -> void:
 	await _shot("45_gov_return")
 	hud.toggle_gov()
 
+	# 2b) The world around (stage 9): relations between kingdoms and a visit to a neighbor.
+	print("REALMS: %d kingdoms · %s" % [state.kingdoms().size(), hud.realms_adm_line(k)])
+	for o in state.kingdoms():
+		if o.founder == "npc":
+			await _teleport((o.center as Vector3) + Vector3(0, 0, 9))
+			await _physics(60)
+			print("REALMS visit: %s · %s · %d residents" % [o.name, hud.gov_line(o), state.residents(o.id).size()])
+			await _shot("46_npc_realm")
+			break
+
 	# 3) What the Houses made of their land and homes, by themselves.
 	_set_time(DAY_TIME)
 	var built := state.all_buildings().filter(func(b: Dictionary) -> bool:
@@ -342,8 +352,10 @@ func _flat_area(gen: TerrainGenerator, half: float) -> Vector3:
 					var h := gen.height_at(x + dx, z + dz)
 					lo = minf(lo, h)
 					hi = maxf(hi, h)
-			if hi - lo < 1.0 and gen.biome_at(x, z) == GameConstants.Biome.PLAINS:
-				return Vector3(x, gen.height_at(x, z), z)
+			var at := Vector3(x, gen.height_at(x, z), z)
+			var plain := hi - lo < 1.0 and gen.biome_at(x, z) == GameConstants.Biome.PLAINS
+			if plain and BuildSystem.founds_kingdom(_world.get_state(), at): # far from the NPC kingdoms
+				return at
 	return Vector3(-1, -1, -1)
 
 
