@@ -35,6 +35,8 @@ var creature_source := Callable()
 var talk_target := Callable()
 ## func(pos: Vector3) -> String (PeopleManager.donate): G gives resources to the kingdom.
 var donate_handler := Callable()
+## func(pos: Vector3, what: String) -> String (PeopleManager.trade): Z/C/V trade with a merchant.
+var trade_handler := Callable()
 var health := Health.new(GameConstants.PLAYER_HP)
 var weapon: int = GameConstants.Weapon.SWORD
 
@@ -89,6 +91,10 @@ func _unhandled_input(event: InputEvent) -> void:
 		donate()
 	elif event.is_action_pressed("eat"):
 		eat()
+	else:
+		for t in [["trade_bread", "bread"], ["trade_arrows", "arrows"], ["trade_sell", "sell_wood"]]:
+			if event.is_action_pressed(t[0]) and trade_handler.is_valid():
+				message.emit(trade_handler.call(global_position, t[1]))
 
 
 func _physics_process(delta: float) -> void:
@@ -216,6 +222,9 @@ func craft_arrows() -> bool:
 func eat() -> bool:
 	if state == null or health.is_dead() or health.hp >= health.max_hp:
 		return false
+	if state.spend({GameConstants.Res.BREAD: 1}): # bread from a merchant first
+		health.heal(GameConstants.BREAD_HEAL)
+		return true
 	if not state.spend(GameConstants.EAT_COST):
 		return false
 	health.heal(GameConstants.EAT_HEAL)

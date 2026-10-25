@@ -94,6 +94,29 @@ func setup(rec: Dictionary, library: ModelLibrary, mgr: Node) -> void:
 	if is_dead():
 		collision_layer = 0 # a body lies on the ground, nobody bumps into it
 		_play(GameConstants.ANIM_DEAD)
+	if String(rec.get("status", "")) == "merchant" and library and _model:
+		_wear_pack(library)
+
+
+## A wandering merchant carries a pack on the back (stage 10).
+func _wear_pack(library: ModelLibrary) -> void:
+	var scene := library.tool_scene("pack")
+	var skels := _model.find_children("*", "Skeleton3D", true, false)
+	if scene == null or skels.is_empty():
+		return
+	var skel: Skeleton3D = skels[0]
+	var attach := BoneAttachment3D.new()
+	attach.name = "Back"
+	attach.bone_name = "spine"
+	skel.add_child(attach)
+	var pack := scene.instantiate() as Node3D
+	pack.name = "Pack"
+	pack.position = GameConstants.PACK_OFFSET
+	attach.add_child(pack)
+
+
+func has_pack() -> bool:
+	return _model != null and not _model.find_children("Pack", "", true, false).is_empty()
 
 
 ## A body lying where the person fell (stage 10): no thinking, no moving.

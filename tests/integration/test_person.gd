@@ -255,3 +255,15 @@ func test_deep_grief_bows_the_head() -> void:
 	await wait_physics_frames(5)
 	assert_eq(_clip(p), GameConstants.ANIM_MOURN)
 	p.queue_free()
+
+
+func test_a_merchant_wears_a_pack() -> void:
+	_floor()
+	var lib: ModelLibrary = await _library()
+	var rec := PersonGen.generate(RandomNumberGenerator.new(), 0.0, GameConstants.Profession.MERCHANT)
+	rec.merge({id = 46, pos = Vector3(0, 0.2, 0), status = "merchant", carrying = {}, home_id = -1, inside = -1, job = ""}, true)
+	var m := Person.new()
+	add_child(m)
+	m.setup(rec, lib, null)
+	assert_true(m.has_pack(), "a wandering merchant carries a pack")
+	m.queue_free()

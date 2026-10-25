@@ -54,6 +54,8 @@ var gov := GovSim.new()
 var realms := RealmSim.new()
 ## Bodies and burials, feelings, needs and wants (stage 10).
 var life := LifeSim.new()
+## Wandering merchants (stage 10).
+var merchants := MerchantSim.new()
 
 
 func setup(state: WorldState, gen: TerrainGenerator, scatter: PropScatter, day_night: DayNight) -> void:
@@ -72,6 +74,8 @@ func setup(state: WorldState, gen: TerrainGenerator, scatter: PropScatter, day_n
 	realms.setup(state, houses, society, gov)
 	life.setup(state, houses, society)
 	life.set_terrain(gen, scatter)
+	merchants.setup(state, houses)
+	merchants.set_terrain(gen)
 	life.body_removed.connect(func(id: int) -> void: body_removed.emit(id))
 	realms.set_terrain(gen, scatter)
 	realms.building_burned.connect(func(r: Dictionary) -> void: building_burned.emit(r))
@@ -142,6 +146,7 @@ func _tick_hour(hour: float) -> void:
 				opinions += float(p.opinion)
 				count += 1
 	realms.tick_hour(hour)
+	merchants.tick_hour(hour)
 	if count > 0:
 		_state.fame = opinions / count
 	for p in _state.all_people(): # those who left and lost their node walk off the map

@@ -229,7 +229,7 @@ func person_context(n: Person) -> Dictionary:
 		me.is_work_time = VillageRules.guard_on_duty(_sim.hour_of_day())
 		me.is_sleep_time = not me.is_work_time
 	var deed: Dictionary = rec.get("deed", {})
-	if rec.status == "resident" and Deeds.is_due(deed, _sim.now_hours()):
+	if rec.status in ["resident", "merchant"] and Deeds.is_due(deed, _sim.now_hours()):
 		me.deed = {pos = deed.pos, reach = deed.reach, work_sec = deed.work_sec}
 	if rec.status == "resident" and me.is_work_time and not me.raid:
 		var job := VillageRules.choose_job(rec, _snapshot(k))
@@ -517,6 +517,19 @@ func left_map(n: Person) -> void:
 
 ## G inside a kingdom: up to DONATE_MAX of each resource goes from the player to the stock, and
 ## the residents who see it think better of the player. Returns the message to show.
+## The player trades with the merchant nearby ("bread", "arrows", "sell_wood").
+func trade(pos: Vector3, what: String) -> String:
+	var best: Person = null
+	var best_d := GameConstants.TALK_RANGE * 2.0
+	for n in active_people():
+		if n.record.status == "merchant" and _flat(n.global_position, pos) <= best_d:
+			best = n
+			best_d = _flat(n.global_position, pos)
+	if best == null:
+		return GameConstants.MERCHANT_NONE
+	return MerchantRules.trade(_state, best.record, what)
+
+
 func donate(pos: Vector3) -> String:
 	var k := _state.kingdom_at(pos)
 	if k.is_empty():
@@ -563,6 +576,12 @@ func on_creature_killed(rec: Dictionary, by_player: bool) -> void:
 
 ## What the card shows when the player talks to someone.
 static func card_text(rec: Dictionary, state: WorldState) -> String:
+	if String(rec.get("status", "")) == "merchant": # the price list (stage 10)
+		var g: Dictionary = rec.get("goods", {})
+		return PersonGen.full_name(rec) + "\n" + GameConstants.MERCHANT_CARD % [int(g.get(GameConstants.Res.BREAD, 0)),
+				int(g.get(GameConstants.Res.ARROWS, 0)), int(rec.get("coins", 0)), GameConstants.MERCHANT_BREAD_PRICE,
+				GameConstants.MERCHANT_ARROW_LOT, GameConstants.MERCHANT_ARROW_PRICE, GameConstants.MERCHANT_SELL_LOT,
+				GameConstants.MERCHANT_WOOD_PRICE]
 	var traits: PackedStringArray = []
 	for t: int in rec.traits:
 		traits.append(PersonGen.trait_name(rec, t))

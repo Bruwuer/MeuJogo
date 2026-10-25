@@ -50,6 +50,8 @@ var _relations: Dictionary[Vector2i, float] = {} # (lower id, higher id) -> -1..
 var _realms: Dictionary[Vector2i, Dictionary] = {}
 ## The NPC kingdoms were placed on the map (once per world).
 var realms_seeded := false
+## When the next wandering merchant comes (stage 10; -1: not scheduled yet).
+var next_merchant_hour := -1.0
 ## The player's reputation: average opinion of every resident (-1..1), refreshed hourly.
 var fame := 0.0
 
@@ -267,6 +269,7 @@ func save_to(path: String) -> Error:
 		relations = _relation_list(),
 		realms = _realms_list(),
 		realms_seeded = realms_seeded,
+		next_merchant_hour = next_merchant_hour,
 		ancestry = _ancestry,
 		chronicle = _chronicle,
 	})
@@ -393,6 +396,7 @@ static func _from_dict(data: Dictionary) -> WorldState:
 	for r: Array in data.get("realms", []):
 		s._realms[Vector2i(r[0], r[1])] = r[2]
 	s.realms_seeded = data.get("realms_seeded", false)
+	s.next_merchant_hour = data.get("next_merchant_hour", -1.0)
 	for c in data.get("visited", []):
 		s._visited[c] = true
 	if data.get("version", -1) == GameConstants.WORLDGEN_VERSION:

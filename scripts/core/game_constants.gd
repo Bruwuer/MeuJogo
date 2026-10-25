@@ -31,7 +31,7 @@ const FOREST_RELIEF := 0.7
 
 # Props and resources
 enum Prop { OAK, PINE, ROCK, BUSH }
-enum Res { WOOD, STONE, BERRIES, ARROWS, FOOD } ## New values only at the end (saves store ints).
+enum Res { WOOD, STONE, BERRIES, ARROWS, FOOD, COINS, BREAD } ## New values only at the end (saves store ints).
 const PROP_CELL := 4.0 ## Scatter grid cell (m); at most one prop per cell.
 const PROP_MAX_SLOPE_DEG := 30.0
 const PROP_SINK := 0.05 ## Props are sunk this much (x scale) so they never float.
@@ -63,7 +63,8 @@ const HARVEST_PROMPTS := {
 	Prop.ROCK: "[E] Quebrar rocha",
 	Prop.BUSH: "[E] Colher frutas",
 }
-const RES_NAMES := { Res.WOOD: "Madeira", Res.STONE: "Pedra", Res.BERRIES: "Frutas", Res.ARROWS: "Flechas", Res.FOOD: "Comida" }
+const RES_NAMES := { Res.WOOD: "Madeira", Res.STONE: "Pedra", Res.BERRIES: "Frutas", Res.ARROWS: "Flechas", Res.FOOD: "Comida",
+		Res.COINS: "Moedas", Res.BREAD: "Pão" }
 
 # Player
 const WALK_SPEED := 4.0
@@ -76,6 +77,7 @@ const PLAYER_HP := 100.0
 const PLAYER_REGEN_DELAY := 6.0 ## Seconds without damage before health regenerates.
 const PLAYER_REGEN_PER_SEC := 2.0
 const EAT_HEAL := 15.0
+const BREAD_HEAL := 35.0 ## A loaf bought from a merchant heals more than fruit (eaten first).
 const EAT_COST := { Res.BERRIES: 1 }
 const ARROW_CRAFT_COST := { Res.WOOD: 1 }
 const ARROWS_PER_CRAFT := 5
@@ -1158,3 +1160,36 @@ const CARD_FEELING := "Sente-se: %s"
 const LIFE_MSG_TALKED := "%s e %s conversaram"
 const LIFE_MSG_PRAYED_FLAG := "%s rezou junto à bandeira"
 const LIFE_MSG_WISH := "%s realizou o desejo de %s"
+
+# Wandering merchants (stage 10)
+const MERCHANT_FIRST_HOURS := 20.0 ## The first merchant comes this long after a world starts.
+const MERCHANT_EVERY_HOURS := 48.0
+const MERCHANT_MAX := 1 ## On the map at once.
+const MERCHANT_STOPS := 3 ## Seats visited before leaving.
+const MERCHANT_EDGE := 20.0 ## Where merchants appear, from the map edge.
+const MERCHANT_GOODS := { Res.FOOD: 40, Res.BREAD: 20, Res.ARROWS: 60 }
+const MERCHANT_COINS := 60
+const PACK_OFFSET := Vector3(0.0, 0.22, -0.12) ## The pack on the spine bone (up the back, behind).
+const MERCHANT_TRADE_SEC := 6.0 ## Talking business at the seat.
+const MERCHANT_WAIT_HOURS := 6.0 ## Hours at a seat to do business before moving on.
+const MERCHANT_HUNGRY_DAYS := 3.0 ## A kingdom with less food than this buys some.
+const MERCHANT_FOOD_LOT := 15
+const MERCHANT_SURPLUS := 40 ## Wood or stone above this is sold to the merchant...
+const MERCHANT_BUY_LOT := 20 ## ... this much at a time ...
+const MERCHANT_SURPLUS_RATE := 2 ## ... at one coin per this many.
+const MERCHANT_BREAD_PRICE := 3
+const MERCHANT_ARROW_PRICE := 4
+const MERCHANT_ARROW_LOT := 10
+const MERCHANT_SELL_LOT := 10 ## Wood the player sells at once...
+const MERCHANT_WOOD_PRICE := 2 ## ... for this many coins.
+const MERCHANT_MSG_ARRIVED := "O mercador %s negociou no Reino de %s"
+const MERCHANT_SOLD_FOOD := "vendeu %d de comida por %d de %s"
+const MERCHANT_BOUGHT := "comprou %d de %s por %d moedas"
+const MERCHANT_BOUGHT_MSG := "Você comprou %s por %d moedas"
+const MERCHANT_SOLD_MSG := "Você vendeu %d de madeira por %d moedas"
+const MERCHANT_NO_COINS := "Faltam moedas (custa %d)"
+const MERCHANT_NO_WOOD := "Você precisa de %d de madeira para vender"
+const MERCHANT_OUT := "O mercador não tem mais %s"
+const MERCHANT_BROKE := "O mercador está sem moedas"
+const MERCHANT_CARD := "Mercador ambulante · Pão: %d · Flechas: %d · Moedas: %d\nZ compra pão (%d moedas) · C compra %d flechas (%d) · V vende %d de madeira (%d moedas)"
+const MERCHANT_NONE := "Nenhum mercador por perto"

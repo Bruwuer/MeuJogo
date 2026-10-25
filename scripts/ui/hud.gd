@@ -160,11 +160,15 @@ func setup(state: WorldState, harvest: HarvestSystem, day_night: DayNight, playe
 
 
 func resources_text() -> String:
-	return "%s: %d   %s: %d   %s: %d" % [
+	var text := "%s: %d   %s: %d   %s: %d" % [
 		GameConstants.RES_NAMES[GameConstants.Res.WOOD], _state.get_resource(GameConstants.Res.WOOD),
 		GameConstants.RES_NAMES[GameConstants.Res.STONE], _state.get_resource(GameConstants.Res.STONE),
 		GameConstants.RES_NAMES[GameConstants.Res.BERRIES], _state.get_resource(GameConstants.Res.BERRIES),
 	]
+	for res in [GameConstants.Res.BREAD, GameConstants.Res.COINS]: # shown once the player has some
+		if _state.get_resource(res) > 0:
+			text += "   %s: %d" % [GameConstants.RES_NAMES[res], _state.get_resource(res)]
+	return text
 
 
 static func cost_text(cost: Dictionary) -> String:
