@@ -11,6 +11,10 @@ const B := GameConstants.Building
 
 ## A building burned in a battle (its node must go).
 signal building_burned(rec: Dictionary)
+## A bush under a new seat is gone (its node must go).
+signal prop_removed(c: Vector2i, id: int)
+## People moved between Houses or homes (banners may need a new crest).
+signal families_changed
 
 var _state: WorldState
 var _houses: HouseSim
@@ -50,6 +54,8 @@ func _daily() -> void:
 				r.weary_b = float(r.weary_b) + GameConstants.REALM_WEARY_DAY
 	for k in ks:
 		if RealmRules.ruler_of(_state, k).is_empty():
+			if int(k.ruler_id) == GameConstants.GOV_PLAYER:
+				k.war_guard = false # a regent's call-up ends with the founder; the decrees are his now
 			continue # the player decides for the own kingdoms; nobody decides in an interregnum
 		var enemies := ks.filter(func(o: Dictionary) -> bool: return o.id != k.id and _state.at_war(k.id, o.id))
 		_war_guard(k, not enemies.is_empty())
@@ -76,16 +82,16 @@ func _exodus(k: Dictionary) -> void:
 	var f := RealmRules.exodus_house(_state, k)
 	if f.is_empty():
 		return
-	var members := _state.family_members(f.id)
-	if members.any(func(p: Dictionary) -> bool: return _houses.has_node.call(p.id)):
+	if _settlers(k, f).any(func(p: Dictionary) -> bool: return _houses.has_node.call(p.id)):
 		return
 	var head := _state.person(int(f.head_id))
 	if not (head.get("deed", {}) as Dictionary).is_empty():
 		return
 	var rng := RandomNumberGenerator.new()
 	rng.seed = hash([_state.seed, "exodus", k.id, int(_hour)])
-	var site := NpcRealms._place(_state, _gen, _scatter, [], rng)
+	var site := NpcRealms._place(_state, _gen, _scatter, [], rng, false)
 	if site.x < 0.0:
+		k.next_exodus_hour = _hour + GameConstants.REALM_EXODUS_RETRY_HOURS
 		return
 	var end := _hour + RealmRules.travel_hours(k.center, site)
 	_houses.plan_deed(head, Deeds.make("exodus", site, GameConstants.PERSON_ARRIVE * GameConstants.REALM_MARCH_REACH,
@@ -96,7 +102,26 @@ func _exodus(k: Dictionary) -> void:
 	_log(k, GameConstants.REALM_MSG_EXODUS % [f.surname, k.name])
 
 
-## The head reached the place: the kingdom is founded and the whole House moves there.
+## Who leaves with House `f` of `old`: its resident members, their spouses (even of another House)
+## and the minor children of any of them.
+func _settlers(old: Dictionary, f: Dictionary) -> Array[Dictionary]:
+	var out: Array[Dictionary] = []
+	for p in _state.residents(old.id):
+		if int(p.family_id) == f.id:
+			out.append(p)
+	for p in out.duplicate():
+		var spouse := _state.person(int(p.get("spouse_id", -1)))
+		if not spouse.is_empty() and spouse.status == "resident" and int(spouse.kingdom_id) == old.id and not out.has(spouse):
+			out.append(spouse)
+	for c in _state.residents(old.id):
+		if not SocietyRules.is_adult(c) and not out.has(c) \
+				and (c.parents as Array).any(func(id: int) -> bool: return out.any(func(o: Dictionary) -> bool: return o.id == id)):
+			out.append(c)
+	return out
+
+
+## The head reached the place: the kingdom is founded and the whole household moves there (only if
+## the place is still free and nobody of them is on screen).
 func _found(old: Dictionary, head: Dictionary, f: Dictionary, site: Vector3) -> void:
 	old.exodus_family = -1
 	if f.is_empty() or head.status != "resident" or int(f.kingdom_id) != old.id \
@@ -104,6 +129,15 @@ func _found(old: Dictionary, head: Dictionary, f: Dictionary, site: Vector3) -> 
 			or _state.kingdoms().any(func(o: Dictionary) -> bool:
 				return Vector2(o.center.x - site.x, o.center.z - site.z).length() < GameConstants.REALM_MIN_GAP):
 		return
+	var members := _settlers(old, f)
+	if members.any(func(p: Dictionary) -> bool: return _houses.has_node.call(p.id) and p.id != head.id):
+		return
+	var check := BuildRules.check_site(B.CABIN, site, 0, _gen, _scatter, _state, [])
+	if not check.ok: # someone built there meanwhile
+		return
+	for bush: Dictionary in check.bushes:
+		_state.mark_removed(bush.chunk, bush.id)
+		prop_removed.emit(bush.chunk, bush.id)
 	var index := _state.kingdoms().size()
 	var color := KingdomNames.color(_state.seed, index)
 	var seat := _state.add_building(B.CABIN, site, 0, Color.WHITE, GameConstants.OWNER_KINGDOM)
@@ -111,13 +145,12 @@ func _found(old: Dictionary, head: Dictionary, f: Dictionary, site: Vector3) -> 
 	var flag := _state.add_building(B.FLAG, Vector3(flag_pos.x, _gen.height_at(flag_pos.x, flag_pos.z), flag_pos.z), 0,
 			color, GameConstants.OWNER_KINGDOM)
 	var nk := _state.add_kingdom(KingdomNames.generate(_state.seed, index), color, site, seat.id, "npc")
-	var members := _state.family_members(f.id).filter(func(p: Dictionary) -> bool:
-		return p.status == "resident" and int(p.kingdom_id) == old.id)
 	var ids := members.map(func(p: Dictionary) -> int: return p.id)
 	for i in members.size():
 		var m: Dictionary = members[i]
 		SocietySim.transfer_houses(_state, m.id, ids)
 		m.kingdom_id = nk.id
+		m.family_id = f.id # spouses and children from other Houses join the household's House
 		m.home_id = -1
 		m.inside = -1
 		m.deed = {}
@@ -135,6 +168,7 @@ func _found(old: Dictionary, head: Dictionary, f: Dictionary, site: Vector3) -> 
 	var angry := float(head.opinion) < 0.0 if int(old.ruler_id) < 0 else _state.relation(head.id, int(old.ruler_id)) < 0.0
 	_state.realm(old.id, nk.id).rel = GameConstants.REALM_EXODUS_REL.angry if angry else GameConstants.REALM_EXODUS_REL.calm
 	_houses.buildings_changed.emit([seat, flag])
+	families_changed.emit()
 	_log_both(old, nk, GameConstants.REALM_MSG_FOUNDED % [f.surname, old.name, nk.name])
 
 
@@ -235,7 +269,9 @@ func _envoy_arrived(from: Dictionary, to: Dictionary, act: String, envoy: Dictio
 	var r := _state.realm(from.id, to.id)
 	match act:
 		"war":
-			if not r.war:
+			# Checked again on arrival: a truce, a founder back on the throne or a ruler gone end it.
+			if not r.war and _hour >= float(r.truce_until) and int(to.ruler_id) != GameConstants.GOV_PLAYER \
+					and not RealmRules.ruler_of(_state, from).is_empty():
 				r.war = true
 				r.since = _hour
 				r.weary_a = 0.0
@@ -280,17 +316,22 @@ func _battle(atk: Dictionary, def: Dictionary, party: Array) -> void:
 		_log_both(atk, def, GameConstants.REALM_MSG_BATTLE_WIN % [def.name, atk.name, loot, burned])
 	else:
 		_log_both(atk, def, GameConstants.REALM_MSG_BATTLE_LOSE % [def.name, atk.name])
-	var defenders := RealmRules.guards(_state, def)
-	defenders.sort_custom(func(x: Dictionary, y: Dictionary) -> bool:
-		return float(x.age) < float(y.age) or (float(x.age) == float(y.age) and x.id < y.id)) # the youngest fall first
-	_casualties(def, defenders, int(res.def_loss))
-	_casualties(atk, alive, int(res.atk_loss))
+	_casualties(def, RealmRules.guards(_state, def), int(res.def_loss), rng)
+	_casualties(atk, alive, int(res.atk_loss), rng)
 
 
-## The first `n` of `people` die in battle (through the society: homes pass on, nodes go).
-func _casualties(k: Dictionary, people: Array, n: int) -> void:
-	for i in mini(n, people.size()):
-		var p: Dictionary = people[i]
+## `n` of `people` die in battle, drawn by `rng` (through the society: homes pass on, nodes go).
+func _casualties(k: Dictionary, people: Array, n: int, rng: RandomNumberGenerator = null) -> void:
+	var order := people.duplicate()
+	order.sort_custom(func(x: Dictionary, y: Dictionary) -> bool: return x.id < y.id)
+	if rng:
+		for i in range(order.size() - 1, 0, -1): # seeded shuffle: the leader is not always the first to fall
+			var j := rng.randi() % (i + 1)
+			var tmp: Dictionary = order[i]
+			order[i] = order[j]
+			order[j] = tmp
+	for i in mini(n, order.size()):
+		var p: Dictionary = order[i]
 		if _state.person(int(p.id)).is_empty():
 			continue
 		_society.kill(k, p, GameConstants.REALM_MSG_FELL % PersonGen.full_name(p))

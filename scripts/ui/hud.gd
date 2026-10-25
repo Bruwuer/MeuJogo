@@ -422,6 +422,9 @@ func realms_adm_line(k: Dictionary) -> String:
 ## Opens or closes the panel; the player stands still while it is open.
 func toggle_gov() -> void:
 	_gov_panel.visible = not _gov_panel.visible
+	if _gov_panel.visible: # always open on the first row
+		_gov_row = 0
+		_gov_act = 0
 	if _player is Player:
 		(_player as Player).frozen = _gov_panel.visible
 	_fill_gov()
@@ -437,8 +440,10 @@ func gov_text() -> String:
 
 ## Moves the selection `dy` rows (wrapping over the decrees and the known kingdoms).
 func gov_move(dy: int) -> void:
-	if dy == 0:
-		return
+	var k := _state.kingdom_at(_player.global_position)
+	if dy == 0 or k.is_empty() or int(k.ruler_id) not in [GameConstants.GOV_PLAYER, GameConstants.GOV_NOBODY] \
+			or String(k.get("founder", "player")) != "player":
+		return # nothing to choose where the player does not rule
 	_gov_row = posmod(_gov_row + dy, _GOV_KEYS.size() + _gov_realms().size())
 	_fill_gov()
 

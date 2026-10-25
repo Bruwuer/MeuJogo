@@ -7,6 +7,12 @@ extends RefCounted
 const P := GameConstants.Profession
 
 
+## A first name for a woman or a man.
+static func name_for(female: bool, rng: RandomNumberGenerator) -> String:
+	var names: Array = GameConstants.FEMALE_NAMES if female else GameConstants.MALE_NAMES
+	return names[rng.randi() % names.size()]
+
+
 ## `fame` is the player's reputation (-1..1); `profession` >= 0 forces the trade.
 static func generate(rng: RandomNumberGenerator, fame := 0.0, profession := -1) -> Dictionary:
 	var female := rng.randf() < 0.5

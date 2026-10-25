@@ -94,6 +94,21 @@ moradores só nos reinos do próprio jogador.
   se acontecer, guerra entre eles com feitos vistos.
 - Revisão final por subagente, correções, merge.
 
+## 7. Revisão final (2026-10-25): correções
+
+- **Ruling (nomes):** nos reinos NPC o nome combina com quem a pessoa é (pai e filho homens, mãe mulher).
+- **Ruling (êxodo):** vão juntos os cônjuges (mesmo de outra Casa) e os filhos menores; o lugar é conferido de novo
+  na chegada (ninguém funda em cima de uma construção), os arbustos somem também na tela, e sem lugar livre a Casa
+  tenta de novo no dia seguinte. Seis dias entre êxodos de um reino (a captura mostrou o mapa lotando em 2 semanas).
+- **Ruling (declaração de guerra):** conferida na chegada do enviado (trégua, fundador de volta ao trono, reino sem
+  governante a desfazem).
+- **Ruling (guarda de guerra):** quando o fundador volta a governar, a convocação do regente é esquecida e o decreto é dele.
+- **Ruling (fronteira):** 320 m e 0,08 por dia a cada 100 m (a captura mostrou relações paradas em zero).
+- **Ruling (presente do visitante):** em reino NPC o governante não tem "jeito" com o jogador, então doar lá é sempre
+  bem-vindo (a ressalva do governante inimigo só vale nos reinos do próprio jogador).
+- **Ruling (baixas):** quem cai é sorteado (semeado), não sempre o líder.
+- **Ruling (cabana sem reino):** perto demais de outra sede, a cabana é só cabana e o jogador é avisado.
+
 ## 6. Adendo após a revisão do design (2026-10-24)
 
 - **Ruling (cortes):** reinos NPC só declaram guerra a reinos governados por NPC (um reino do jogador entra na

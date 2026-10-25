@@ -263,3 +263,66 @@ func test_no_exodus_without_means_or_anger() -> void:
 	s.set_relation(int(poor.head_id), int(a.ruler_id), 0.5)
 	_run(40.0, 40)
 	assert_eq(s.kingdoms().size(), 2, "content Houses stay")
+
+
+# --- Final review fixes ---
+
+func test_exodus_takes_spouses_and_children_from_other_houses() -> void:
+	_fresh(400.0)
+	var gen := TerrainGenerator.new(GameConstants.WORLD_SEED)
+	realms.set_terrain(gen, PropScatter.new(gen, GameConstants.WORLD_SEED))
+	var f := _rebel_house(a)
+	var head := s.person(int(f.head_id))
+	var wife := _person(a, "Esposa", 38.0)
+	wife.female = true
+	wife.family_id = int(s.person(int(a.ruler_id)).family_id) # married in from the ruler's House
+	head.spouse_id = wife.id
+	wife.spouse_id = head.id
+	var kid := _person(a, "Filho", 8.0)
+	kid.parents = [head.id, wife.id]
+	kid.family_id = wife.family_id
+	_run(0.0, 40)
+	assert_eq(s.kingdoms().size(), 3)
+	var nk: Dictionary = s.kingdoms()[2]
+	assert_eq(int(wife.kingdom_id), nk.id, "the wife goes with her husband")
+	assert_eq(int(kid.kingdom_id), nk.id, "and their child")
+	assert_eq(int(wife.family_id), f.id)
+
+
+func test_war_envoy_checks_again_on_arrival() -> void:
+	_fresh()
+	_guards(a, 3)
+	var deed := Deeds.make("envoy", b.center, 1.0, 0.0, 10.0, 5.0, {kingdom_id = a.id, target_id = b.id, act = "war"})
+	b.ruler_id = GameConstants.GOV_PLAYER # the founder came back while the envoy walked
+	realms.complete_deed(a, s.person(int(a.ruler_id)), deed, [], 5.0)
+	assert_true(not s.at_war(a.id, b.id), "no NPC war on a kingdom the player rules")
+	b.ruler_id = -5
+	s.realm(a.id, b.id).truce_until = 100.0 # a peace was made meanwhile
+	realms.complete_deed(a, s.person(int(a.ruler_id)), deed, [], 50.0)
+	assert_true(not s.at_war(a.id, b.id), "the truce holds")
+
+
+func test_war_guard_lets_go_when_the_player_rules() -> void:
+	_fresh()
+	s.realm(a.id, b.id).war = true
+	_run(0.0, int(GameConstants.REALM_HOUR) + 1)
+	assert_true(a.war_guard)
+	a.ruler_id = GameConstants.GOV_PLAYER
+	a.decrees.guards = 1 # the founder's own choice
+	_run(GameConstants.REALM_HOUR + 1.0, 24)
+	assert_true(not a.get("war_guard", false), "the regent's call-up is forgotten")
+	assert_eq(int(a.decrees.guards), 1, "the founder's decree stands")
+
+
+func test_exodus_site_is_checked_again_when_the_head_arrives() -> void:
+	_fresh(400.0)
+	var gen := TerrainGenerator.new(GameConstants.WORLD_SEED)
+	realms.set_terrain(gen, PropScatter.new(gen, GameConstants.WORLD_SEED))
+	var f := _rebel_house(a)
+	var head := s.person(int(f.head_id))
+	_run(0.0, int(GameConstants.REALM_HOUR) + 1)
+	var site: Vector3 = head.deed.data.site
+	s.add_building(B.HOUSE, site, 0) # someone built there meanwhile
+	_run(GameConstants.REALM_HOUR + 1.0, 30)
+	assert_eq(s.kingdoms().size(), 2, "no kingdom on top of a house")
+	assert_eq(int(head.kingdom_id), a.id)

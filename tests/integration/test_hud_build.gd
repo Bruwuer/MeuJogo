@@ -194,3 +194,26 @@ func test_government_panel_sends_envoys_to_known_kingdoms() -> void:
 	_hud.gov_change(1)
 	assert_true(_hud.gov_text().contains("propor paz"))
 	_hud.toggle_gov()
+
+
+func test_government_panel_starts_at_the_top() -> void:
+	await _setup()
+	_state.add_resource(R.WOOD, 30)
+	_state.add_resource(R.STONE, 10)
+	_build.select(B.CABIN)
+	_build.try_place()
+	_build.toggle()
+	var society := SocietySim.new()
+	society.setup(_state, func(_k: Dictionary, _t: String) -> void: pass, func(_k: Dictionary) -> bool: return true,
+			func(_k: Dictionary) -> Dictionary: return {})
+	var houses := HouseSim.new()
+	houses.setup(_state, func(_k: Dictionary, _t: String) -> void: pass, society)
+	var gov := GovSim.new()
+	gov.setup(_state, houses, func(_k: Dictionary) -> bool: return true)
+	_hud.set_gov(gov)
+	_hud.toggle_gov()
+	_hud.gov_move(2)
+	_hud.toggle_gov()
+	_hud.toggle_gov()
+	assert_true(_hud.gov_text().contains("> Imposto"), "the panel opens on the first row: " + _hud.gov_text())
+	_hud.toggle_gov()

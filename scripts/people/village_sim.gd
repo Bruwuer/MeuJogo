@@ -68,6 +68,8 @@ func setup(state: WorldState, gen: TerrainGenerator, scatter: PropScatter, day_n
 	realms.setup(state, houses, society, gov)
 	realms.set_terrain(gen, scatter)
 	realms.building_burned.connect(func(r: Dictionary) -> void: building_burned.emit(r))
+	realms.prop_removed.connect(func(c: Vector2i, id: int) -> void: prop_removed.emit(c, id))
+	realms.families_changed.connect(func() -> void: families_changed.emit())
 
 
 func _process(_delta: float) -> void:

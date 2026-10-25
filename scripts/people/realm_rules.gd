@@ -28,7 +28,7 @@ static func daily_drift(state: WorldState, a: Dictionary, b: Dictionary) -> floa
 	var d := Vector2(a.center.x - b.center.x, a.center.z - b.center.z).length()
 	var drift := 0.0
 	if d < GameConstants.REALM_BORDER: # close seats quarrel over land
-		drift -= GameConstants.REALM_BORDER_RATE * (GameConstants.REALM_BORDER - d) / 100.0
+		drift -= GameConstants.REALM_BORDER_RATE * (GameConstants.REALM_BORDER - d) / GameConstants.REALM_BORDER_STEP
 	for k in [a, b]:
 		var ruler := ruler_of(state, k)
 		if ruler.is_empty():
@@ -87,7 +87,7 @@ static func battle(state: WorldState, atk: Dictionary, def: Dictionary, party: i
 			* rng.randf_range(GameConstants.REALM_ROLL.x, GameConstants.REALM_ROLL.y)
 	var wins := atk_s > def_s
 	var loser_guards := def_guards if wins else party
-	var loser_loss := 0 if loser_guards == 0 else maxi(1, ceili(0.5 * loser_guards))
+	var loser_loss := 0 if loser_guards == 0 else maxi(1, ceili(GameConstants.REALM_LOSS_SHARE * loser_guards))
 	var ratio := minf(1.0, (def_s if wins else atk_s) / maxf(0.01, atk_s if wins else def_s))
 	var winner_loss := floori(loser_loss * ratio)
 	return {attacker_wins = wins, atk_loss = winner_loss if wins else loser_loss,

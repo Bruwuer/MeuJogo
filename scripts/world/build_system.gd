@@ -97,6 +97,8 @@ func try_place() -> bool:
 	built.emit(rec)
 	if type == GameConstants.Building.CABIN and founds_kingdom(_state, rec.pos):
 		_found_kingdom(rec)
+	elif type == GameConstants.Building.CABIN and _state.kingdom_at(rec.pos).is_empty():
+		message.emit(GameConstants.BUILD_MSG_NO_REALM % _nearest_kingdom_name(rec.pos))
 	return true
 
 
@@ -215,6 +217,17 @@ static func founds_kingdom(state: WorldState, pos: Vector3) -> bool:
 		if Vector2(pos.x - k.center.x, pos.z - k.center.z).length() < GameConstants.REALM_MIN_GAP:
 			return false
 	return true
+
+
+func _nearest_kingdom_name(pos: Vector3) -> String:
+	var best := ""
+	var best_d := INF
+	for k in _state.kingdoms():
+		var d := Vector2(pos.x - k.center.x, pos.z - k.center.z).length()
+		if d < best_d:
+			best_d = d
+			best = k.name
+	return best
 
 
 func _is_seat(building_id: int) -> bool:

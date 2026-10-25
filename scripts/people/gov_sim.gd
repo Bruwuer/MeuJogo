@@ -184,7 +184,11 @@ func _crowned(k: Dictionary, p: Dictionary) -> void:
 	if k.get("pending_heir", false):
 		_log(k, GameConstants.GOV_MSG_HEIR % [PersonGen.full_name(p), k.name])
 	else:
-		_log(k, GameConstants.GOV_MSG_CROWNED % [PersonGen.full_name(p), k.name, GameConstants.GOV_WAY_NAMES[k.ruler_way]])
+		var way: String = GameConstants.GOV_WAY_NAMES[k.ruler_way]
+		if way == "":
+			_log(k, GameConstants.GOV_MSG_CROWNED_PLAIN % [PersonGen.full_name(p), k.name])
+		else:
+			_log(k, GameConstants.GOV_MSG_CROWNED % [PersonGen.full_name(p), k.name, way])
 
 
 func _set_player(k: Dictionary) -> void:

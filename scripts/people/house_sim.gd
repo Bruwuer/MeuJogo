@@ -243,7 +243,7 @@ func _discoveries(k: Dictionary) -> void:
 func _deeds(k: Dictionary) -> void:
 	for p in _state.residents(k.id):
 		var deed: Dictionary = p.get("deed", {})
-		if deed.is_empty():
+		if deed.is_empty() or _state.person(int(p.id)).is_empty(): # fell in a battle earlier this hour
 			continue
 		if Deeds.expired(deed, _hour):
 			if has_node.call(p.id):

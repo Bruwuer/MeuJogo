@@ -64,3 +64,10 @@ func test_npc_kingdom_crowns_a_ruler_on_its_own() -> void:
 	for k in s.kingdoms():
 		assert_true(int(k.ruler_id) >= 0, "%s has no ruler after 40 h" % k.name)
 	sim.free()
+
+
+func test_names_match_who_they_are() -> void:
+	var s := _seeded(Vector3(380, 0, 380))
+	for p in s.all_people():
+		var names: Array = GameConstants.FEMALE_NAMES if p.female else GameConstants.MALE_NAMES
+		assert_true(names.has(p.name), "%s is %s" % [p.name, "a woman" if p.female else "a man"])

@@ -28,7 +28,7 @@ static func seed(state: WorldState, gen: TerrainGenerator, scatter: PropScatter,
 ## A seat spot on the map, away from the edge, from `avoid` and from every kingdom; (-1, -1, -1)
 ## when none is found.
 static func _place(state: WorldState, gen: TerrainGenerator, scatter: PropScatter, avoid: Array,
-		rng: RandomNumberGenerator) -> Vector3:
+		rng: RandomNumberGenerator, clear_bushes := true) -> Vector3:
 	var margin := GameConstants.KINGDOM_RADIUS + GameConstants.REALM_EDGE_MARGIN
 	var size := ChunkMath.playable_size()
 	var others: Array = avoid.duplicate()
@@ -40,8 +40,9 @@ static func _place(state: WorldState, gen: TerrainGenerator, scatter: PropScatte
 			continue
 		var check := BuildRules.check_site(B.CABIN, pos, 0, gen, scatter, state, [])
 		if check.ok:
-			for bush: Dictionary in check.bushes:
-				state.mark_removed(bush.chunk, bush.id)
+			if clear_bushes:
+				for bush: Dictionary in check.bushes:
+					state.mark_removed(bush.chunk, bush.id)
 			return Vector3(pos.x, check.y, pos.z)
 	return Vector3(-1, -1, -1)
 
@@ -84,12 +85,14 @@ static func _build(state: WorldState, gen: TerrainGenerator, scatter: PropScatte
 static func _family(state: WorldState, k: Dictionary, home: Dictionary, surname: String, trades: Array,
 		rng: RandomNumberGenerator) -> void:
 	var members: Array[Dictionary] = []
-	var ages := [rng.randf_range(34.0, 46.0), rng.randf_range(30.0, 42.0), rng.randf_range(17.0, 21.0)]
 	for i in 3:
 		var p := PersonGen.generate(rng, 0.0, int(trades[i]))
 		p.surname = surname
-		p.female = i == 1
-		p.age = ages[i]
+		if bool(p.female) != (i == 1): # the mother is a woman, the father and the son are men
+			p.female = i == 1
+			p.name = PersonGen.name_for(p.female, rng)
+		var ages: Vector2 = GameConstants.REALM_NPC_AGES[i]
+		p.age = rng.randf_range(ages.x, ages.y)
 		var rec := state.add_person(p, home.get("pos", k.center), k.id)
 		rec.status = "resident"
 		rec.opinion = 0.0
