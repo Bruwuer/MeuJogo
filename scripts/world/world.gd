@@ -48,12 +48,15 @@ var _autosave_left := GameConstants.AUTOSAVE_SEC
 var _pause: PauseMenu
 var _last_step_pos := Vector3.ZERO
 var _fires_left := 0.0
+var _sound: SoundSystem
 
 
 func _ready() -> void:
 	if save_path == GameConstants.SAVE_FROM_SESSION:
 		slots.migrate_legacy()
-		save_path = slots.path(Session.slot if Session.slot > 0 else 1)
+		var session := get_node_or_null("/root/Session")
+		var slot: int = session.slot if session and int(session.slot) > 0 else 1
+		save_path = slots.path(slot)
 	_state = WorldState.load_from(save_path) if save_path != "" else null
 	if _state == null and save_path != "" and WorldState.any_file_exists(save_path):
 		_set_aside_unreadable_save()
@@ -152,16 +155,21 @@ func _physics_process(_delta: float) -> void:
 # --- Sound (stage 12) ---
 
 func _wire_sound() -> void:
-	Sound.attach_listener(_player)
+	_sound = get_node_or_null("/root/Sound") as SoundSystem # autoloads are not known when this compiles under -s
+	if _sound == null:
+		return
+	_sound.attach_listener(_player)
 	_last_step_pos = _player.global_position
-	_player.attacked.connect(func(w: int) -> void: Sound.play("bow" if w == GameConstants.Weapon.BOW else "swing"))
-	_player.struck.connect(func() -> void: Sound.play("hit"))
+	_player.attacked.connect(func(w: int) -> void: _sound.play("bow" if w == GameConstants.Weapon.BOW else "swing"))
+	_player.struck.connect(func() -> void: _sound.play("hit"))
 	_harvest.struck.connect(func(prop_type: int) -> void:
-		Sound.play("pick" if prop_type == GameConstants.Prop.ROCK else ("chop" if prop_type != GameConstants.Prop.BUSH else "ui_move")))
+		_sound.play("pick" if prop_type == GameConstants.Prop.ROCK else ("chop" if prop_type != GameConstants.Prop.BUSH else "ui_move")))
 
 
 ## A footstep every SOUND_STEP_WALK metres walked on the ground (longer strides running).
 func _footsteps(pos: Vector3) -> void:
+	if _sound == null:
+		return
 	if not _player.is_on_floor():
 		_last_step_pos = pos
 		return
@@ -171,12 +179,14 @@ func _footsteps(pos: Vector3) -> void:
 		_last_step_pos = pos
 	elif moved >= stride:
 		_last_step_pos = pos
-		Sound.step()
+		_sound.step()
 
 
 ## Music and ambience follow the day, the night and the rain; the nearest campfires crackle.
 func _sound_scene(delta: float, wet: bool) -> void:
-	Sound.set_scene(_day_night.is_night(), wet)
+	if _sound == null:
+		return
+	_sound.set_scene(_day_night.is_night(), wet)
 	_fires_left -= delta
 	if _fires_left > 0.0:
 		return
@@ -187,7 +197,7 @@ func _sound_scene(delta: float, wet: bool) -> void:
 		if b.type == GameConstants.Building.CAMPFIRE and not b.get("site", false) \
 				and (b.pos as Vector3).distance_to(at) <= GameConstants.SOUND_RANGE:
 			fires.append(b.pos)
-	Sound.update_fires(fires)
+	_sound.update_fires(fires)
 
 
 func _process(delta: float) -> void:

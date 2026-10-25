@@ -178,7 +178,9 @@ func _used_slots() -> Array[int]:
 func _open(slot: int) -> void:
 	if slot < 1:
 		return
-	Session.slot = slot
+	var session := get_tree().root.get_node_or_null("Session")
+	if session:
+		session.slot = slot
 	open_world.call(slot)
 
 

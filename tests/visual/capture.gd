@@ -23,6 +23,7 @@ func _run() -> void:
 	for f in DirAccess.get_files_at(OUT_DIR):
 		DirAccess.remove_absolute(ProjectSettings.globalize_path(OUT_DIR.path_join(f)))
 	DirAccess.make_dir_recursive_absolute(ProjectSettings.globalize_path(OUT_DIR))
+	await _menus()
 	_world = load(MAIN_SCENE).instantiate()
 	_world.spawn_seed = SPAWN_SEED
 	_world.world_seed = GameConstants.WORLD_SEED
@@ -74,6 +75,7 @@ func _run() -> void:
 	await _society()
 	await _houses()
 	await _creatures(scatter)
+	await _pause()
 	print("WORST_FRAME_MS %.1f" % _worst_ms)
 	print("WOOD %d" % _world.get_state().get_resource(GameConstants.Res.WOOD))
 	quit(0)
@@ -345,6 +347,52 @@ func _houses() -> void:
 	var f := FileAccess.open(ProjectSettings.globalize_path(OUT_DIR.path_join("adm_log.txt")), FileAccess.WRITE)
 	f.store_string("\n".join(lines) + "\n")
 	print("ADM LOG: %d lines" % lines.size())
+
+
+## Stage 12: the start menu with a saved game in slot 1 (in a scratch folder, never the real saves),
+## the slot list and the options.
+func _menus() -> void:
+	var dir := "user://capture_slots/"
+	DirAccess.make_dir_recursive_absolute(ProjectSettings.globalize_path(dir))
+	var slots := SaveSlots.new(dir)
+	var s := WorldState.new()
+	s.add_kingdom("Valdemar", Color.RED, Vector3.ZERO, -1)
+	s.day = 7
+	s.save_to(slots.path(1))
+	slots.write_summary(1, s, int(Time.get_unix_time_from_system()))
+	var menu := MainMenu.new()
+	menu.slots = slots
+	menu.settings_path = dir + "settings.cfg"
+	menu.open_world = func(_slot: int) -> void: pass
+	menu.quit = func() -> void: pass
+	root.add_child(menu)
+	await _frames(10)
+	await _shot("50_menu")
+	menu.select(menu.items().find(GameConstants.MENU_NEW))
+	menu.confirm()
+	await _frames(5)
+	await _shot("51_menu_slots")
+	menu.back()
+	menu.select(menu.items().find(GameConstants.MENU_OPTIONS))
+	menu.confirm()
+	await _frames(5)
+	await _shot("52_menu_options")
+	menu.queue_free()
+	for i in range(1, GameConstants.SAVE_SLOTS + 1):
+		slots.clear(i)
+	await _frames(2)
+
+
+## Stage 12: Esc in the world pauses it.
+func _pause() -> void:
+	_set_time(DAY_TIME)
+	await _teleport(_village_spot + Vector3(0, 0, 10) if _village_spot.x >= 0.0 else _world.get_player().global_position)
+	await _physics(20)
+	var pause := _world.get_pause_menu()
+	pause.open()
+	await _frames(5)
+	await _shot("53_pause")
+	pause.close()
 
 
 func _ground(gen: TerrainGenerator, pos: Vector3) -> Vector3:
