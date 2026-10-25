@@ -97,7 +97,7 @@ func test_kingdom_label_inside_territory_and_toast() -> void:
 func test_hint_outside_build_mode() -> void:
 	await _setup()
 	await wait_physics_frames(2)
-	assert_eq(_label("Hint").text, "E fala · G doa · B construir · X demolir · Espaço ataca · H come · F flechas")
+	assert_eq(_label("Hint").text, "E fala · G doa · B construir · X demolir · Espaço ataca · H come · F flechas · P governo")
 
 
 func test_resources_label_follows_any_change() -> void:
@@ -105,3 +105,52 @@ func test_resources_label_follows_any_change() -> void:
 	_state.add_resource(R.STONE, 7)
 	await wait_physics_frames(1)
 	assert_eq(_label("Resources").text, "Madeira: 0   Pedra: 7   Frutas: 0")
+
+
+func test_government_panel_changes_decrees() -> void:
+	await _setup()
+	_state.add_resource(R.WOOD, 30)
+	_state.add_resource(R.STONE, 10)
+	_build.select(B.CABIN)
+	_build.try_place()
+	_build.toggle()
+	var k: Dictionary = _state.kingdoms()[0]
+	var society := SocietySim.new()
+	society.setup(_state, func(_k: Dictionary, _t: String) -> void: pass, func(_k: Dictionary) -> bool: return true,
+			func(_k: Dictionary) -> Dictionary: return {})
+	var houses := HouseSim.new()
+	houses.setup(_state, func(_k: Dictionary, _t: String) -> void: pass, society)
+	var gov := GovSim.new()
+	gov.setup(_state, houses, func(_k: Dictionary) -> bool: return true)
+	_hud.set_gov(gov)
+	_player.frozen = false
+	await wait_physics_frames(2)
+	assert_eq(_label("Kingdom").text, "Reino de %s · %s" % [k.name, GameConstants.GOV_LABEL_YOU])
+	_hud.toggle_gov()
+	assert_true(_hud.gov_visible())
+	assert_true(_player.frozen, "the player stands still while governing")
+	assert_true(_hud.gov_text().contains("> Imposto: nenhum"), _hud.gov_text())
+	_hud.gov_change(1)
+	assert_eq(String(k.decrees.tax), "low")
+	_hud.gov_move(1)
+	_hud.gov_change(1)
+	assert_eq(String(k.decrees.ration), "farta")
+	assert_true(_hud.gov_text().contains("> Ração: farta"), _hud.gov_text())
+	_hud.gov_move(1)
+	_hud.gov_move(1)
+	_hud.gov_change(1)
+	assert_eq(int(k.decrees.build), GameConstants.Building.HOUSE)
+	_hud.toggle_gov()
+	assert_true(not _hud.gov_visible())
+	assert_true(not _player.frozen)
+	var ruler := _state.add_person(PersonGen.generate(RandomNumberGenerator.new()), k.center, k.id)
+	ruler.status = "resident"
+	k.ruler_id = ruler.id
+	k.ruler_way = "inimigo"
+	_hud.toggle_gov()
+	assert_true(_hud.gov_text().contains("não é seu"), _hud.gov_text())
+	_hud.gov_change(1)
+	assert_eq(String(k.decrees.tax), "low", "no decrees from someone who does not rule")
+	await wait_physics_frames(2)
+	assert_eq(_label("Kingdom").text, "Reino de %s · %s" % [k.name, GameConstants.GOV_LABEL_RULER % PersonGen.full_name(ruler)])
+	_hud.toggle_gov()

@@ -50,6 +50,11 @@ var _families_box: VBoxContainer
 var _families_left := 0.0
 var _chronicle: PanelContainer
 var _chronicle_label: Label
+var _gov: GovSim
+var _gov_panel: PanelContainer
+var _gov_label: Label
+var _gov_row := 0
+const _GOV_KEYS := ["tax", "ration", "guards", "build"]
 
 
 func setup(state: WorldState, harvest: HarvestSystem, day_night: DayNight, player: Node3D,
@@ -97,6 +102,19 @@ func setup(state: WorldState, harvest: HarvestSystem, day_night: DayNight, playe
 	_card.add_child(row)
 	add_child(_card)
 	_make_families_panel(style)
+	_gov_panel = PanelContainer.new()
+	_gov_panel.name = "GovPanel"
+	_gov_panel.set_anchors_and_offsets_preset(Control.PRESET_CENTER)
+	_gov_panel.offset_left = -_WIDE * 0.5
+	_gov_panel.offset_right = _WIDE * 0.5
+	_gov_panel.grow_vertical = Control.GROW_DIRECTION_BOTH
+	_gov_panel.add_theme_stylebox_override("panel", style)
+	_gov_panel.visible = false
+	_gov_label = Label.new()
+	_gov_label.add_theme_font_size_override("font_size", _FONT_SIZE)
+	_gov_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_gov_panel.add_child(_gov_label)
+	add_child(_gov_panel)
 	_prompt = _make_label("Prompt", Control.PRESET_CENTER_BOTTOM, HORIZONTAL_ALIGNMENT_CENTER)
 	_center_h(_prompt, 400.0)
 	_prompt.offset_top = -_PROMPT_BOTTOM
@@ -113,7 +131,7 @@ func setup(state: WorldState, harvest: HarvestSystem, day_night: DayNight, playe
 	_hint = _make_label("Hint", Control.PRESET_BOTTOM_LEFT, HORIZONTAL_ALIGNMENT_LEFT)
 	_hint.offset_left = _MARGIN
 	_hint.offset_top = -_MARGIN - _FONT_SIZE * 1.5
-	_hint.text = "E fala · G doa · B construir · X demolir · Espaço ataca · H come · F flechas"
+	_hint.text = "E fala · G doa · B construir · X demolir · Espaço ataca · H come · F flechas · P governo"
 	_toast = _make_label("Toast", Control.PRESET_CENTER, HORIZONTAL_ALIGNMENT_CENTER)
 	_toast.add_theme_font_size_override("font_size", _TOAST_FONT_SIZE)
 	_center_h(_toast, _WIDE * 2.0)
@@ -157,6 +175,8 @@ func _physics_process(delta: float) -> void:
 	_kingdom.visible = not kingdom.is_empty()
 	if _kingdom.visible:
 		_kingdom.text = "Reino de %s" % kingdom.name
+		if _gov:
+			_kingdom.text += " · " + gov_line(kingdom)
 		_village.text = village_line(kingdom)
 	_village.visible = _kingdom.visible
 	_update_families(delta, kingdom)
@@ -330,10 +350,118 @@ func _make_families_panel(style: StyleBox) -> void:
 
 
 func _unhandled_input(event: InputEvent) -> void:
+	if event.is_action_pressed("gov_panel"):
+		toggle_gov()
+		get_viewport().set_input_as_handled()
+		return
+	if _gov_panel.visible:
+		var moves := {ui_up = [-1, 0], ui_down = [1, 0], ui_left = [0, -1], ui_right = [0, 1]}
+		for action: String in moves:
+			if event.is_action_pressed(action):
+				gov_move(moves[action][0])
+				gov_change(moves[action][1])
+				get_viewport().set_input_as_handled()
+				return
 	if event.is_action_pressed("adm_houses"):
 		toggle_families()
 	elif event.is_action_pressed("adm_log"):
 		toggle_chronicle()
+
+
+# --- Government panel (P): the player's own decrees ---
+
+func set_gov(gov: GovSim) -> void:
+	_gov = gov
+
+
+## "Governo: você" or "Governo: <ruler>" (who rules is public).
+func gov_line(k: Dictionary) -> String:
+	var ruler := _state.person(int(k.ruler_id))
+	if int(k.ruler_id) < 0 or ruler.is_empty():
+		return GameConstants.GOV_LABEL_YOU
+	return GameConstants.GOV_LABEL_RULER % PersonGen.full_name(ruler)
+
+
+## The ADM's view of the government (F10): ruler, way, corruption, decrees and what was skimmed.
+func gov_adm_line(k: Dictionary) -> String:
+	var way := String(GameConstants.GOV_WAY_NAMES.get(String(k.ruler_way), ""))
+	if bool(k.ruler_corrupt):
+		way = (way + ", " if way != "" else "") + "corrupto"
+	var d: Dictionary = k.decrees
+	return GameConstants.GOV_ADM_LINE % [gov_line(k).trim_prefix("Governo: "), way if way != "" else "fundador",
+			GovSim.value_name("tax", d.tax), GovSim.value_name("ration", d.ration), GovSim.value_name("guards", d.guards),
+			GovSim.value_name("build", d.build), int(k.ruler_skimmed)]
+
+
+## Opens or closes the panel; the player stands still while it is open.
+func toggle_gov() -> void:
+	_gov_panel.visible = not _gov_panel.visible
+	if _player is Player:
+		(_player as Player).frozen = _gov_panel.visible
+	_fill_gov()
+
+
+func gov_visible() -> bool:
+	return _gov_panel.visible
+
+
+func gov_text() -> String:
+	return _gov_label.text
+
+
+## Moves the selection `dy` rows (wrapping).
+func gov_move(dy: int) -> void:
+	if dy == 0:
+		return
+	_gov_row = posmod(_gov_row + dy, _GOV_KEYS.size())
+	_fill_gov()
+
+
+## Changes the selected decree by `dx` steps (only while the player governs this kingdom).
+func gov_change(dx: int) -> void:
+	var k := _state.kingdom_at(_player.global_position)
+	if dx == 0 or _gov == null or k.is_empty():
+		return
+	var key: String = _GOV_KEYS[_gov_row]
+	var options := _gov_options(key)
+	var i := options.find(k.decrees[key])
+	_gov.set_decree(k, key, options[clampi(i + dx, 0, options.size() - 1)])
+	_fill_gov()
+
+
+static func _gov_options(key: String) -> Array:
+	match key:
+		"tax":
+			return GameConstants.GOV_TAX_LEVELS
+		"ration":
+			return GameConstants.GOV_RATION_LEVELS
+		"guards":
+			return range(GameConstants.GOV_GUARDS_FREE, GameConstants.GOV_GUARDS_MAX + 1)
+	return GameConstants.GOV_BUILD_CHOICES
+
+
+func _fill_gov() -> void:
+	if not _gov_panel.visible:
+		return
+	var k := _state.kingdom_at(_player.global_position)
+	if k.is_empty() or _gov == null:
+		_gov_label.text = GameConstants.GOV_PANEL_OUTSIDE
+		return
+	if int(k.ruler_id) != GameConstants.GOV_PLAYER:
+		_gov_label.text = GameConstants.GOV_PANEL_TITLE % k.name + "
+
+" + (_gov.refusal(k) if not _gov.player_may_act(k)
+				else gov_line(k))
+		return
+	var lines: PackedStringArray = [GameConstants.GOV_PANEL_TITLE % k.name, ""]
+	for i in _GOV_KEYS.size():
+		var key: String = _GOV_KEYS[i]
+		lines.append("%s %s: %s" % [">" if i == _gov_row else " ", GameConstants.GOV_DECREE_NAMES[key],
+				GovSim.value_name(key, k.decrees[key])])
+	lines.append("")
+	lines.append(GameConstants.GOV_PANEL_HINT)
+	_gov_label.text = "
+".join(lines)
 
 
 # --- ADM panels (F9 log, F10 Houses): dev only, the player never sees kingdom events ---
@@ -437,6 +565,9 @@ func _fill_families(k: Dictionary) -> void:
 		c.queue_free()
 	var title := Label.new()
 	title.text = GameConstants.FAMILIES_TITLE % k.name
+	if _gov:
+		title.text += "
+" + gov_adm_line(k)
 	title.add_theme_font_size_override("font_size", _FONT_SIZE)
 	_families_box.add_child(title)
 	var rows := PeopleManager.family_rows(_state, k)
